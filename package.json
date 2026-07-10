@@ -1,0 +1,34 @@
+{
+  "name": "clispark",
+  "version": "0.1.0",
+  "description": "Interactive scaffolding tool for new CLI projects",
+  "type": "module",
+  "bin": {
+    "clispark": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "postbuild": "shx chmod +x dist/cli.js",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.9.1",
+    "commander": "^13.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "shx": "^0.3.4",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
