@@ -2,12 +2,33 @@
   "name": "clispark",
   "version": "0.1.0",
   "description": "Interactive scaffolding tool for new CLI projects",
+  "keywords": [
+    "cli",
+    "scaffolding",
+    "generator",
+    "boilerplate",
+    "starter",
+    "oclif",
+    "typescript"
+  ],
+  "homepage": "https://github.com/martinwichner/clispark#readme",
+  "bugs": {
+    "url": "https://github.com/martinwichner/clispark/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/martinwichner/clispark.git"
+  },
+  "license": "MIT",
+  "author": "Martin Mohn <martin.wichner@googlemail.com>",
   "type": "module",
   "bin": {
     "clispark": "./dist/cli.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE",
+    "README.md"
   ],
   "engines": {
     "node": ">=18"
