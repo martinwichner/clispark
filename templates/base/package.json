@@ -25,14 +25,18 @@
   "scripts": {
     "build": "tsup",
     "postbuild": "shx chmod +x bin/run.js",
+    "pretest": "npm run build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@oclif/core": "^4.0.0",
-    "@oclif/plugin-help": "^6.0.0"
+    "@oclif/plugin-help": "^6.0.0",
+    "env-paths": "^3.0.0",
+    "pino": "^9.6.0"
   },
   "devDependencies": {
+    "@oclif/test": "^4.0.0",
     "@types/node": "^22.10.5",
     "shx": "^0.3.4",
     "tsup": "^8.3.5",

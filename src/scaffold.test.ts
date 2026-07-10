@@ -45,6 +45,12 @@ describe('copyTemplate', () => {
 
     const baseCommandTs = await readFile(path.join(targetDir, 'src', 'base-command.ts'), 'utf8');
     expect(baseCommandTs).toContain('export abstract class BaseCommand extends Command');
+
+    const helloTs = await readFile(path.join(targetDir, 'src', 'commands', 'hello.ts'), 'utf8');
+    expect(helloTs).toContain('export default class Hello extends BaseCommand');
+
+    const helloTestTs = await readFile(path.join(targetDir, 'src', 'commands', 'hello.test.ts'), 'utf8');
+    expect(helloTestTs).toContain("runCommand('hello')");
   });
 
   it('creates the target directory when it does not exist yet', async () => {
