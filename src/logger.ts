@@ -21,7 +21,7 @@ export function createLogger(commandName: string, logDir: string = paths.log): L
   mkdirSync(logDir, { recursive: true });
 
   const logFilePath = path.join(logDir, buildLogFileName(commandName));
-  const logger = pino(pino.destination(logFilePath));
+  const logger = pino(pino.destination({ dest: logFilePath, sync: true }));
 
   return { logger, logFilePath };
 }
