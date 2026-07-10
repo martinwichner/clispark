@@ -43,9 +43,11 @@
   },
   "dependencies": {
     "@clack/prompts": "^0.9.1",
-    "commander": "^13.1.0"
+    "commander": "^13.1.0",
+    "cross-spawn": "^7.0.3"
   },
   "devDependencies": {
+    "@types/cross-spawn": "^6.0.6",
     "@types/node": "^22.10.5",
     "shx": "^0.3.4",
     "tsup": "^8.3.5",

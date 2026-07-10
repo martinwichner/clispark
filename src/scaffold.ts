@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import spawn from 'cross-spawn';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { cp, readdir, readFile, rename, writeFile } from 'node:fs/promises';
@@ -45,7 +45,7 @@ export interface ScaffoldDeps {
 
 async function defaultRunCommand(command: string, args: string[], cwd: string): Promise<void> {
   await new Promise<void>((resolve, reject) => {
-    const child = spawn(command, args, { cwd, stdio: 'inherit', shell: process.platform === 'win32' });
+    const child = spawn(command, args, { cwd, stdio: 'inherit' });
     child.on('error', reject);
     child.on('close', (code) => {
       if (code === 0) {
