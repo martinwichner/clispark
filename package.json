@@ -44,7 +44,9 @@
   "dependencies": {
     "@clack/prompts": "^0.9.1",
     "commander": "^13.1.0",
-    "cross-spawn": "^7.0.3"
+    "cross-spawn": "^7.0.3",
+    "env-paths": "^3.0.0",
+    "pino": "^9.6.0"
   },
   "devDependencies": {
     "@types/cross-spawn": "^6.0.6",
