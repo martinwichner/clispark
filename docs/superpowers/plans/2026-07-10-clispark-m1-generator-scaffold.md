@@ -324,7 +324,7 @@ describe('runWizard', () => {
     vi.mocked(text).mockResolvedValueOnce('my-cli');
     vi.mocked(select).mockResolvedValueOnce('private');
     const checkAvailability = vi
-      .fn<(name: string, registryUrl: string) => Promise<NameCheckResult>>()
+      .fn<(name: string, registryUrl?: string) => Promise<NameCheckResult>>()
       .mockResolvedValueOnce('available');
 
     const result = await runWizard({ checkAvailability });
@@ -348,7 +348,7 @@ describe('runWizard', () => {
       .mockResolvedValueOnce('free-name');
     vi.mocked(select).mockResolvedValueOnce('private');
     const checkAvailability = vi
-      .fn<(name: string, registryUrl: string) => Promise<NameCheckResult>>()
+      .fn<(name: string, registryUrl?: string) => Promise<NameCheckResult>>()
       .mockResolvedValueOnce('taken')
       .mockResolvedValueOnce('available');
 
@@ -366,7 +366,7 @@ describe('runWizard', () => {
       .mockResolvedValueOnce('https://npm.mycompany.dev');
     vi.mocked(select).mockResolvedValueOnce('work');
     const checkAvailability = vi
-      .fn<(name: string, registryUrl: string) => Promise<NameCheckResult>>()
+      .fn<(name: string, registryUrl?: string) => Promise<NameCheckResult>>()
       .mockResolvedValueOnce('available');
 
     const result = await runWizard({ checkAvailability });
@@ -379,7 +379,7 @@ describe('runWizard', () => {
     vi.mocked(text).mockResolvedValueOnce('my-cli');
     vi.mocked(select).mockResolvedValueOnce('private');
     const checkAvailability = vi
-      .fn<(name: string, registryUrl: string) => Promise<NameCheckResult>>()
+      .fn<(name: string, registryUrl?: string) => Promise<NameCheckResult>>()
       .mockResolvedValueOnce('unverified');
 
     const result = await runWizard({ checkAvailability });
