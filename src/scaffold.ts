@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { cp, readdir, readFile, rename, writeFile } from 'node:fs/promises';
@@ -36,4 +37,38 @@ export async function copyTemplate(options: ScaffoldOptions): Promise<void> {
 
   await replacePlaceholder(path.join(targetDir, 'package.json'), projectName);
   await replacePlaceholder(path.join(targetDir, 'README.md'), projectName);
+}
+
+export interface ScaffoldDeps {
+  runCommand: (command: string, args: string[], cwd: string) => Promise<void>;
+}
+
+async function defaultRunCommand(command: string, args: string[], cwd: string): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn(command, args, { cwd, stdio: 'inherit', shell: process.platform === 'win32' });
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Command "${command} ${args.join(' ')}" exited with code ${code}`));
+      }
+    });
+  });
+}
+
+const defaultScaffoldDeps: ScaffoldDeps = { runCommand: defaultRunCommand };
+
+export async function scaffoldProject(
+  options: ScaffoldOptions,
+  deps: ScaffoldDeps = defaultScaffoldDeps,
+): Promise<void> {
+  await copyTemplate(options);
+
+  const { targetDir } = options;
+  await deps.runCommand('git', ['init'], targetDir);
+  await deps.runCommand('git', ['add', '-A'], targetDir);
+  await deps.runCommand('git', ['commit', '-m', 'chore: initial scaffold from clispark'], targetDir);
+  await deps.runCommand('npm', ['install'], targetDir);
+  await deps.runCommand('npm', ['run', 'build'], targetDir);
 }

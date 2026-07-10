@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+// src/scaffold.test.ts
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { copyTemplate } from './scaffold.js';
+import { copyTemplate, scaffoldProject } from './scaffold.js';
 
 describe('copyTemplate', () => {
   let tmpRoot: string;
@@ -65,6 +66,52 @@ describe('copyTemplate', () => {
 
     await expect(copyTemplate({ projectName: 'occupied', targetDir })).rejects.toThrow(
       /already exists and is not empty/,
+    );
+  });
+});
+
+describe('scaffoldProject', () => {
+  let tmpRoot: string;
+
+  beforeEach(async () => {
+    tmpRoot = await mkdtemp(path.join(tmpdir(), 'clispark-test-'));
+  });
+
+  afterEach(async () => {
+    await rm(tmpRoot, { recursive: true, force: true });
+  });
+
+  it('copies the template, then runs git init/add/commit and npm install/build in order', async () => {
+    const targetDir = path.join(tmpRoot, 'my-cli');
+    const calls: Array<{ command: string; args: string[]; cwd: string }> = [];
+    const runCommand = vi.fn(async (command: string, args: string[], cwd: string) => {
+      calls.push({ command, args, cwd });
+    });
+
+    await scaffoldProject({ projectName: 'my-cli', targetDir }, { runCommand });
+
+    expect(calls.map((c) => `${c.command} ${c.args.join(' ')}`)).toEqual([
+      'git init',
+      'git add -A',
+      'git commit -m chore: initial scaffold from clispark',
+      'npm install',
+      'npm run build',
+    ]);
+    expect(calls.every((c) => c.cwd === targetDir)).toBe(true);
+
+    // template files were actually copied before any command ran
+    const pkg = JSON.parse(await readFile(path.join(targetDir, 'package.json'), 'utf8'));
+    expect(pkg.name).toBe('my-cli');
+  });
+
+  it('propagates an error from a failing command without swallowing it', async () => {
+    const targetDir = path.join(tmpRoot, 'fails');
+    const runCommand = vi.fn(async (command: string) => {
+      if (command === 'npm') throw new Error('npm install failed');
+    });
+
+    await expect(scaffoldProject({ projectName: 'fails', targetDir }, { runCommand })).rejects.toThrow(
+      'npm install failed',
     );
   });
 });
