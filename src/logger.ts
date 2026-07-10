@@ -32,9 +32,19 @@ export function withLogging(
   logDir: string = paths.log,
 ): () => Promise<void> {
   return async () => {
-    const { logger, logFilePath } = createLogger(commandName, logDir);
+    let handle: LoggerHandle;
+    try {
+      handle = createLogger(commandName, logDir);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`\n✖ ${message}`);
+      process.exit(1);
+      return;
+    }
 
+    const { logger, logFilePath } = handle;
     logger.info({ command: commandName }, 'started');
+
     try {
       await action(logger);
       logger.info({ command: commandName }, 'completed');

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -75,6 +75,29 @@ describe('withLogging', () => {
     expect(exitSpy).not.toHaveBeenCalled();
 
     exitSpy.mockRestore();
+  });
+
+  it('prints a clean error and exits when logger setup itself fails, without a raw stack trace', async () => {
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const action = vi.fn(async () => {});
+
+    // Create a file where the log directory should be, so mkdirSync fails (setup error, not an action error).
+    const blockingFilePath = path.join(tmpRoot, 'blocking-file');
+    await writeFile(blockingFilePath, 'x');
+    const invalidLogDir = path.join(blockingFilePath, 'nested');
+
+    const wrapped = withLogging('scaffold', action, invalidLogDir);
+    await wrapped();
+
+    expect(action).not.toHaveBeenCalled();
+    const printedLines = errorSpy.mock.calls.map((call) => String(call[0]));
+    expect(printedLines.some((line) => line.includes('✖'))).toBe(true);
+    expect(printedLines.every((line) => !line.includes('at ') && !line.includes('.js:'))).toBe(true);
+    expect(exitSpy).toHaveBeenCalledWith(1);
+
+    exitSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
   it('prints a clean one-line error message and exits with code 1 on failure, without a raw stack trace', async () => {
