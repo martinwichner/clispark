@@ -17,6 +17,7 @@
 - Template mechanism: a single bundled `templates/base/` directory shipped inside the `clispark` package, copied verbatim except for a literal `{{projectName}}` string replacement in `package.json` and `README.md`. No templating library/dependency.
 - Generated project's tech choices (deliberately diverging from oclif's own default generator, verified against a real `oclif generate` reference run on 2026-07-10): **tsup** (not `tsc -b`) as build tool, with `entry: ['src/index.ts', 'src/commands/**/*.ts']` already prepared for M3; **vitest** (not mocha) as test framework; no eslint/prettier/CI workflow files (out of scope); dependencies limited to `@oclif/core` + `@oclif/plugin-help` (no `@oclif/plugin-plugins` — YAGNI); no `bin/dev.js` in M2 (not useful without commands yet, added in M3); no `oclif.manifest.json` prepack step (deferred, not needed for a working M2).
 - Shell commands (git, npm) in the scaffold engine must go through an injectable dependency (`ScaffoldDeps.runCommand`) so unit tests never spawn real subprocesses. File-copy and placeholder-replacement logic uses real `node:fs/promises` calls against real temporary directories in tests (fast, no network) — it does not need mocking.
+- `defaultRunCommand` uses the `cross-spawn` package (not raw `node:child_process.spawn` with `shell: process.platform === 'win32'`) — discovered during Task 4's real end-to-end verification that Node's own `shell: true` mode on Windows joins array args with a bare space and no quoting, so a multi-word argument (the commit message) gets split into separate tokens and breaks `git commit -m "..."`. `cross-spawn` handles Windows `.cmd`-file resolution and argument quoting correctly without this footgun, and needs no `shell` option at all.
 - The only place a *real* `npm install`/`npm run build`/`git` invocation happens is a manual, one-time verification step during implementation (Task 4) — never inside the automated `vitest` suite.
 
 ---
@@ -499,7 +500,7 @@ Replace the entire contents of `src/scaffold.ts` with the following (it's the Ta
 
 ```ts
 // src/scaffold.ts
-import { spawn } from 'node:child_process';
+import spawn from 'cross-spawn';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { cp, readdir, readFile, rename, writeFile } from 'node:fs/promises';
@@ -546,7 +547,7 @@ export interface ScaffoldDeps {
 
 async function defaultRunCommand(command: string, args: string[], cwd: string): Promise<void> {
   await new Promise<void>((resolve, reject) => {
-    const child = spawn(command, args, { cwd, stdio: 'inherit', shell: process.platform === 'win32' });
+    const child = spawn(command, args, { cwd, stdio: 'inherit' });
     child.on('error', reject);
     child.on('close', (code) => {
       if (code === 0) {
