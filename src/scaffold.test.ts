@@ -38,6 +38,13 @@ describe('copyTemplate', () => {
 
     const indexTs = await readFile(path.join(targetDir, 'src', 'index.ts'), 'utf8');
     expect(indexTs).toContain("export { run } from '@oclif/core';");
+
+    const loggerTs = await readFile(path.join(targetDir, 'src', 'logger.ts'), 'utf8');
+    expect(loggerTs).toContain("envPaths('my-cli'");
+    expect(loggerTs).not.toContain('{{projectName}}');
+
+    const baseCommandTs = await readFile(path.join(targetDir, 'src', 'base-command.ts'), 'utf8');
+    expect(baseCommandTs).toContain('export abstract class BaseCommand extends Command');
   });
 
   it('creates the target directory when it does not exist yet', async () => {

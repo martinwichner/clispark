@@ -37,6 +37,7 @@ export async function copyTemplate(options: ScaffoldOptions): Promise<void> {
 
   await replacePlaceholder(path.join(targetDir, 'package.json'), projectName);
   await replacePlaceholder(path.join(targetDir, 'README.md'), projectName);
+  await replacePlaceholder(path.join(targetDir, 'src', 'logger.ts'), projectName);
 }
 
 export interface ScaffoldDeps {
