@@ -19,6 +19,7 @@
 - `createLogger` and `withLogging` must accept an optional `logDir` override (defaulting to the real `env-paths` location) so automated tests never create files in the real OS app-data directory — tests always pass a temporary directory.
 - `pino.destination(...)` is async by default (unbuffered writes are not guaranteed to hit disk before the process terminates), and since `withLogging`'s failure path calls `process.exit(1)` immediately after logging the error, Node's `process.exit()` does not wait for pending I/O — the one log entry the whole feature exists to preserve (the full error with stack, on failure) could be lost or truncated. **`createLogger` must therefore use `pino.destination({ dest: logFilePath, sync: true })`** — a fully synchronous destination — rather than the async default. Discovered during Task 1's review and then empirically re-verified with a real, unmocked `process.exit`: the automated tests mock `process.exit`, so this race is invisible to the test suite and only manifests in real failures. An initial attempted fix (`await logger.flush()` before `process.exit(1)`, keeping the async destination) was empirically proven insufficient — a real end-to-end run with a genuine `process.exit(1)` produced a 0-byte log file and, separately, an uncaught `Error: sonic boom is not ready yet` from pino's own internal auto-flush-on-exit handler, because the destination's underlying file hadn't finished opening yet when the process exited. Switching the destination to `sync: true` eliminates the async open/write race entirely (each log call blocks until written) and was confirmed, via the same real-process-exit test, to reliably persist the full error+stack to disk. No explicit `logger.flush()` call is needed anywhere once the destination is synchronous.
 - No logging calls inside `src/wizard.ts` or `src/scaffold.ts` — both stay exactly as already tested; this milestone's logging is confined to `src/logger.ts` and `src/cli.ts` (which, consistent with Milestones 1-2, has no automated test of its own — only typecheck, build, and manual end-to-end verification).
+- The "never a raw stack trace, no opt-out" guarantee must hold even if the logger's own setup fails (e.g. `mkdirSync(logDir)` or opening the destination file fails — permissions, read-only volume, disk full). Found during the final whole-branch review: an earlier version of `withLogging` created the logger and logged `'started'` *outside* any try/catch, so a setup failure would propagate past `withLogging` entirely and be caught only by `src/cli.ts`'s outer `parseAsync(...).catch(...)` safety net — which prints the raw error via `console.error(error)`, violating the constraint. `withLogging` must wrap logger *creation* in its own try/catch (printing the clean `✖ <message>` and exiting 1, with no `Details:` line since no log file could be created) separately from the *action* try/catch (which additionally logs the full error to the now-successfully-created file before printing the clean message).
 
 ---
 
@@ -67,7 +68,7 @@ Expected: installs without errors.
 ```ts
 // src/logger.test.ts
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -143,6 +144,29 @@ describe('withLogging', () => {
     expect(exitSpy).not.toHaveBeenCalled();
 
     exitSpy.mockRestore();
+  });
+
+  it('prints a clean error and exits when logger setup itself fails, without a raw stack trace', async () => {
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const action = vi.fn(async () => {});
+
+    // Create a file where the log directory should be, so mkdirSync fails (setup error, not an action error).
+    const blockingFilePath = path.join(tmpRoot, 'blocking-file');
+    await writeFile(blockingFilePath, 'x');
+    const invalidLogDir = path.join(blockingFilePath, 'nested');
+
+    const wrapped = withLogging('scaffold', action, invalidLogDir);
+    await wrapped();
+
+    expect(action).not.toHaveBeenCalled();
+    const printedLines = errorSpy.mock.calls.map((call) => String(call[0]));
+    expect(printedLines.some((line) => line.includes('✖'))).toBe(true);
+    expect(printedLines.every((line) => !line.includes('at ') && !line.includes('.js:'))).toBe(true);
+    expect(exitSpy).toHaveBeenCalledWith(1);
+
+    exitSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
   it('prints a clean one-line error message and exits with code 1 on failure, without a raw stack trace', async () => {
@@ -232,9 +256,19 @@ export function withLogging(
   logDir: string = paths.log,
 ): () => Promise<void> {
   return async () => {
-    const { logger, logFilePath } = createLogger(commandName, logDir);
+    let handle: LoggerHandle;
+    try {
+      handle = createLogger(commandName, logDir);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`\n✖ ${message}`);
+      process.exit(1);
+      return;
+    }
 
+    const { logger, logFilePath } = handle;
     logger.info({ command: commandName }, 'started');
+
     try {
       await action(logger);
       logger.info({ command: commandName }, 'completed');
@@ -252,7 +286,7 @@ export function withLogging(
 - [ ] **Step 5: Run test to verify it passes**
 
 Run: `npx vitest run src/logger.test.ts`
-Expected: PASS (7 tests: 4 from `createLogger`, 3 from `withLogging`)
+Expected: PASS (8 tests: 4 from `createLogger`, 4 from `withLogging`)
 
 - [ ] **Step 6: Commit**
 
