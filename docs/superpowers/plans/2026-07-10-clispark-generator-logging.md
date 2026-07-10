@@ -17,6 +17,7 @@
 - On failure: the terminal shows exactly `✖ <error.message>` followed by a line pointing at the log file path — never a raw stack trace. The full error (including stack, via pino's `err` field) goes only to the log file.
 - No opt-out: every invocation wrapped in `withLogging` gets this behavior; there is no flag or code path to skip logging or fall back to raw error output.
 - `createLogger` and `withLogging` must accept an optional `logDir` override (defaulting to the real `env-paths` location) so automated tests never create files in the real OS app-data directory — tests always pass a temporary directory.
+- `pino.destination(...)` is async by default (unbuffered writes are not guaranteed to hit disk before the process terminates). Since `withLogging`'s failure path calls `process.exit(1)` immediately after logging the error — and Node's `process.exit()` does not wait for pending I/O — `withLogging` must `await logger.flush()` after `logger.error(...)` and before `process.exit(1)`, otherwise the one log entry the whole feature exists to preserve (the full error with stack, on failure) can be lost or truncated. Discovered during Task 1's review: the automated tests mock `process.exit` to a no-op, so this race is invisible to the test suite and only manifests in real failures — a case where passing tests were not sufficient evidence and manual/review scrutiny of the actual runtime behavior mattered.
 - No logging calls inside `src/wizard.ts` or `src/scaffold.ts` — both stay exactly as already tested; this milestone's logging is confined to `src/logger.ts` and `src/cli.ts` (which, consistent with Milestones 1-2, has no automated test of its own — only typecheck, build, and manual end-to-end verification).
 
 ---
@@ -239,6 +240,7 @@ export function withLogging(
       logger.info({ command: commandName }, 'completed');
     } catch (error) {
       logger.error({ command: commandName, err: error }, 'failed');
+      await logger.flush();
       const message = error instanceof Error ? error.message : String(error);
       console.error(`\n✖ ${message}`);
       console.error(`Details: ${logFilePath}`);
