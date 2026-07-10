@@ -323,7 +323,9 @@ describe('runWizard', () => {
   it('asks name, then profile, then returns the answers when the name is available on first try', async () => {
     vi.mocked(text).mockResolvedValueOnce('my-cli');
     vi.mocked(select).mockResolvedValueOnce('private');
-    const checkAvailability = vi.fn<[string, string], Promise<NameCheckResult>>().mockResolvedValueOnce('available');
+    const checkAvailability = vi
+      .fn<(name: string, registryUrl: string) => Promise<NameCheckResult>>()
+      .mockResolvedValueOnce('available');
 
     const result = await runWizard({ checkAvailability });
 
@@ -346,7 +348,7 @@ describe('runWizard', () => {
       .mockResolvedValueOnce('free-name');
     vi.mocked(select).mockResolvedValueOnce('private');
     const checkAvailability = vi
-      .fn<[string, string], Promise<NameCheckResult>>()
+      .fn<(name: string, registryUrl: string) => Promise<NameCheckResult>>()
       .mockResolvedValueOnce('taken')
       .mockResolvedValueOnce('available');
 
@@ -363,7 +365,9 @@ describe('runWizard', () => {
       .mockResolvedValueOnce('my-cli')
       .mockResolvedValueOnce('https://npm.mycompany.dev');
     vi.mocked(select).mockResolvedValueOnce('work');
-    const checkAvailability = vi.fn<[string, string], Promise<NameCheckResult>>().mockResolvedValueOnce('available');
+    const checkAvailability = vi
+      .fn<(name: string, registryUrl: string) => Promise<NameCheckResult>>()
+      .mockResolvedValueOnce('available');
 
     const result = await runWizard({ checkAvailability });
 
@@ -374,7 +378,9 @@ describe('runWizard', () => {
   it('continues with "unverified" and a warning when the registry check fails', async () => {
     vi.mocked(text).mockResolvedValueOnce('my-cli');
     vi.mocked(select).mockResolvedValueOnce('private');
-    const checkAvailability = vi.fn<[string, string], Promise<NameCheckResult>>().mockResolvedValueOnce('unverified');
+    const checkAvailability = vi
+      .fn<(name: string, registryUrl: string) => Promise<NameCheckResult>>()
+      .mockResolvedValueOnce('unverified');
 
     const result = await runWizard({ checkAvailability });
 
