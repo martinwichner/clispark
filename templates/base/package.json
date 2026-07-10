@@ -1,0 +1,42 @@
+{
+  "name": "{{projectName}}",
+  "version": "0.0.0",
+  "description": "",
+  "type": "module",
+  "bin": {
+    "{{projectName}}": "./bin/run.js"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "oclif": {
+    "bin": "{{projectName}}",
+    "dirname": "{{projectName}}",
+    "commands": "./dist/commands",
+    "topicSeparator": " ",
+    "plugins": [
+      "@oclif/plugin-help"
+    ]
+  },
+  "scripts": {
+    "build": "tsup",
+    "postbuild": "shx chmod +x bin/run.js",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@oclif/core": "^4.0.0",
+    "@oclif/plugin-help": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "shx": "^0.3.4",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
