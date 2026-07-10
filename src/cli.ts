@@ -19,4 +19,7 @@ program.action(async () => {
   console.log(JSON.stringify(answers, null, 2));
 });
 
-program.parseAsync(process.argv);
+program.parseAsync(process.argv).catch((error: unknown) => {
+  console.error(error);
+  process.exit(1);
+});

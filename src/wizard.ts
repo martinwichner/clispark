@@ -20,7 +20,9 @@ function exitIfCancelled(value: unknown): void {
 
 function validateProjectName(value: string): string | undefined {
   if (!value || value.trim().length === 0) return 'Project name is required.';
-  if (!/^[a-z0-9-]+$/.test(value)) return 'Use lowercase letters, numbers and hyphens only.';
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(value)) {
+    return 'Use lowercase letters and numbers, with single hyphens between words (no leading, trailing, or repeated hyphens).';
+  }
   return undefined;
 }
 
