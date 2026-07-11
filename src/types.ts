@@ -9,3 +9,5 @@ export interface WizardAnswers {
   registryUrl: string;
   nameAvailability: NameCheckResult;
 }
+
+const _branchProtectionTestUnusedVar = 1;
