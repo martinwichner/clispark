@@ -4,7 +4,7 @@ Interactive scaffolding tool for new CLI projects. Run `npx clispark` to generat
 
 ## Status
 
-🚧 **Work in progress — not yet published to npm.**
+✅ **Published on npm as [`clispark`](https://www.npmjs.com/package/clispark).**
 
 | Milestone | Description | Status |
 | --- | --- | --- |
@@ -13,12 +13,10 @@ Interactive scaffolding tool for new CLI projects. Run `npx clispark` to generat
 | M2.5 | Generator's own logging & error handling (dogfooding) | ✅ Done |
 | M3 | Core runtime features in generated boilerplate (auto command registration, logging, error handling, testing, example command) | ✅ Done |
 | M4 | Private registry support (`.npmrc` generation, wired into scaffold's own `npm install`) | ✅ Done |
-| M5 | Documentation (`ARCHITECTURE.md`) & release automation (CI, Conventional-Commits versioning, npm publish pipeline) | ✅ Done — first real release pending |
+| M5 | Documentation (`ARCHITECTURE.md`) & release automation (CI, Conventional-Commits versioning, npm publish pipeline) | ✅ Done |
 | M6 | Update mechanism for already-generated projects | 🔜 Next |
 
 ## Usage
-
-Once published, running the generator will look like this:
 
 ```bash
 npx clispark
@@ -45,7 +43,9 @@ Every generated project includes:
 
 ## Releases
 
-Releases are automated via [release-please](https://github.com/googleapis/release-please): every commit to `master` follows [Conventional Commits](https://www.conventionalcommits.org/) (`feat:` → minor, `fix:` → patch, `BREAKING CHANGE` → major), and release-please maintains a running "Release PR" with the version bump and changelog. Merging that PR creates a GitHub Release, which triggers the `publish.yml` workflow: it re-runs the full CI suite (tests, typecheck, build, security audit, a scaffold smoke test) against the release commit, then publishes to npm.
+Releases are automated via [release-please](https://github.com/googleapis/release-please): every commit to `master` follows [Conventional Commits](https://www.conventionalcommits.org/) (`feat:` → minor, `fix:` → patch, `BREAKING CHANGE` → major), and release-please maintains a running "Release PR" with the version bump and changelog. Merging that PR creates a GitHub Release, which triggers the `publish.yml` workflow: it re-runs the full CI suite (tests, typecheck, build, security audit, a scaffold smoke test) against the release commit, then publishes to npm using [Trusted Publishing](https://docs.npmjs.com/trusted-publishers) (OIDC) — no long-lived npm token is stored anywhere.
+
+release-please itself authenticates with a `RELEASE_PLEASE_TOKEN` (a fine-grained PAT), not the default `GITHUB_TOKEN` — GitHub suppresses workflow-triggering events caused by the default token, which would otherwise silently prevent `publish.yml` from ever firing after a release.
 
 CI (`ci.yml`) runs on every push/PR: unit tests, typecheck, build, `npm audit --audit-level=high` (blocking on high/critical findings, which are also tracked as GitHub issues), and an end-to-end scaffold smoke test that generates a real project and runs its own test suite — the same kind of check previously done manually for each milestone.
 
