@@ -50,11 +50,18 @@ This is a deliberate workflow change beyond just fixing the release-PR question:
 
 ## Part 4: `release-please.yml` — auto-merge
 
-New final step in the job that runs `googleapis/release-please-action`, gated on a PR having actually been created/updated in this run:
+New final step in the job that runs `googleapis/release-please-action`, gated on a PR having actually been created/updated in this run. The action's `pr` output is a JSON string of the PullRequest object (not a bare number), so the PR number must be extracted via `fromJSON(...).number`; the `prs_created` output is the boolean gate (verified against the action's actual documented outputs, not assumed):
 
 ```yaml
-- if: ${{ steps.release.outputs.pr }}
-  run: gh pr merge --auto --squash "${{ steps.release.outputs.pr }}"
+- uses: googleapis/release-please-action@v5
+  id: release
+  with:
+    release-type: node
+    token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+
+- name: Enable auto-merge for release PR
+  if: ${{ steps.release.outputs.prs_created == 'true' }}
+  run: gh pr merge --auto --squash "${{ fromJSON(steps.release.outputs.pr).number }}"
   env:
     GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
 ```
