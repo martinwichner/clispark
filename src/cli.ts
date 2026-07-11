@@ -22,7 +22,7 @@ program.action(
     const targetDir = path.join(process.cwd(), answers.projectName);
 
     logger.info({ projectName: answers.projectName, targetDir }, 'scaffold started');
-    await scaffoldProject({ projectName: answers.projectName, targetDir });
+    await scaffoldProject({ projectName: answers.projectName, targetDir, registryUrl: answers.registryUrl });
     logger.info({ projectName: answers.projectName }, 'scaffold completed');
 
     console.log(`\nDone! Your new CLI project is ready at ${targetDir}`);
