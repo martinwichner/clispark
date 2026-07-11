@@ -38,6 +38,7 @@
     "build": "tsup",
     "postbuild": "shx chmod +x dist/cli.js",
     "dev": "tsx src/cli.ts",
+    "lint": "eslint src",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -49,12 +50,15 @@
     "pino": "^9.6.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/cross-spawn": "^6.0.6",
     "@types/node": "^22.10.5",
+    "eslint": "^10.7.0",
     "shx": "^0.3.4",
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
+    "typescript-eslint": "^8.63.0",
     "vitest": "^4.1.10"
   }
 }
