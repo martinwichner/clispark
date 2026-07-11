@@ -142,6 +142,53 @@ describe('syncIssueForClass', () => {
     ]);
   });
 
+  it('treats every current finding as new when the existing issue predates the state marker', async () => {
+    const previousBody = 'example-critical-pkg (critical)\n\nFrom: https://example.com/run/old';
+    const { runGh, calls } = makeRunGh({
+      list: '[{"number": 42}]',
+      view: JSON.stringify({ body: previousBody }),
+    });
+
+    await syncIssueForClass(
+      {
+        label: 'security-audit-blocking',
+        title: 'Blocking security audit findings',
+        findings: [finding],
+        runUrl: 'https://example.com/run/2b',
+        bodyIfClean: 'All clear.',
+      },
+      { runGh },
+    );
+
+    expect(calls[2][0]).toBe('issue');
+    expect(calls[2][1]).toBe('edit');
+    expect(calls[2][2]).toBe('42');
+    expect(calls[2][calls[2].indexOf('--body') + 1]).toContain('example-critical-pkg');
+    expect(calls[3]).toEqual(['issue', 'comment', '42', '--body', 'New: example-critical-pkg']);
+  });
+
+  it('reports a severity change as "Severity changed", not "New"', async () => {
+    const previousBody =
+      'example-critical-pkg (high)\n\n<!-- audit-issues:state:{"example-critical-pkg":"high"} -->';
+    const { runGh, calls } = makeRunGh({
+      list: '[{"number": 42}]',
+      view: JSON.stringify({ body: previousBody }),
+    });
+
+    await syncIssueForClass(
+      {
+        label: 'security-audit-blocking',
+        title: 'Blocking security audit findings',
+        findings: [finding],
+        runUrl: 'https://example.com/run/2c',
+        bodyIfClean: 'All clear.',
+      },
+      { runGh },
+    );
+
+    expect(calls[3]).toEqual(['issue', 'comment', '42', '--body', 'Severity changed: example-critical-pkg']);
+  });
+
   it('edits the issue body and comments only the new finding when a finding is added', async () => {
     const previousBody =
       'example-critical-pkg (critical)\n\n<!-- audit-issues:state:{"example-critical-pkg":"critical"} -->';

@@ -55,28 +55,38 @@ function extractState(body) {
   }
 }
 
+function toState(findings) {
+  return Object.fromEntries(findings.map((f) => [f.name, f.severity]));
+}
+
 function diffState(previous, current) {
-  const added = Object.keys(current).filter((name) => previous[name] !== current[name]);
+  const added = [];
+  const updated = [];
+  for (const name of Object.keys(current)) {
+    if (!(name in previous)) added.push(name);
+    else if (previous[name] !== current[name]) updated.push(name);
+  }
   const resolved = Object.keys(previous).filter((name) => !(name in current));
-  return { added, resolved };
+  return { added, updated, resolved };
 }
 
 function formatFinding(finding) {
   const lines = [`- **${finding.name}** (${finding.severity})`];
   if (finding.range) lines.push(`  - Affected range: \`${finding.range}\``);
   lines.push(`  - Fix available: ${finding.fixAvailable ? 'yes' : 'no'}`);
-  if (finding.advisoryTitle) {
-    lines.push(
-      finding.advisoryUrl ? `  - ${finding.advisoryTitle}: ${finding.advisoryUrl}` : `  - ${finding.advisoryTitle}`,
-    );
+  if (finding.advisoryTitle && finding.advisoryUrl) {
+    lines.push(`  - ${finding.advisoryTitle}: ${finding.advisoryUrl}`);
+  } else if (finding.advisoryTitle) {
+    lines.push(`  - ${finding.advisoryTitle}`);
+  } else if (finding.advisoryUrl) {
+    lines.push(`  - ${finding.advisoryUrl}`);
   }
   return lines.join('\n');
 }
 
 function buildBody(findings, runUrl) {
   const list = findings.length > 0 ? findings.map(formatFinding).join('\n') : '(none)';
-  const state = Object.fromEntries(findings.map((f) => [f.name, f.severity]));
-  return `${list}\n\nLast checked: ${runUrl}\n\n${buildStateMarker(state)}`;
+  return `${list}\n\nLast checked: ${runUrl}\n\n${buildStateMarker(toState(findings))}`;
 }
 
 export async function syncIssueForClass(options, deps) {
@@ -104,10 +114,10 @@ export async function syncIssueForClass(options, deps) {
 
   const viewOutput = await runGh(['issue', 'view', String(existingNumber), '--json', 'body']);
   const previousState = extractState(JSON.parse(viewOutput).body);
-  const currentState = Object.fromEntries(findings.map((f) => [f.name, f.severity]));
-  const { added, resolved } = diffState(previousState, currentState);
+  const currentState = toState(findings);
+  const { added, updated, resolved } = diffState(previousState, currentState);
 
-  if (added.length === 0 && resolved.length === 0) {
+  if (added.length === 0 && updated.length === 0 && resolved.length === 0) {
     return;
   }
 
@@ -115,6 +125,7 @@ export async function syncIssueForClass(options, deps) {
 
   const changeLines = [];
   if (added.length > 0) changeLines.push(`New: ${added.join(', ')}`);
+  if (updated.length > 0) changeLines.push(`Severity changed: ${updated.join(', ')}`);
   if (resolved.length > 0) changeLines.push(`Resolved: ${resolved.join(', ')}`);
   await runGh(['issue', 'comment', String(existingNumber), '--body', changeLines.join('\n')]);
 }
