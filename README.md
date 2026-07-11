@@ -12,8 +12,8 @@ Interactive scaffolding tool for new CLI projects. Run `npx clispark` to generat
 | M2 | Project-scaffold engine (file generation, git init, install & build) | ✅ Done |
 | M2.5 | Generator's own logging & error handling (dogfooding) | ✅ Done |
 | M3 | Core runtime features in generated boilerplate (auto command registration, logging, error handling, testing, example command) | ✅ Done |
-| M4 | Work/private profiles & private registry support | 🔜 Next |
-| M5 | Documentation & npm publish | ⬜ Planned |
+| M4 | Private registry support (`.npmrc` generation, wired into scaffold's own `npm install`) | ✅ Done |
+| M5 | Documentation & npm publish | 🔜 Next |
 | M6 | Update mechanism for already-generated projects | ⬜ Later |
 
 ## Usage
@@ -24,7 +24,7 @@ Once published, running the generator will look like this:
 npx clispark
 ```
 
-The wizard asks a few questions (project name, work/private profile, registry URL if applicable), checks the chosen package name's availability, then scaffolds a new directory with a ready-to-run project — `git init`, `npm install`, and `npm run build` all happen automatically.
+The wizard asks a few questions (project name, work/private profile, registry URL if applicable), checks the chosen package name's availability, then scaffolds a new directory with a ready-to-run project — `git init`, `npm install`, and `npm run build` all happen automatically. If a custom registry URL was given, an `.npmrc` pointing at it is generated too, so the install (and every future one) uses it automatically.
 
 ## What you get
 
