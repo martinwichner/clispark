@@ -1,0 +1,29 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "example-critical-pkg": {
+      "name": "example-critical-pkg",
+      "severity": "critical",
+      "isDirect": false,
+      "range": "<1.0.0",
+      "nodes": ["node_modules/example-critical-pkg"]
+    },
+    "example-moderate-pkg": {
+      "name": "example-moderate-pkg",
+      "severity": "moderate",
+      "isDirect": false,
+      "range": "<2.0.0",
+      "nodes": ["node_modules/example-moderate-pkg"]
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 1,
+      "high": 0,
+      "critical": 1,
+      "total": 2
+    }
+  }
+}
