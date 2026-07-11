@@ -19,6 +19,7 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npx tsc --noEmit
+      - run: npx eslint src
       - run: npx vitest run
       - run: npx tsup
 
