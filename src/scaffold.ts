@@ -2,10 +2,12 @@ import spawn from 'cross-spawn';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { cp, readdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { DEFAULT_REGISTRY_URL } from './registry.js';
 
 export interface ScaffoldOptions {
   projectName: string;
   targetDir: string;
+  registryUrl?: string;
 }
 
 const TEMPLATE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'templates', 'base');
@@ -28,7 +30,7 @@ async function replacePlaceholder(filePath: string, projectName: string): Promis
 }
 
 export async function copyTemplate(options: ScaffoldOptions): Promise<void> {
-  const { projectName, targetDir } = options;
+  const { projectName, targetDir, registryUrl } = options;
 
   await assertTargetDirIsUsable(targetDir);
   await cp(TEMPLATE_DIR, targetDir, { recursive: true });
@@ -38,6 +40,10 @@ export async function copyTemplate(options: ScaffoldOptions): Promise<void> {
   await replacePlaceholder(path.join(targetDir, 'package.json'), projectName);
   await replacePlaceholder(path.join(targetDir, 'README.md'), projectName);
   await replacePlaceholder(path.join(targetDir, 'src', 'logger.ts'), projectName);
+
+  if (registryUrl && registryUrl !== DEFAULT_REGISTRY_URL) {
+    await writeFile(path.join(targetDir, '.npmrc'), `registry=${registryUrl}\n`);
+  }
 }
 
 export interface ScaffoldDeps {

@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { copyTemplate, scaffoldProject } from './scaffold.js';
+import { DEFAULT_REGISTRY_URL } from './registry.js';
 
 describe('copyTemplate', () => {
   let tmpRoot: string;
@@ -51,6 +52,33 @@ describe('copyTemplate', () => {
 
     const helloTestTs = await readFile(path.join(targetDir, 'src', 'commands', 'hello.test.ts'), 'utf8');
     expect(helloTestTs).toContain("runCommand('hello')");
+  });
+
+  it('writes a .npmrc with the custom registry when registryUrl differs from the default', async () => {
+    const targetDir = path.join(tmpRoot, 'custom-registry');
+
+    await copyTemplate({
+      projectName: 'custom-registry',
+      targetDir,
+      registryUrl: 'https://registry.example.com',
+    });
+
+    const npmrc = await readFile(path.join(targetDir, '.npmrc'), 'utf8');
+    expect(npmrc).toBe('registry=https://registry.example.com\n');
+  });
+
+  it('does not write a .npmrc when registryUrl is omitted or equal to the default', async () => {
+    const targetDirNoUrl = path.join(tmpRoot, 'no-registry-url');
+    await copyTemplate({ projectName: 'no-registry-url', targetDir: targetDirNoUrl });
+    await expect(readFile(path.join(targetDirNoUrl, '.npmrc'), 'utf8')).rejects.toThrow();
+
+    const targetDirDefaultUrl = path.join(tmpRoot, 'default-registry-url');
+    await copyTemplate({
+      projectName: 'default-registry-url',
+      targetDir: targetDirDefaultUrl,
+      registryUrl: DEFAULT_REGISTRY_URL,
+    });
+    await expect(readFile(path.join(targetDirDefaultUrl, '.npmrc'), 'utf8')).rejects.toThrow();
   });
 
   it('creates the target directory when it does not exist yet', async () => {
