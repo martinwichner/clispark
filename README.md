@@ -13,8 +13,8 @@ Interactive scaffolding tool for new CLI projects. Run `npx clispark` to generat
 | M2.5 | Generator's own logging & error handling (dogfooding) | ✅ Done |
 | M3 | Core runtime features in generated boilerplate (auto command registration, logging, error handling, testing, example command) | ✅ Done |
 | M4 | Private registry support (`.npmrc` generation, wired into scaffold's own `npm install`) | ✅ Done |
-| M5 | Documentation & npm publish | 🔜 Next |
-| M6 | Update mechanism for already-generated projects | ⬜ Later |
+| M5 | Documentation (`ARCHITECTURE.md`) & release automation (CI, Conventional-Commits versioning, npm publish pipeline) | ✅ Done — first real release pending |
+| M6 | Update mechanism for already-generated projects | 🔜 Next |
 
 ## Usage
 
@@ -42,6 +42,12 @@ Every generated project includes:
 **Generator itself (`clispark`):** TypeScript, [commander](https://github.com/tj/commander.js) (CLI structure), [@clack/prompts](https://github.com/bombshell-dev/clack) (interactive wizard), `cross-spawn` (cross-platform shelling out to git/npm), `pino` + `env-paths` (own logging), `tsup` + `vitest`.
 
 **Generated boilerplate:** TypeScript, [oclif](https://oclif.io/) (command framework), `pino` + `env-paths` (logging), `tsup` (build), `vitest` + `@oclif/test` (testing).
+
+## Releases
+
+Releases are automated via [release-please](https://github.com/googleapis/release-please): every commit to `master` follows [Conventional Commits](https://www.conventionalcommits.org/) (`feat:` → minor, `fix:` → patch, `BREAKING CHANGE` → major), and release-please maintains a running "Release PR" with the version bump and changelog. Merging that PR creates a GitHub Release, which triggers the `publish.yml` workflow: it re-runs the full CI suite (tests, typecheck, build, security audit, a scaffold smoke test) against the release commit, then publishes to npm.
+
+CI (`ci.yml`) runs on every push/PR: unit tests, typecheck, build, `npm audit --audit-level=high` (blocking on high/critical findings, which are also tracked as GitHub issues), and an end-to-end scaffold smoke test that generates a real project and runs its own test suite — the same kind of check previously done manually for each milestone.
 
 ## Development notes
 
