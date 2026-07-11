@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.0](https://github.com/martinwichner/clispark/compare/v1.0.1...v1.1.0) (2026-07-11)
+
+
+### Features
+
+* add ESLint for clispark's own source ([b7ce80e](https://github.com/martinwichner/clispark/commit/b7ce80ebba6416a16a032d85776152182c6f32ff))
+
+
+### Bug Fixes
+
+* exclude nested worktrees from vitest test collection ([b0b744b](https://github.com/martinwichner/clispark/commit/b0b744b47d51a42420e66a43d21f328d98ba6641))
+* run gh pr merge with an explicit --repo in release-please.yml ([22e1879](https://github.com/martinwichner/clispark/commit/22e18790a0d44342ecb610bbbf4af1b1583db891))
+
 ## [1.0.1](https://github.com/martinwichner/clispark/compare/v1.0.0...v1.0.1) (2026-07-11)
 
 
