@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.1](https://github.com/martinwichner/clispark/compare/v1.0.0...v1.0.1) (2026-07-11)
+
+
+### Bug Fixes
+
+* grant issues:write to publish.yml's reusable ci.yml call ([18755d6](https://github.com/martinwichner/clispark/commit/18755d637c09d8ff30a681953b861102397a87bb))
+* switch npm publish to Trusted Publishing (OIDC), drop NPM_TOKEN ([23220f2](https://github.com/martinwichner/clispark/commit/23220f2bfa416de61c311710bf5154ae78a36c7d))
+* unblock release-triggered publish and cross-workflow triggering ([232bc8f](https://github.com/martinwichner/clispark/commit/232bc8f38e4d0c3ae91a0659140b5259f8829866))
+
 ## 1.0.0 (2026-07-11)
 
 
