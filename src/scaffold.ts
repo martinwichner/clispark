@@ -40,6 +40,7 @@ export async function copyTemplate(options: ScaffoldOptions): Promise<void> {
   await replacePlaceholder(path.join(targetDir, 'package.json'), projectName);
   await replacePlaceholder(path.join(targetDir, 'README.md'), projectName);
   await replacePlaceholder(path.join(targetDir, 'src', 'logger.ts'), projectName);
+  await replacePlaceholder(path.join(targetDir, 'ARCHITECTURE.md'), projectName);
 
   if (registryUrl && registryUrl !== DEFAULT_REGISTRY_URL) {
     await writeFile(path.join(targetDir, '.npmrc'), `registry=${registryUrl}\n`);

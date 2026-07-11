@@ -52,6 +52,10 @@ describe('copyTemplate', () => {
 
     const helloTestTs = await readFile(path.join(targetDir, 'src', 'commands', 'hello.test.ts'), 'utf8');
     expect(helloTestTs).toContain("runCommand('hello')");
+
+    const architectureMd = await readFile(path.join(targetDir, 'ARCHITECTURE.md'), 'utf8');
+    expect(architectureMd).toContain('# my-cli Architecture');
+    expect(architectureMd).not.toContain('{{projectName}}');
   });
 
   it('writes a .npmrc with the custom registry when registryUrl differs from the default', async () => {
