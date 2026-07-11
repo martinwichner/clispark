@@ -8,6 +8,9 @@ on:
 jobs:
   verify:
     uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+      issues: write
     secrets: inherit
 
   publish:
