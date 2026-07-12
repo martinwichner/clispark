@@ -19,7 +19,7 @@ jobs:
           node-version: 24
       - run: npm ci
       - run: npx tsc --noEmit
-      - run: npx eslint src
+      - run: npx eslint src scripts
       - run: npx vitest run
       - run: npx tsup
 
