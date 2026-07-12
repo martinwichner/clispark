@@ -5,6 +5,7 @@ import { Command } from 'commander';
 import { runWizard } from './wizard.js';
 import { scaffoldProject } from './scaffold.js';
 import { withLogging } from './logger.js';
+import { formatUpdateSummary, updateProject } from './update.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json') as { version: string };
@@ -28,6 +29,19 @@ program.action(
     console.log(`\nDone! Your new CLI project is ready at ${targetDir}`);
   }),
 );
+
+program
+  .command('update')
+  .description('Update generator-managed core files and dependencies to the latest clispark version')
+  .action(
+    withLogging('update', async (logger) => {
+      const targetDir = process.cwd();
+      logger.info({ targetDir }, 'update started');
+      const result = await updateProject(targetDir);
+      logger.info({ status: result.status }, 'update completed');
+      console.log(formatUpdateSummary(result));
+    }),
+  );
 
 program.parseAsync(process.argv).catch((error: unknown) => {
   console.error(error);
