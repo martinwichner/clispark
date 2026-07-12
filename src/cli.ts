@@ -6,6 +6,7 @@ import { runWizard } from './wizard.js';
 import { scaffoldProject } from './scaffold.js';
 import { withLogging } from './logger.js';
 import { formatUpdateSummary, updateProject } from './update.js';
+import { fetchReleaseNotes, formatReleaseNotes } from './releasenotes.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json') as { version: string };
@@ -40,6 +41,19 @@ program
       const result = await updateProject(targetDir);
       logger.info({ status: result.status }, 'update completed');
       console.log(formatUpdateSummary(result));
+    }),
+  );
+
+program
+  .command('releasenotes')
+  .description("Show what changed between this project's generator version and the latest clispark version")
+  .action(
+    withLogging('releasenotes', async (logger) => {
+      const targetDir = process.cwd();
+      logger.info({ targetDir }, 'releasenotes started');
+      const result = await fetchReleaseNotes(targetDir);
+      logger.info({ status: result.status }, 'releasenotes completed');
+      console.log(formatReleaseNotes(result));
     }),
   );
 
