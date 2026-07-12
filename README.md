@@ -16,7 +16,7 @@ Answer three prompts — project name, work/private profile, and (for "work") an
 
 ```bash
 cd my-cli
-node bin/run.js hello
+node bin/run.ts hello
 ```
 
 ...prints a greeting from your first working command, with structured logging and clean error handling already wired up.

@@ -24,7 +24,7 @@ describe('copyTemplate', () => {
 
     const pkg = JSON.parse(await readFile(path.join(targetDir, 'package.json'), 'utf8'));
     expect(pkg.name).toBe('my-cli');
-    expect(pkg.bin).toEqual({ 'my-cli': './bin/run.js' });
+    expect(pkg.bin).toEqual({ 'my-cli': './bin/run.ts' });
     expect(pkg.oclif.bin).toBe('my-cli');
     expect(pkg.oclif.dirname).toBe('my-cli');
 
@@ -34,8 +34,8 @@ describe('copyTemplate', () => {
     const gitignore = await readFile(path.join(targetDir, '.gitignore'), 'utf8');
     expect(gitignore).toContain('node_modules');
 
-    const runJs = await readFile(path.join(targetDir, 'bin', 'run.js'), 'utf8');
-    expect(runJs).toContain('execute');
+    const runTs = await readFile(path.join(targetDir, 'bin', 'run.ts'), 'utf8');
+    expect(runTs).toContain('execute');
 
     const indexTs = await readFile(path.join(targetDir, 'src', 'index.ts'), 'utf8');
     expect(indexTs).toContain("export { run } from '@oclif/core';");
@@ -172,6 +172,6 @@ describe('scaffoldProject', () => {
     expect(manifest.coreFiles['src/base-command.ts']).toMatch(/^[0-9a-f]{64}$/);
     expect(manifest.coreDependencies['@oclif/core']).toBe('^4.0.0');
     expect(manifest.coreScripts.build).toBe('tsup');
-    expect(manifest.coreFields.engines).toEqual({ node: '>=18' });
+    expect(manifest.coreFields.engines).toEqual({ node: '>=24' });
   });
 });
