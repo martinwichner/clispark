@@ -38,7 +38,7 @@
     "build": "tsup",
     "postbuild": "shx chmod +x dist/cli.js",
     "dev": "tsx src/cli.ts",
-    "lint": "eslint src",
+    "lint": "eslint src scripts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -54,6 +54,7 @@
     "@types/cross-spawn": "^6.0.6",
     "@types/node": "^22.10.5",
     "eslint": "^10.7.0",
+    "jiti": "^2.7.0",
     "shx": "^0.3.4",
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",
