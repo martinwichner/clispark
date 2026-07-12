@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { cp, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { DEFAULT_REGISTRY_URL } from './registry.js';
+import { buildManifest, getGeneratorVersion, writeManifest } from './manifest.js';
 
 export interface ScaffoldOptions {
   projectName: string;
@@ -10,7 +11,7 @@ export interface ScaffoldOptions {
   registryUrl?: string;
 }
 
-const TEMPLATE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'templates', 'base');
+export const TEMPLATE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'templates', 'base');
 
 async function assertTargetDirIsUsable(targetDir: string): Promise<void> {
   let entries: string[];
@@ -24,8 +25,12 @@ async function assertTargetDirIsUsable(targetDir: string): Promise<void> {
   }
 }
 
+export function applyPlaceholders(content: string, projectName: string): string {
+  return content.replaceAll('{{projectName}}', projectName);
+}
+
 async function replacePlaceholder(filePath: string, projectName: string): Promise<void> {
-  const content = (await readFile(filePath, 'utf8')).replaceAll('{{projectName}}', projectName);
+  const content = applyPlaceholders(await readFile(filePath, 'utf8'), projectName);
   await writeFile(filePath, content);
 }
 
@@ -74,6 +79,9 @@ export async function scaffoldProject(
   await copyTemplate(options);
 
   const { targetDir } = options;
+  const manifest = await buildManifest(targetDir, getGeneratorVersion());
+  await writeManifest(targetDir, manifest);
+
   await deps.runCommand('git', ['init'], targetDir);
   await deps.runCommand('git', ['add', '-A'], targetDir);
   await deps.runCommand('git', ['commit', '-m', 'chore: initial scaffold from clispark'], targetDir);

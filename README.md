@@ -2,27 +2,24 @@
 
 Interactive scaffolding tool for new CLI projects. Run `npx clispark` to generate a new, ready-to-run TypeScript CLI project with consistent logging, error handling, and command structure — no manual setup required.
 
-## Status
+[![npm version](https://img.shields.io/npm/v/clispark.svg)](https://www.npmjs.com/package/clispark)
+[![CI](https://github.com/martinwichner/clispark/actions/workflows/ci.yml/badge.svg)](https://github.com/martinwichner/clispark/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/clispark.svg)](LICENSE)
 
-✅ **Published on npm as [`clispark`](https://www.npmjs.com/package/clispark).**
-
-| Milestone | Description | Status |
-| --- | --- | --- |
-| M1 | Generator scaffold (wizard, package-name availability check) | ✅ Done |
-| M2 | Project-scaffold engine (file generation, git init, install & build) | ✅ Done |
-| M2.5 | Generator's own logging & error handling (dogfooding) | ✅ Done |
-| M3 | Core runtime features in generated boilerplate (auto command registration, logging, error handling, testing, example command) | ✅ Done |
-| M4 | Private registry support (`.npmrc` generation, wired into scaffold's own `npm install`) | ✅ Done |
-| M5 | Documentation (`ARCHITECTURE.md`) & release automation (CI, Conventional-Commits versioning, npm publish pipeline) | ✅ Done |
-| M6 | Update mechanism for already-generated projects | 🔜 Next |
-
-## Usage
+## Quickstart
 
 ```bash
 npx clispark
 ```
 
-The wizard asks a few questions (project name, work/private profile, registry URL if applicable), checks the chosen package name's availability, then scaffolds a new directory with a ready-to-run project — `git init`, `npm install`, and `npm run build` all happen automatically. If a custom registry URL was given, an `.npmrc` pointing at it is generated too, so the install (and every future one) uses it automatically.
+Answer three prompts — project name, work/private profile, and (for "work") an optional private registry URL — and clispark scaffolds a new directory, running `git init`, `npm install`, and `npm run build` for you. Thirty seconds later:
+
+```bash
+cd my-cli
+node bin/run.js hello
+```
+
+...prints a greeting from your first working command, with structured logging and clean error handling already wired up.
 
 ## What you get
 
@@ -35,19 +32,49 @@ Every generated project includes:
 - **A first example command** (`hello`) as a starting point for your own commands
 - **A clean build pipeline** (`tsup`) producing a directly runnable binary
 
+## Usage
+
+```bash
+npx clispark
+```
+
+The wizard asks:
+
+1. **Project name** — checked for availability against the target npm registry as you type; a taken name prompts you to try another instead of blocking hard.
+2. **Profile** — `work` or `private`. `work` unlocks an optional registry URL prompt.
+3. **Registry URL** (work profile only) — leave empty for the public npm registry, or point at a private/company registry. If set, an `.npmrc` is generated so every future `npm install` in the project uses it automatically.
+
+Scaffolding then happens automatically: files are copied, `git init` plus an initial commit run, and `npm install && npm run build` leave you with a directly runnable project.
+
+## Updating a project
+
+Generated projects track which files and `package.json` fields are generator-managed ("core") versus yours, in a `.clispark/manifest.json` written at scaffold time. From inside a generated project:
+
+```bash
+npx clispark update
+```
+
+pulls in the latest core improvements (base command, logger, build/test config, `ARCHITECTURE.md`, and the relevant `package.json` dependencies/scripts) from whichever clispark version `npx` resolves. It never touches anything under `src/commands/`, your `README.md`, or an `.npmrc` you added — those are yours. If you've hand-edited a core file yourself, `update` leaves it alone and reports it as skipped rather than overwriting your changes. It refuses to run against an unclean git working tree, and commits its own changes as a single, easily revertible commit.
+
+```bash
+npx clispark releasenotes
+```
+
+shows what changed between the clispark version your project last updated to and the latest one available, pulled straight from the project's GitHub releases.
+
 ## Tech stack
 
 **Generator itself (`clispark`):** TypeScript, [commander](https://github.com/tj/commander.js) (CLI structure), [@clack/prompts](https://github.com/bombshell-dev/clack) (interactive wizard), `cross-spawn` (cross-platform shelling out to git/npm), `pino` + `env-paths` (own logging), `tsup` + `vitest`.
 
 **Generated boilerplate:** TypeScript, [oclif](https://oclif.io/) (command framework), `pino` + `env-paths` (logging), `tsup` (build), `vitest` + `@oclif/test` (testing).
 
-## Releases
+## Releases & CI
 
-Releases are automated via [release-please](https://github.com/googleapis/release-please): every commit to `master` follows [Conventional Commits](https://www.conventionalcommits.org/) (`feat:` → minor, `fix:` → patch, `BREAKING CHANGE` → major), and release-please maintains a running "Release PR" with the version bump and changelog. Merging that PR creates a GitHub Release, which triggers the `publish.yml` workflow: it re-runs the full CI suite (tests, typecheck, build, security audit, a scaffold smoke test) against the release commit, then publishes to npm using [Trusted Publishing](https://docs.npmjs.com/trusted-publishers) (OIDC) — no long-lived npm token is stored anywhere.
+Releases are automated via [release-please](https://github.com/googleapis/release-please): commits to `master` follow [Conventional Commits](https://www.conventionalcommits.org/), and merging the running release PR publishes to npm via [Trusted Publishing](https://docs.npmjs.com/trusted-publishers) (OIDC) — no long-lived npm token involved. `ci.yml` runs on every push/PR: unit tests, typecheck, build, a blocking `npm audit`, and an end-to-end scaffold smoke test.
 
-release-please itself authenticates with a `RELEASE_PLEASE_TOKEN` (a fine-grained PAT), not the default `GITHUB_TOKEN` — GitHub suppresses workflow-triggering events caused by the default token, which would otherwise silently prevent `publish.yml` from ever firing after a release.
+## Development status
 
-CI (`ci.yml`) runs on every push/PR: unit tests, typecheck, build, `npm audit --audit-level=high` (blocking on high/critical findings, which are also tracked as GitHub issues), and an end-to-end scaffold smoke test that generates a real project and runs its own test suite — the same kind of check previously done manually for each milestone.
+clispark is under active development — see [`CHANGELOG.md`](CHANGELOG.md) for the full release history and the [implementation plans](docs/superpowers/plans/) for the reasoning behind each milestone.
 
 ## Development notes
 
