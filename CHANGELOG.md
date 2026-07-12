@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/martinwichner/clispark/compare/v1.2.0...v1.3.0) (2026-07-12)
+
+
+### Features
+
+* align generated-project build target and docs with the Node &gt;=24 floor ([#16](https://github.com/martinwichner/clispark/issues/16)) ([16c8eb9](https://github.com/martinwichner/clispark/commit/16c8eb935d905d97f2a265bdafaca7e567f00018))
+
 ## [1.2.0](https://github.com/martinwichner/clispark/compare/v1.1.1...v1.2.0) (2026-07-12)
 
 
