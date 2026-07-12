@@ -1,21 +1,59 @@
-// scripts/audit-issues.mjs
-import { execSync, execFileSync } from 'node:child_process';
+// scripts/audit-issues.ts
+import { execFileSync, execSync } from 'node:child_process';
 
-function extractAdvisory(finding) {
-  return (finding.via ?? []).find((v) => typeof v === 'object');
+export interface AdvisoryVia {
+  title?: string;
+  url?: string;
 }
 
-export function categorizeFindings(auditReport) {
+export interface AuditFinding {
+  severity: string;
+  range?: string;
+  fixAvailable?: boolean;
+  via?: (string | AdvisoryVia)[];
+}
+
+export interface AuditReport {
+  metadata?: {
+    vulnerabilities?: {
+      critical?: number;
+      high?: number;
+      moderate?: number;
+      low?: number;
+    };
+  };
+  vulnerabilities?: Record<string, AuditFinding>;
+}
+
+function extractAdvisory(finding: AuditFinding): AdvisoryVia | undefined {
+  return (finding.via ?? []).find((v): v is AdvisoryVia => typeof v === 'object');
+}
+
+export interface CategorizedFinding {
+  name: string;
+  severity: string;
+  range?: string;
+  fixAvailable: boolean;
+  advisoryTitle?: string;
+  advisoryUrl?: string;
+}
+
+export interface CategorizedFindings {
+  blocking: { count: number; findings: CategorizedFinding[] };
+  informational: { count: number; findings: CategorizedFinding[] };
+}
+
+export function categorizeFindings(auditReport: AuditReport): CategorizedFindings {
   const counts = auditReport.metadata?.vulnerabilities ?? {};
   const blockingCount = (counts.critical ?? 0) + (counts.high ?? 0);
   const informationalCount = (counts.moderate ?? 0) + (counts.low ?? 0);
 
-  const blocking = [];
-  const informational = [];
+  const blocking: CategorizedFinding[] = [];
+  const informational: CategorizedFinding[] = [];
 
   for (const [name, finding] of Object.entries(auditReport.vulnerabilities ?? {})) {
     const advisory = extractAdvisory(finding);
-    const entry = {
+    const entry: CategorizedFinding = {
       name,
       severity: finding.severity,
       range: finding.range,
@@ -39,29 +77,36 @@ export function categorizeFindings(auditReport) {
 const STATE_MARKER_PREFIX = '<!-- audit-issues:state:';
 const STATE_MARKER_SUFFIX = ' -->';
 
-function buildStateMarker(state) {
+function buildStateMarker(state: Record<string, string>): string {
   return `${STATE_MARKER_PREFIX}${JSON.stringify(state)}${STATE_MARKER_SUFFIX}`;
 }
 
-function extractState(body) {
-  const start = body?.indexOf(STATE_MARKER_PREFIX) ?? -1;
+function extractState(body: string | undefined): Record<string, string> {
+  if (!body) return {};
+  const start = body.indexOf(STATE_MARKER_PREFIX);
   if (start === -1) return {};
   const end = body.indexOf(STATE_MARKER_SUFFIX, start);
   if (end === -1) return {};
   try {
-    return JSON.parse(body.slice(start + STATE_MARKER_PREFIX.length, end));
+    return JSON.parse(body.slice(start + STATE_MARKER_PREFIX.length, end)) as Record<string, string>;
   } catch {
     return {};
   }
 }
 
-function toState(findings) {
+function toState(findings: CategorizedFinding[]): Record<string, string> {
   return Object.fromEntries(findings.map((f) => [f.name, f.severity]));
 }
 
-function diffState(previous, current) {
-  const added = [];
-  const updated = [];
+interface StateDiff {
+  added: string[];
+  updated: string[];
+  resolved: string[];
+}
+
+function diffState(previous: Record<string, string>, current: Record<string, string>): StateDiff {
+  const added: string[] = [];
+  const updated: string[] = [];
   for (const name of Object.keys(current)) {
     if (!(name in previous)) added.push(name);
     else if (previous[name] !== current[name]) updated.push(name);
@@ -70,7 +115,7 @@ function diffState(previous, current) {
   return { added, updated, resolved };
 }
 
-function formatFinding(finding) {
+function formatFinding(finding: CategorizedFinding): string {
   const lines = [`- **${finding.name}** (${finding.severity})`];
   if (finding.range) lines.push(`  - Affected range: \`${finding.range}\``);
   lines.push(`  - Fix available: ${finding.fixAvailable ? 'yes' : 'no'}`);
@@ -84,18 +129,30 @@ function formatFinding(finding) {
   return lines.join('\n');
 }
 
-function buildBody(findings, runUrl) {
+function buildBody(findings: CategorizedFinding[], runUrl: string): string {
   const list = findings.length > 0 ? findings.map(formatFinding).join('\n') : '(none)';
   return `${list}\n\nLast checked: ${runUrl}\n\n${buildStateMarker(toState(findings))}`;
 }
 
-export async function syncIssueForClass(options, deps) {
+export interface SyncIssueOptions {
+  label: string;
+  title: string;
+  findings: CategorizedFinding[];
+  runUrl: string;
+  bodyIfClean: string;
+}
+
+export interface SyncIssueDeps {
+  runGh: (args: string[]) => Promise<string>;
+}
+
+export async function syncIssueForClass(options: SyncIssueOptions, deps: SyncIssueDeps): Promise<void> {
   const { label, title, findings, runUrl, bodyIfClean } = options;
   const { runGh } = deps;
   const isClean = findings.length === 0;
 
   const listOutput = await runGh(['issue', 'list', '--label', label, '--state', 'open', '--json', 'number']);
-  const openIssues = JSON.parse(listOutput);
+  const openIssues = JSON.parse(listOutput) as { number: number }[];
   const existingNumber = openIssues[0]?.number;
 
   if (isClean) {
@@ -113,7 +170,7 @@ export async function syncIssueForClass(options, deps) {
   }
 
   const viewOutput = await runGh(['issue', 'view', String(existingNumber), '--json', 'body']);
-  const previousState = extractState(JSON.parse(viewOutput).body);
+  const previousState = extractState((JSON.parse(viewOutput) as { body: string }).body);
   const currentState = toState(findings);
   const { added, updated, resolved } = diffState(previousState, currentState);
 
@@ -123,28 +180,33 @@ export async function syncIssueForClass(options, deps) {
 
   await runGh(['issue', 'edit', String(existingNumber), '--body', body]);
 
-  const changeLines = [];
+  const changeLines: string[] = [];
   if (added.length > 0) changeLines.push(`New: ${added.join(', ')}`);
   if (updated.length > 0) changeLines.push(`Severity changed: ${updated.join(', ')}`);
   if (resolved.length > 0) changeLines.push(`Resolved: ${resolved.join(', ')}`);
   await runGh(['issue', 'comment', String(existingNumber), '--body', changeLines.join('\n')]);
 }
 
-function runNpmAudit() {
+interface ExecError extends Error {
+  stdout?: string;
+}
+
+function runNpmAudit(): AuditReport {
   try {
     const output = execSync('npm audit --json', { encoding: 'utf8' });
-    return JSON.parse(output);
+    return JSON.parse(output) as AuditReport;
   } catch (error) {
-    if (error.stdout) return JSON.parse(error.stdout);
+    const stdout = (error as ExecError).stdout;
+    if (stdout) return JSON.parse(stdout) as AuditReport;
     throw error;
   }
 }
 
-async function realRunGh(args) {
+async function realRunGh(args: string[]): Promise<string> {
   return execFileSync('gh', args, { encoding: 'utf8' });
 }
 
-async function main() {
+async function main(): Promise<void> {
   const report = runNpmAudit();
   const { blocking, informational } = categorizeFindings(report);
   const runUrl = process.env.GITHUB_RUN_URL ?? '(unknown run)';

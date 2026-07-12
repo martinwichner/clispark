@@ -4,14 +4,14 @@
   "description": "",
   "type": "module",
   "bin": {
-    "{{projectName}}": "./bin/run.js"
+    "{{projectName}}": "./bin/run.ts"
   },
   "files": [
     "bin",
     "dist"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=24"
   },
   "oclif": {
     "bin": "{{projectName}}",
@@ -24,7 +24,7 @@
   },
   "scripts": {
     "build": "tsup",
-    "postbuild": "shx chmod +x bin/run.js",
+    "postbuild": "shx chmod +x bin/run.ts",
     "pretest": "npm run build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "@oclif/test": "^4.0.0",
-    "@types/node": "^22.10.5",
+    "@types/node": "^24.0.0",
     "shx": "^0.3.4",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",

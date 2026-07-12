@@ -6,7 +6,7 @@ export default tseslint.config(
     ignores: ['dist/**', 'templates/**'],
   },
   {
-    files: ['src/**/*.ts'],
+    files: ['src/**/*.ts', 'scripts/**/*.ts'],
     extends: [eslint.configs.recommended, ...tseslint.configs.recommended],
   },
 );

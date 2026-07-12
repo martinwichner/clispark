@@ -16,10 +16,10 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
       - run: npm ci
       - run: npx tsc --noEmit
-      - run: npx eslint src
+      - run: npx eslint src scripts
       - run: npx vitest run
       - run: npx tsup
 
@@ -32,7 +32,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
       - run: npm ci
       - name: Security audit (blocking gate)
         run: npm audit --audit-level=high
@@ -45,7 +45,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Sync security audit issues
         if: (success() || failure()) && github.event_name == 'push'
-        run: node scripts/audit-issues.mjs
+        run: node scripts/audit-issues.ts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -56,7 +56,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
       - run: npm ci
       - name: Configure git identity for scaffolded project commit
         run: |
@@ -65,7 +65,7 @@ jobs:
       - name: Scaffold a real project and verify it builds and tests itself
         run: |
           cat > ci-smoke-verify.mjs << 'EOF'
-          import { scaffoldProject } from './src/scaffold.js';
+          import { scaffoldProject } from './src/scaffold';
           import path from 'node:path';
           import os from 'node:os';
 
@@ -79,3 +79,12 @@ jobs:
         run: |
           cd "$(node -e "console.log(require('os').tmpdir())")/clispark-ci-smoke/smoke-test-cli"
           npm test
+      - name: Run the generated project's entry point directly (verifies native TS execution)
+        run: |
+          cd "$(node -e "console.log(require('os').tmpdir())")/clispark-ci-smoke/smoke-test-cli"
+          output="$(node bin/run.ts hello)"
+          echo "$output"
+          if [[ "$output" != *"Hello from your new CLI!"* ]]; then
+            echo "bin/run.ts did not produce the expected greeting" >&2
+            exit 1
+          fi

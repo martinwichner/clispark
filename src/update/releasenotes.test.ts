@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { getGeneratorVersion, writeManifest, type Manifest } from './manifest.js';
-import { compareVersions, fetchReleaseNotes, formatReleaseNotes } from './releasenotes.js';
+import { getGeneratorVersion, writeManifest, type Manifest } from './manifest';
+import { compareVersions, fetchReleaseNotes, formatReleaseNotes } from './releasenotes';
 
 function baseManifest(generatorVersion: string): Manifest {
   return {

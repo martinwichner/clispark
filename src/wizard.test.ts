@@ -1,6 +1,6 @@
 // src/wizard.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { NameCheckResult } from './registry.js';
+import type { NameCheckResult } from './registry';
 
 vi.mock('@clack/prompts', () => ({
   intro: vi.fn(),
@@ -13,7 +13,7 @@ vi.mock('@clack/prompts', () => ({
 }));
 
 import { text, select, log } from '@clack/prompts';
-import { runWizard } from './wizard.js';
+import { runWizard } from './wizard';
 
 describe('runWizard', () => {
   beforeEach(() => {

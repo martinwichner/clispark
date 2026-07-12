@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { createLogger, withLogging } from './logger.js';
+import { createLogger, withLogging } from './logger';
 
 describe('createLogger', () => {
   let tmpRoot: string;

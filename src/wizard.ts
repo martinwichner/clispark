@@ -1,7 +1,7 @@
 // src/wizard.ts
 import { intro, outro, text, select, log, isCancel, cancel } from '@clack/prompts';
-import { checkPackageNameAvailability, DEFAULT_REGISTRY_URL } from './registry.js';
-import type { Profile, WizardAnswers } from './types.js';
+import { checkPackageNameAvailability, DEFAULT_REGISTRY_URL } from './registry';
+import type { Profile, WizardAnswers } from './types';
 
 export interface WizardDeps {
   checkAvailability: typeof checkPackageNameAvailability;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { deepEquals, reconcileEntry, stringEquals } from './reconcile.js';
+import { deepEquals, reconcileEntry, stringEquals } from './reconcile';
 
 describe('reconcileEntry', () => {
   it('returns "added" when the value does not exist locally yet', () => {

@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const CORE_FILE_PATHS = [
-  'bin/run.js',
+  'bin/run.ts',
   'src/index.ts',
   'src/base-command.ts',
   'src/logger.ts',

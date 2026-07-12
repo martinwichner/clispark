@@ -1,12 +1,12 @@
 // src/cli.ts
 import path from 'node:path';
 import { Command } from 'commander';
-import { runWizard } from './wizard.js';
-import { scaffoldProject } from './scaffold.js';
-import { withLogging } from './logger.js';
-import { formatUpdateSummary, updateProject } from './update/update.js';
-import { fetchReleaseNotes, formatReleaseNotes } from './update/releasenotes.js';
-import { getGeneratorVersion } from './update/manifest.js';
+import { runWizard } from './wizard';
+import { scaffoldProject } from './scaffold';
+import { withLogging } from './logger';
+import { formatUpdateSummary, updateProject } from './update/update';
+import { fetchReleaseNotes, formatReleaseNotes } from './update/releasenotes';
+import { getGeneratorVersion } from './update/manifest';
 
 const program = new Command();
 
