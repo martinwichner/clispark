@@ -159,4 +159,19 @@ describe('scaffoldProject', () => {
       'npm install failed',
     );
   });
+
+  it('writes a .clispark/manifest.json with generatorVersion and core file hashes', async () => {
+    const targetDir = path.join(tmpRoot, 'manifest-project');
+    const runCommand = vi.fn(async () => {});
+
+    await scaffoldProject({ projectName: 'manifest-project', targetDir }, { runCommand });
+
+    const manifest = JSON.parse(await readFile(path.join(targetDir, '.clispark', 'manifest.json'), 'utf8'));
+    expect(typeof manifest.generatorVersion).toBe('string');
+    expect(manifest.generatorVersion.length).toBeGreaterThan(0);
+    expect(manifest.coreFiles['src/base-command.ts']).toMatch(/^[0-9a-f]{64}$/);
+    expect(manifest.coreDependencies['@oclif/core']).toBe('^4.0.0');
+    expect(manifest.coreScripts.build).toBe('tsup');
+    expect(manifest.coreFields.engines).toEqual({ node: '>=18' });
+  });
 });
