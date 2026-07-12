@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/martinwichner/clispark/compare/v1.1.1...v1.2.0) (2026-07-12)
+
+
+### Features
+
+* M6 update mechanism (npx clispark update / releasenotes) ([#11](https://github.com/martinwichner/clispark/issues/11)) ([23e745f](https://github.com/martinwichner/clispark/commit/23e745fd78eecb4294cfc4f5c5e4961e0c8d6a60))
+
 ## [1.1.1](https://github.com/martinwichner/clispark/compare/v1.1.0...v1.1.1) (2026-07-12)
 
 
