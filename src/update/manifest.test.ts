@@ -1,4 +1,4 @@
-// src/manifest.test.ts
+// src/update/manifest.test.ts
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';

@@ -1,8 +1,9 @@
-// src/manifest.ts
+// src/update/manifest.ts
 import { createHash } from 'node:crypto';
-import { createRequire } from 'node:module';
+import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export const CORE_FILE_PATHS = [
   'bin/run.js',
@@ -110,8 +111,26 @@ export async function requireManifest(targetDir: string): Promise<Manifest> {
   return manifest;
 }
 
-const require = createRequire(import.meta.url);
-
+/**
+ * Finds clispark's own package.json by walking up from this file's location.
+ * A fixed relative path (`../package.json`) can't work here: this module's
+ * depth below the package root differs between running from source (tests)
+ * and running as part of the bundled `dist/cli.js` (tsup flattens everything
+ * into one file, so `import.meta.url` no longer reflects the original
+ * per-module nesting).
+ */
 export function getGeneratorVersion(): string {
-  return (require('../package.json') as { version: string }).version;
+  let dir = path.dirname(fileURLToPath(import.meta.url));
+  while (true) {
+    const pkgPath = path.join(dir, 'package.json');
+    if (existsSync(pkgPath)) {
+      const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as { name?: string; version: string };
+      if (pkg.name === 'clispark') return pkg.version;
+    }
+    const parentDir = path.dirname(dir);
+    if (parentDir === dir) {
+      throw new Error("Could not locate clispark's own package.json.");
+    }
+    dir = parentDir;
+  }
 }

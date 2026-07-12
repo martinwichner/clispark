@@ -1,22 +1,19 @@
 // src/cli.ts
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { Command } from 'commander';
 import { runWizard } from './wizard.js';
 import { scaffoldProject } from './scaffold.js';
 import { withLogging } from './logger.js';
-import { formatUpdateSummary, updateProject } from './update.js';
-import { fetchReleaseNotes, formatReleaseNotes } from './releasenotes.js';
-
-const require = createRequire(import.meta.url);
-const pkg = require('../package.json') as { version: string };
+import { formatUpdateSummary, updateProject } from './update/update.js';
+import { fetchReleaseNotes, formatReleaseNotes } from './update/releasenotes.js';
+import { getGeneratorVersion } from './update/manifest.js';
 
 const program = new Command();
 
 program
   .name('clispark')
   .description('Interactive scaffolding tool for new CLI projects')
-  .version(pkg.version);
+  .version(getGeneratorVersion());
 
 program.action(
   withLogging('scaffold', async (logger) => {
