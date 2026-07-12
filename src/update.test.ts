@@ -116,6 +116,46 @@ describe('updateProject', () => {
     const manifestAfter = JSON.parse(await readFile(manifestPath, 'utf8')) as Manifest;
     expect(manifestAfter.generatorVersion).toBe('0.0.1');
   });
+
+  it('converges the manifest when the only change is a stale no-longer-core entry, even if every real core file is locally modified', async () => {
+    const targetDir = await scaffoldFixture(tmpRoot, 'stale-core-entry-project');
+
+    const manifestPath = path.join(targetDir, '.clispark', 'manifest.json');
+    const oldManifest = JSON.parse(await readFile(manifestPath, 'utf8')) as Manifest;
+    oldManifest.generatorVersion = '0.0.1';
+    oldManifest.coreFiles['src/some-removed-file.ts'] = 'deadbeef';
+    await writeFile(manifestPath, JSON.stringify(oldManifest, null, 2) + '\n');
+    // The stale entry must still exist on disk locally — the no-longer-core loop only
+    // reports paths it can actually find under targetDir.
+    await writeFile(path.join(targetDir, 'src', 'some-removed-file.ts'), '// leftover from an older core version\n');
+
+    for (const relativePath of CORE_FILE_PATHS) {
+      const filePath = path.join(targetDir, relativePath);
+      await writeFile(filePath, (await readFile(filePath, 'utf8')) + '\n// locally modified\n');
+    }
+
+    const deps = cleanGitDeps();
+    const result = await updateProject(targetDir, deps);
+
+    expect(result.status).toBe('updated');
+    expect(
+      result.files
+        .filter((f) => (CORE_FILE_PATHS as readonly string[]).includes(f.path))
+        .every((f) => f.outcome === 'skipped'),
+    ).toBe(true);
+    expect(result.files.find((f) => f.path === 'src/some-removed-file.ts')?.outcome).toBe('no-longer-core');
+
+    expect(deps.runCommand).toHaveBeenCalledWith('git', ['add', '-A'], targetDir);
+    expect(deps.runCommand).toHaveBeenCalledWith(
+      'git',
+      ['commit', '-m', `chore: update clispark core to v${getGeneratorVersion()}`],
+      targetDir,
+    );
+
+    const newManifest = await readManifest(targetDir);
+    expect(newManifest?.generatorVersion).toBe(getGeneratorVersion());
+    expect(newManifest?.coreFiles['src/some-removed-file.ts']).toBeUndefined();
+  });
 });
 
 describe('formatUpdateSummary', () => {

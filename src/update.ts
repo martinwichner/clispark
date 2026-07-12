@@ -123,7 +123,9 @@ export async function updateProject(targetDir: string, deps: UpdateDeps = defaul
 
   const pkgMerge = mergePackageJson(currentPkg, oldManifest, newTemplatePkg);
 
-  const hasFileChanges = files.some((f) => f.outcome === 'added' || f.outcome === 'replaced');
+  const hasFileChanges = files.some(
+    (f) => f.outcome === 'added' || f.outcome === 'replaced' || f.outcome === 'no-longer-core',
+  );
   const hasChanges = hasFileChanges || pkgMerge.changed;
 
   if (!hasChanges) {
@@ -175,17 +177,21 @@ export function formatUpdateSummary(result: UpdateResult): string {
     return `Already up to date (v${result.toVersion}).`;
   }
 
-  const lines: string[] = [];
-  if (result.status === 'no-changes') {
-    lines.push(`No changes applied: every core file/field has been modified locally since v${result.fromVersion}.`);
-  } else {
-    lines.push(`Updated core from v${result.fromVersion} to v${result.toVersion}.`);
-  }
-
   const added = result.files.filter((f) => f.outcome === 'added');
   const replaced = result.files.filter((f) => f.outcome === 'replaced');
   const skipped = result.files.filter((f) => f.outcome === 'skipped');
   const noLongerCore = result.files.filter((f) => f.outcome === 'no-longer-core');
+
+  const lines: string[] = [];
+  if (result.status === 'no-changes') {
+    lines.push(
+      noLongerCore.length
+        ? `No changes applied: nothing to update since v${result.fromVersion}.`
+        : `No changes applied: every core file/field has been modified locally since v${result.fromVersion}.`,
+    );
+  } else {
+    lines.push(`Updated core from v${result.fromVersion} to v${result.toVersion}.`);
+  }
 
   if (added.length) lines.push(`  New: ${added.map((f) => f.path).join(', ')}`);
   if (replaced.length) lines.push(`  Updated: ${replaced.map((f) => f.path).join(', ')}`);
