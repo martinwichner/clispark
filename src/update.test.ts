@@ -56,6 +56,27 @@ describe('updateProject', () => {
     expect(deps.runCommand).not.toHaveBeenCalled();
   });
 
+  it('reports "up-to-date" and makes no changes when the manifest version is newer than the running version', async () => {
+    const targetDir = await scaffoldFixture(tmpRoot, 'ahead-project');
+
+    const manifestPath = path.join(targetDir, '.clispark', 'manifest.json');
+    const oldManifest = JSON.parse(await readFile(manifestPath, 'utf8')) as Manifest;
+    oldManifest.generatorVersion = '99.0.0';
+    await writeFile(manifestPath, JSON.stringify(oldManifest, null, 2) + '\n');
+
+    const deps = cleanGitDeps();
+    const result = await updateProject(targetDir, deps);
+
+    expect(result.status).toBe('up-to-date');
+    expect(result.fromVersion).toBe('99.0.0');
+    expect(result.toVersion).toBe(getGeneratorVersion());
+    expect(result.files).toEqual([]);
+    expect(deps.runCommand).not.toHaveBeenCalled();
+
+    const manifestAfter = JSON.parse(await readFile(manifestPath, 'utf8')) as Manifest;
+    expect(manifestAfter.generatorVersion).toBe('99.0.0');
+  });
+
   it('replaces unmodified core files, skips a locally-modified one, and commits the result', async () => {
     const targetDir = await scaffoldFixture(tmpRoot, 'stale-project');
 

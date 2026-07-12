@@ -13,6 +13,7 @@ import {
   type Manifest,
 } from './manifest.js';
 import { reconcileEntry, stringEquals } from './reconcile.js';
+import { compareVersions } from './releasenotes.js';
 import { mergePackageJson, type FieldOutcome, type PackageJsonShape } from './update-package-json.js';
 
 export interface UpdateDeps {
@@ -73,7 +74,7 @@ export async function updateProject(targetDir: string, deps: UpdateDeps = defaul
   const toVersion = getGeneratorVersion();
   const fromVersion = oldManifest.generatorVersion;
 
-  if (fromVersion === toVersion) {
+  if (compareVersions(fromVersion, toVersion) >= 0) {
     return { status: 'up-to-date', fromVersion, toVersion, files: [], dependencies: [], scripts: [], fields: [] };
   }
 
