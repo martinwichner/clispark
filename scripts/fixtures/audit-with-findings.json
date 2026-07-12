@@ -6,14 +6,24 @@
       "severity": "critical",
       "isDirect": false,
       "range": "<1.0.0",
-      "nodes": ["node_modules/example-critical-pkg"]
+      "nodes": ["node_modules/example-critical-pkg"],
+      "fixAvailable": true,
+      "via": [
+        {
+          "title": "Prototype Pollution in example-critical-pkg",
+          "url": "https://github.com/advisories/GHSA-xxxx-xxxx-xxxx",
+          "severity": "critical"
+        }
+      ]
     },
     "example-moderate-pkg": {
       "name": "example-moderate-pkg",
       "severity": "moderate",
       "isDirect": false,
       "range": "<2.0.0",
-      "nodes": ["node_modules/example-moderate-pkg"]
+      "nodes": ["node_modules/example-moderate-pkg"],
+      "fixAvailable": false,
+      "via": ["example-critical-pkg"]
     }
   },
   "metadata": {
