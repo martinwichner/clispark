@@ -122,6 +122,42 @@ describe('mergePackageJson', () => {
     ]);
   });
 
+  it('accumulates multiple dependency updates in the same section instead of losing all but the last', () => {
+    const current: PackageJsonShape = {
+      name: 'my-cli',
+      version: '0.0.0',
+      dependencies: { pino: '^9.6.0', chalk: '^5.0.0' },
+    };
+    const newTemplate: PackageJsonShape = {
+      name: '{{projectName}}',
+      version: '0.0.0',
+      dependencies: { pino: '^9.7.0', chalk: '^5.1.0' },
+    };
+    const manifest = baseManifest({ coreDependencies: { pino: '^9.6.0', chalk: '^5.0.0' } });
+
+    const result = mergePackageJson(current, manifest, newTemplate);
+
+    expect(result.updatedPkg.dependencies).toEqual({ pino: '^9.7.0', chalk: '^5.1.0' });
+  });
+
+  it('accumulates multiple core script updates in the same call instead of losing all but the last', () => {
+    const current: PackageJsonShape = {
+      name: 'my-cli',
+      version: '0.0.0',
+      scripts: { build: 'old-build', test: 'old-test' },
+    };
+    const newTemplate: PackageJsonShape = {
+      name: '{{projectName}}',
+      version: '0.0.0',
+      scripts: { build: 'tsup', test: 'vitest run' },
+    };
+    const manifest = baseManifest({ coreScripts: { build: 'old-build', test: 'old-test' } });
+
+    const result = mergePackageJson(current, manifest, newTemplate);
+
+    expect(result.updatedPkg.scripts).toEqual({ build: 'tsup', test: 'vitest run' });
+  });
+
   it('reports changed:false when every value already matches (nothing to write)', () => {
     const current: PackageJsonShape = { name: 'my-cli', version: '0.0.0', dependencies: { pino: '^9.6.0' } };
     const newTemplate: PackageJsonShape = {

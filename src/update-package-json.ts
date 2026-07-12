@@ -67,7 +67,7 @@ export function mergePackageJson(
     if (result.outcome !== 'skipped' && result.value !== current?.value) {
       changed = true;
       const section = current?.section ?? (inNewDependencies ? 'dependencies' : 'devDependencies');
-      updatedPkg[section] = { ...currentPkg[section], [name]: result.value };
+      updatedPkg[section] = { ...updatedPkg[section], [name]: result.value };
     }
   }
 
@@ -86,7 +86,7 @@ export function mergePackageJson(
 
     if (result.outcome !== 'skipped' && result.value !== currentValue) {
       changed = true;
-      updatedPkg.scripts = { ...currentPkg.scripts, [name]: result.value };
+      updatedPkg.scripts = { ...updatedPkg.scripts, [name]: result.value };
     }
   }
 
