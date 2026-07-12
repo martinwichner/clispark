@@ -1,5 +1,5 @@
-import { CORE_SCRIPT_NAMES, type Manifest } from './manifest.js';
-import { deepEquals, reconcileEntry, stringEquals, type ReconcileOutcome } from './reconcile.js';
+import { CORE_SCRIPT_NAMES, type Manifest } from './manifest';
+import { deepEquals, reconcileEntry, stringEquals, type ReconcileOutcome } from './reconcile';
 
 export interface PackageJsonShape {
   name: string;

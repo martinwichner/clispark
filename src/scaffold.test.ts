@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { copyTemplate, scaffoldProject } from './scaffold.js';
-import { DEFAULT_REGISTRY_URL } from './registry.js';
+import { copyTemplate, scaffoldProject } from './scaffold';
+import { DEFAULT_REGISTRY_URL } from './registry';
 
 describe('copyTemplate', () => {
   let tmpRoot: string;

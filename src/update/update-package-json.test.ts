@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { mergePackageJson, type PackageJsonShape } from './update-package-json.js';
-import type { Manifest } from './manifest.js';
+import { mergePackageJson, type PackageJsonShape } from './update-package-json';
+import type { Manifest } from './manifest';
 
 function baseManifest(overrides: Partial<Manifest> = {}): Manifest {
   return {

@@ -2,8 +2,8 @@ import spawn from 'cross-spawn';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { cp, readdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { DEFAULT_REGISTRY_URL } from './registry.js';
-import { buildManifest, getGeneratorVersion, writeManifest } from './update/manifest.js';
+import { DEFAULT_REGISTRY_URL } from './registry';
+import { buildManifest, getGeneratorVersion, writeManifest } from './update/manifest';
 
 export interface ScaffoldOptions {
   projectName: string;

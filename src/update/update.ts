@@ -2,7 +2,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import spawn from 'cross-spawn';
-import { applyPlaceholders, TEMPLATE_DIR } from '../scaffold.js';
+import { applyPlaceholders, TEMPLATE_DIR } from '../scaffold';
 import {
   CORE_FILE_PATHS,
   getGeneratorVersion,
@@ -11,10 +11,10 @@ import {
   templateSourcePath,
   writeManifest,
   type Manifest,
-} from './manifest.js';
-import { reconcileEntry, stringEquals } from './reconcile.js';
-import { compareVersions } from './releasenotes.js';
-import { mergePackageJson, type FieldOutcome, type PackageJsonShape } from './update-package-json.js';
+} from './manifest';
+import { reconcileEntry, stringEquals } from './reconcile';
+import { compareVersions } from './releasenotes';
+import { mergePackageJson, type FieldOutcome, type PackageJsonShape } from './update-package-json';
 
 export interface UpdateDeps {
   runCommand: (command: string, args: string[], cwd: string) => Promise<void>;

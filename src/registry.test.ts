@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { checkPackageNameAvailability, DEFAULT_REGISTRY_URL } from './registry.js';
+import { checkPackageNameAvailability, DEFAULT_REGISTRY_URL } from './registry';
 
 describe('checkPackageNameAvailability', () => {
   const originalFetch = global.fetch;

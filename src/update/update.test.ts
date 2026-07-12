@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { scaffoldProject } from '../scaffold.js';
-import { formatUpdateSummary, updateProject } from './update.js';
-import { CORE_FILE_PATHS, getGeneratorVersion, readManifest, type Manifest } from './manifest.js';
+import { scaffoldProject } from '../scaffold';
+import { formatUpdateSummary, updateProject } from './update';
+import { CORE_FILE_PATHS, getGeneratorVersion, readManifest, type Manifest } from './manifest';
 
 async function scaffoldFixture(tmpRoot: string, name: string): Promise<string> {
   const targetDir = path.join(tmpRoot, name);

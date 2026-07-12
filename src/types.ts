@@ -1,5 +1,5 @@
 // src/types.ts
-import type { NameCheckResult } from './registry.js';
+import type { NameCheckResult } from './registry';
 
 export type Profile = 'work' | 'private';
 

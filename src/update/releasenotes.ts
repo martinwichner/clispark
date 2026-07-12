@@ -1,5 +1,5 @@
 // src/update/releasenotes.ts
-import { getGeneratorVersion, requireManifest } from './manifest.js';
+import { getGeneratorVersion, requireManifest } from './manifest';
 
 export interface GitHubRelease {
   tag_name: string;

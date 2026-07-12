@@ -15,7 +15,7 @@ import {
   requireManifest,
   templateSourcePath,
   writeManifest,
-} from './manifest.js';
+} from './manifest';
 
 describe('hashContent', () => {
   it('produces a stable sha256 hex digest', () => {
