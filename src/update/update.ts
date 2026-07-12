@@ -1,8 +1,8 @@
-// src/update.ts
+// src/update/update.ts
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import spawn from 'cross-spawn';
-import { applyPlaceholders, TEMPLATE_DIR } from './scaffold.js';
+import { applyPlaceholders, TEMPLATE_DIR } from '../scaffold.js';
 import {
   CORE_FILE_PATHS,
   getGeneratorVersion,

@@ -1,4 +1,4 @@
-// src/releasenotes.ts
+// src/update/releasenotes.ts
 import { getGeneratorVersion, requireManifest } from './manifest.js';
 
 export interface GitHubRelease {
