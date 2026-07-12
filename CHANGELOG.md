@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/martinwichner/clispark/compare/v1.1.0...v1.1.1) (2026-07-12)
+
+
+### Bug Fixes
+
+* only comment on audit issues when findings actually change ([#9](https://github.com/martinwichner/clispark/issues/9)) ([170900c](https://github.com/martinwichner/clispark/commit/170900c4537337810fda238cb565821f14888a82))
+
 ## [1.1.0](https://github.com/martinwichner/clispark/compare/v1.0.1...v1.1.0) (2026-07-11)
 
 
