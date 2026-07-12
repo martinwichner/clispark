@@ -7,7 +7,7 @@ This document explains the conventions this project was generated with, so the a
 Every command lives in `src/commands/` and extends `BaseCommand` (`src/base-command.ts`) instead of oclif's own `Command` class directly:
 
 ```ts
-import { BaseCommand } from '../base-command.js';
+import { BaseCommand } from '../base-command';
 
 export default class MyCommand extends BaseCommand {
   static description = 'What this command does';

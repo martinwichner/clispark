@@ -1,5 +1,5 @@
 // templates/base/src/commands/hello.ts
-import { BaseCommand } from '../base-command.js';
+import { BaseCommand } from '../base-command';
 
 export default class Hello extends BaseCommand {
   static description = 'Say hello';

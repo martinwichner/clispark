@@ -1,7 +1,7 @@
 // templates/base/src/base-command.ts
 import { Command, type Interfaces } from '@oclif/core';
 import type { Logger } from 'pino';
-import { createLogger } from './logger.js';
+import { createLogger } from './logger';
 
 export abstract class BaseCommand extends Command {
   protected logger?: Logger;
