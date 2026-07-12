@@ -1,0 +1,154 @@
+// src/manifest.test.ts
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import {
+  CORE_FILE_PATHS,
+  CORE_SCRIPT_NAMES,
+  buildManifest,
+  extractCoreFields,
+  getGeneratorVersion,
+  hashContent,
+  hashCoreFiles,
+  readManifest,
+  requireManifest,
+  templateSourcePath,
+  writeManifest,
+} from './manifest.js';
+
+describe('hashContent', () => {
+  it('produces a stable sha256 hex digest', () => {
+    expect(hashContent('hello')).toBe(hashContent('hello'));
+    expect(hashContent('hello')).not.toBe(hashContent('world'));
+    expect(hashContent('hello')).toMatch(/^[0-9a-f]{64}$/);
+  });
+});
+
+describe('templateSourcePath', () => {
+  it('maps .gitignore to the un-dotted "gitignore" template file', () => {
+    expect(templateSourcePath('.gitignore')).toBe('gitignore');
+  });
+
+  it('leaves every other path unchanged', () => {
+    expect(templateSourcePath('src/base-command.ts')).toBe('src/base-command.ts');
+  });
+});
+
+describe('extractCoreFields', () => {
+  it('merges dependencies and devDependencies into coreDependencies', () => {
+    const result = extractCoreFields({
+      dependencies: { pino: '^9.0.0' },
+      devDependencies: { vitest: '^2.0.0' },
+    });
+    expect(result.coreDependencies).toEqual({ pino: '^9.0.0', vitest: '^2.0.0' });
+  });
+
+  it('only includes known core script names', () => {
+    const result = extractCoreFields({
+      scripts: { build: 'tsup', 'my-custom-script': 'do-thing' },
+    });
+    expect(result.coreScripts).toEqual({ build: 'tsup' });
+    expect(result.coreScripts).not.toHaveProperty('my-custom-script');
+  });
+
+  it('defaults engines/oclif/dependencies/scripts to empty objects when missing', () => {
+    const result = extractCoreFields({});
+    expect(result.coreFields).toEqual({ engines: {}, oclif: {} });
+    expect(result.coreDependencies).toEqual({});
+    expect(result.coreScripts).toEqual({});
+  });
+});
+
+describe('hashCoreFiles / buildManifest', () => {
+  let tmpRoot: string;
+
+  beforeEach(async () => {
+    tmpRoot = await mkdtemp(path.join(tmpdir(), 'clispark-manifest-test-'));
+    for (const relativePath of CORE_FILE_PATHS) {
+      const filePath = path.join(tmpRoot, relativePath);
+      await mkdir(path.dirname(filePath), { recursive: true });
+      await writeFile(filePath, `content of ${relativePath}`);
+    }
+    await writeFile(
+      path.join(tmpRoot, 'package.json'),
+      JSON.stringify({
+        dependencies: { pino: '^9.0.0' },
+        devDependencies: { vitest: '^2.0.0' },
+        scripts: Object.fromEntries(CORE_SCRIPT_NAMES.map((name) => [name, name])),
+        engines: { node: '>=18' },
+        oclif: { bin: 'test-cli' },
+      }),
+    );
+  });
+
+  afterEach(async () => {
+    await rm(tmpRoot, { recursive: true, force: true });
+  });
+
+  it('hashCoreFiles returns a hash per core file path', async () => {
+    const hashes = await hashCoreFiles(tmpRoot);
+    expect(Object.keys(hashes).sort()).toEqual([...CORE_FILE_PATHS].sort());
+    expect(hashes['tsconfig.json']).toBe(hashContent('content of tsconfig.json'));
+  });
+
+  it('buildManifest assembles a full manifest from a target directory', async () => {
+    const manifest = await buildManifest(tmpRoot, '9.9.9');
+    expect(manifest.generatorVersion).toBe('9.9.9');
+    expect(manifest.coreFiles['tsconfig.json']).toBe(hashContent('content of tsconfig.json'));
+    expect(manifest.coreDependencies).toEqual({ pino: '^9.0.0', vitest: '^2.0.0' });
+    expect(manifest.coreScripts.build).toBe('build');
+    expect(manifest.coreFields.engines).toEqual({ node: '>=18' });
+  });
+});
+
+describe('writeManifest / readManifest / requireManifest', () => {
+  let tmpRoot: string;
+
+  beforeEach(async () => {
+    tmpRoot = await mkdtemp(path.join(tmpdir(), 'clispark-manifest-test-'));
+  });
+
+  afterEach(async () => {
+    await rm(tmpRoot, { recursive: true, force: true });
+  });
+
+  const sampleManifest = {
+    generatorVersion: '1.0.0',
+    coreFiles: { 'tsconfig.json': 'abc' },
+    coreDependencies: {},
+    coreScripts: {},
+    coreFields: { engines: {}, oclif: {} },
+  };
+
+  it('writes the manifest to .clispark/manifest.json with a trailing newline', async () => {
+    await writeManifest(tmpRoot, sampleManifest);
+    const content = await readFile(path.join(tmpRoot, '.clispark', 'manifest.json'), 'utf8');
+    expect(content.endsWith('\n')).toBe(true);
+    expect(JSON.parse(content)).toEqual(sampleManifest);
+  });
+
+  it('readManifest returns undefined when no manifest exists', async () => {
+    expect(await readManifest(tmpRoot)).toBeUndefined();
+  });
+
+  it('readManifest returns the parsed manifest when it exists', async () => {
+    await writeManifest(tmpRoot, sampleManifest);
+    expect(await readManifest(tmpRoot)).toEqual(sampleManifest);
+  });
+
+  it('requireManifest throws a clear error when no manifest exists', async () => {
+    await expect(requireManifest(tmpRoot)).rejects.toThrow(/no \.clispark\/manifest\.json found/i);
+  });
+
+  it('requireManifest returns the manifest when it exists', async () => {
+    await writeManifest(tmpRoot, sampleManifest);
+    expect(await requireManifest(tmpRoot)).toEqual(sampleManifest);
+  });
+});
+
+describe('getGeneratorVersion', () => {
+  it("returns clispark's own package.json version", () => {
+    expect(getGeneratorVersion()).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+});
