@@ -45,7 +45,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Sync security audit issues
         if: (success() || failure()) && github.event_name == 'push'
-        run: node scripts/audit-issues.mjs
+        run: node scripts/audit-issues.ts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

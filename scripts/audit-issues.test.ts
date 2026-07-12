@@ -2,12 +2,12 @@ import { describe, it, expect, vi } from 'vitest';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { categorizeFindings, syncIssueForClass } from './audit-issues.mjs';
+import { categorizeFindings, syncIssueForClass, type AuditReport, type CategorizedFinding } from './audit-issues';
 
 const FIXTURES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures');
 
-async function loadFixture(name) {
-  return JSON.parse(await readFile(path.join(FIXTURES_DIR, name), 'utf8'));
+async function loadFixture(name: string): Promise<AuditReport> {
+  return JSON.parse(await readFile(path.join(FIXTURES_DIR, name), 'utf8')) as AuditReport;
 }
 
 describe('categorizeFindings', () => {
@@ -54,7 +54,7 @@ describe('categorizeFindings', () => {
 });
 
 describe('syncIssueForClass', () => {
-  const finding = {
+  const finding: CategorizedFinding = {
     name: 'example-critical-pkg',
     severity: 'critical',
     range: '<1.0.0',
@@ -62,7 +62,7 @@ describe('syncIssueForClass', () => {
     advisoryTitle: 'Prototype Pollution in example-critical-pkg',
     advisoryUrl: 'https://github.com/advisories/GHSA-xxxx-xxxx-xxxx',
   };
-  const otherFinding = {
+  const otherFinding: CategorizedFinding = {
     name: 'example-other-pkg',
     severity: 'high',
     range: '<3.0.0',
@@ -71,9 +71,9 @@ describe('syncIssueForClass', () => {
     advisoryUrl: undefined,
   };
 
-  function makeRunGh(responses) {
-    const calls = [];
-    const runGh = vi.fn(async (args) => {
+  function makeRunGh(responses: { list?: string; view?: string }) {
+    const calls: string[][] = [];
+    const runGh = vi.fn(async (args: string[]) => {
       calls.push(args);
       if (args[0] === 'issue' && args[1] === 'list') return responses.list ?? '[]';
       if (args[0] === 'issue' && args[1] === 'view') return responses.view ?? '{"body":""}';
