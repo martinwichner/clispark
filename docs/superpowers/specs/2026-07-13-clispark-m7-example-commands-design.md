@@ -100,7 +100,55 @@ All three inherit `BaseCommand` exactly like `hello.ts` — no changes to `base-
 ### Documentation updates
 
 - **`templates/base/README.md`** (generated project's own README): new section introducing `task` / `task complete` / `task list` as the args/subcommand reference example, alongside the existing `hello` mention — briefly note that the three files also tour different `Args` types (string, enum-constrained string, integer, boolean).
-- **`templates/base/ARCHITECTURE.md`**: the `## Commands` code snippet currently shows `static args = {}`; extend it (or add a second snippet) to show a populated `Args.string(...)` example so the doc reflects what a real command with arguments looks like, pointing at `task.ts`/`task/complete.ts`/`task/list.ts` as the live references for the different arg types.
+- **`templates/base/ARCHITECTURE.md`**: new `## Argument Types` section (added per user request, 2026-07-13), catalogueing every arg type `@oclif/core` ships (verified against the actual installed version, `^4.0.0`/`4.11.14`, by reading `@oclif/core`'s own `lib/args.js` source rather than assumed), each with a one-line example and the actual rejection message oclif produces on invalid input. Goes directly after the existing `## Commands` section. Exact content to add:
+
+  ```markdown
+  ## Argument Types
+
+  Every entry in a command's `static args` is built from `@oclif/core`'s `Args` helpers. `task.ts` / `task/complete.ts` / `task/list.ts` (see below) use a few of these; the full set `@oclif/core` ships:
+
+  - **`Args.string()`** — plain text, no parsing/validation. The default choice.
+    ```ts
+    title: Args.string({ description: 'Task title' })
+    ```
+  - **`Args.integer({ min?, max? })`** — parses digits into a real `number`, rejects non-numeric input, optional bounds.
+    ```ts
+    id: Args.integer({ min: 1, description: 'Task ID' })
+    // `task complete abc` → "Expected an integer but received: abc"
+    ```
+  - **`Args.boolean()`** — parses into a real `boolean`. Any input is `true` except (case-insensitive) `0`, `false`, `n`, `no`, which parse to `false`.
+    ```ts
+    done: Args.boolean({ description: 'Only completed tasks' })
+    // `task list true` → done === true; `task list no` → done === false
+    ```
+  - **`Args.file({ exists? })`** / **`Args.directory({ exists? })`** — plain string path by default; with `exists: true`, verifies the path actually exists on disk (as a file/directory respectively) and throws otherwise.
+    ```ts
+    config: Args.file({ exists: true, description: 'Path to a config file' })
+    // missing file → "No file found at <path>"
+    ```
+  - **`Args.url()`** — parses into a real `URL` object, throws if the input isn't a valid URL.
+    ```ts
+    endpoint: Args.url({ description: 'API endpoint' })
+    ```
+  - **`Args.custom<T, Opts>({ parse })`** — build your own type when none of the above fit.
+    ```ts
+    const semver = Args.custom<string>({
+      parse: async (input) => {
+        if (!/^\d+\.\d+\.\d+$/.test(input)) throw new Error(`Not a valid semver: ${input}`);
+        return input;
+      },
+    });
+    ```
+  - **`options: [...]`** — a cross-cutting constraint any arg type can add (not a type itself): restricts input to a fixed list of values.
+    ```ts
+    priority: Args.string({ options: ['low', 'medium', 'high'] })
+    // `task <title> urgent` → "Expected urgent to be one of: low, medium, high"
+    ```
+
+  See `task.ts` (string + enum-constrained string), `task/complete.ts` (integer), and `task/list.ts` (string + boolean) for these in a real, runnable command.
+  ```
+
+  `file`/`directory`/`url`/`custom` are documented for completeness (full catalogue, as requested) even though none of the three `task` commands use them — adding a 4th/5th command just to demonstrate every type would violate the "stay compact" constraint from the plan, so the doc's own inline examples cover the types the commands don't.
 - **`clispark/README.md`** (generator's own README): update the status table/feature list to reflect M7 as done, per the project's standing instruction to keep this README current each milestone.
 
 ## Error Handling
