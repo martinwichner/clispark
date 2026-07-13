@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.4.0](https://github.com/martinwichner/clispark/compare/v1.3.0...v1.4.0) (2026-07-13)
+
+
+### Features
+
+* add task complete subcommand (required integer arg) ([6cb9baa](https://github.com/martinwichner/clispark/commit/6cb9baac451aa9224093fc13e1ba73647398bedb))
+* add task example command (required + enum-constrained args) ([67c4574](https://github.com/martinwichner/clispark/commit/67c457470372e73be08c56a013052fe683dc070a))
+* add task list subcommand (two optional args, string + boolean) ([60d92f4](https://github.com/martinwichner/clispark/commit/60d92f427ed89fe09035e14fa3ae6f7093e58691))
+
 ## [1.3.0](https://github.com/martinwichner/clispark/compare/v1.2.0...v1.3.0) (2026-07-12)
 
 
