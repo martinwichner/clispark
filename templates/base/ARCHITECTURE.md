@@ -23,6 +23,50 @@ export default class MyCommand extends BaseCommand {
 
 `BaseCommand` overrides oclif's `init()`/`catch()`/`finally()` lifecycle methods to log every command's start, failure, and completion automatically — no manual logging calls needed inside `run()`.
 
+## Argument Types
+
+Every entry in a command's `static args` is built from `@oclif/core`'s `Args` helpers. `task.ts` / `task/complete.ts` / `task/list.ts` use a few of these; the full set `@oclif/core` ships:
+
+- **`Args.string()`** — plain text, no parsing/validation. The default choice.
+  ```ts
+  title: Args.string({ description: 'Task title' })
+  ```
+- **`Args.integer({ min?, max? })`** — parses digits into a real `number`, rejects non-numeric input, optional bounds.
+  ```ts
+  id: Args.integer({ min: 1, description: 'Task ID' })
+  // `task complete abc` → "Expected an integer but received: abc"
+  ```
+- **`Args.boolean()`** — parses into a real `boolean`. Any input is `true` except (case-insensitive) `0`, `false`, `n`, `no`, which parse to `false`.
+  ```ts
+  done: Args.boolean({ description: 'Only completed tasks' })
+  // `task list true` → done === true; `task list no` → done === false
+  ```
+- **`Args.file({ exists? })`** / **`Args.directory({ exists? })`** — plain string path by default; with `exists: true`, verifies the path actually exists on disk (as a file/directory respectively) and throws otherwise.
+  ```ts
+  config: Args.file({ exists: true, description: 'Path to a config file' })
+  // missing file → "No file found at <path>"
+  ```
+- **`Args.url()`** — parses into a real `URL` object, throws if the input isn't a valid URL.
+  ```ts
+  endpoint: Args.url({ description: 'API endpoint' })
+  ```
+- **`Args.custom<T, Opts>({ parse })`** — build your own type when none of the above fit.
+  ```ts
+  const semver = Args.custom<string>({
+    parse: async (input) => {
+      if (!/^\d+\.\d+\.\d+$/.test(input)) throw new Error(`Not a valid semver: ${input}`);
+      return input;
+    },
+  });
+  ```
+- **`options: [...]`** — a cross-cutting constraint any arg type can add (not a type itself): restricts input to a fixed list of values.
+  ```ts
+  priority: Args.string({ options: ['low', 'medium', 'high'] })
+  // `task <title> urgent` → "Expected urgent to be one of: low, medium, high"
+  ```
+
+See `task.ts` (string + enum-constrained string), `task/complete.ts` (integer), and `task/list.ts` (string + boolean) for these in a real, runnable command.
+
 ## Command Discovery
 
 oclif discovers commands at runtime from the `oclif.commands` path in `package.json` (`./dist/commands`) — there is no custom filesystem-scanning code. Dropping a new file in `src/commands/` and building the project is enough for oclif to pick it up; nothing needs to be manually registered.
