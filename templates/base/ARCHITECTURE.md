@@ -33,7 +33,7 @@ Every entry in a command's `static args` is built from `@oclif/core`'s `Args` he
   ```
 - **`Args.integer({ min?, max? })`** — parses digits into a real `number`, rejects non-numeric input, optional bounds.
   ```ts
-  id: Args.integer({ min: 1, description: 'Task ID' })
+  id: Args.integer({ description: 'Task ID' })
   // `task complete abc` → "Expected an integer but received: abc"
   ```
 - **`Args.boolean()`** — parses into a real `boolean`. Any input is `true` except (case-insensitive) `0`, `false`, `n`, `no`, which parse to `false`.
