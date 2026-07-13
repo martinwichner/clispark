@@ -16,9 +16,15 @@ src/commands/
 
 `task.ts` doubling as both "required arg" and "optional arg" example (rather than a fourth file) keeps the set to three files total, in line with the plan's explicit "stay compact, no proliferation of example files" requirement. The `task/` folder itself demonstrates the subcommand mechanism as a side effect of its existence — a new user sees both "a command can have args" and "a command can have subcommands" from the same small example.
 
+**Type variety (added per user request, 2026-07-13):** rather than every arg being a plain string, each file uses a different oclif `Args` type, so the three files together tour more of oclif's arg-type surface, not just the required/optional/subcommand axis:
+
+- `task.ts`: plain required string (`title`) + optional **enum-constrained string** (`priority`, restricted to `low`/`medium`/`high` via `Args.string`'s `options`).
+- `task/complete.ts`: required **integer** (`id`) instead of a string — shows numeric arg parsing/validation.
+- `task/list.ts`: optional plain string (`filter`) + optional **boolean** (`done`) — also doubles as the one place showing a command with *two* optional args together.
+
 **Explicitly out of scope:**
 - Any real task storage/state — every command only logs what it *would* do.
-- Flags (`--foo`) — the plan and the user's own notes name args and subcommands only; adding flag examples here would be scope creep beyond what M7 asks for.
+- Flags (`--foo`) — the plan and the user's own notes name args and subcommands only; adding flag examples here would be scope creep beyond what M7 asks for. Type variety is achieved via oclif's built-in `Args` types, not flags.
 - Changes to `hello.ts` itself — it remains the separate, minimal starting point.
 
 ## Design
@@ -31,10 +37,14 @@ import { Args } from '@oclif/core';
 import { BaseCommand } from '../base-command';
 
 export default class Task extends BaseCommand {
-  static description = 'Create a task (demonstrates a required and an optional argument)';
+  static description = 'Create a task (demonstrates a required string arg and an optional enum-constrained arg)';
   static args = {
     title: Args.string({ required: true, description: 'Task title' }),
-    priority: Args.string({ required: false, description: 'Optional priority (e.g. low/medium/high)' }),
+    priority: Args.string({
+      required: false,
+      options: ['low', 'medium', 'high'],
+      description: 'Optional priority',
+    }),
   };
   static flags = {};
 
@@ -51,9 +61,9 @@ import { Args } from '@oclif/core';
 import { BaseCommand } from '../../base-command';
 
 export default class TaskComplete extends BaseCommand {
-  static description = 'Complete a task (demonstrates a subcommand with a required argument)';
+  static description = 'Complete a task (demonstrates a subcommand with a required integer argument)';
   static args = {
-    id: Args.string({ required: true, description: 'Task ID to complete' }),
+    id: Args.integer({ required: true, description: 'Task ID to complete' }),
   };
   static flags = {};
 
@@ -70,15 +80,17 @@ import { Args } from '@oclif/core';
 import { BaseCommand } from '../../base-command';
 
 export default class TaskList extends BaseCommand {
-  static description = 'List tasks (demonstrates a subcommand with an optional argument)';
+  static description = 'List tasks (demonstrates a subcommand with two optional arguments of different types)';
   static args = {
     filter: Args.string({ required: false, description: 'Optional filter term' }),
+    done: Args.boolean({ required: false, description: 'Only show completed tasks (true/false)' }),
   };
   static flags = {};
 
   async run(): Promise<void> {
     const { args } = await this.parse(TaskList);
-    this.log(args.filter ? `Listing tasks matching "${args.filter}"` : 'Listing all tasks');
+    const base = args.filter ? `Listing tasks matching "${args.filter}"` : 'Listing all tasks';
+    this.log(args.done !== undefined ? `${base} (completed only: ${args.done})` : base);
   }
 }
 ```
@@ -87,8 +99,8 @@ All three inherit `BaseCommand` exactly like `hello.ts` — no changes to `base-
 
 ### Documentation updates
 
-- **`templates/base/README.md`** (generated project's own README): new section introducing `task` / `task complete` / `task list` as the args/subcommand reference example, alongside the existing `hello` mention.
-- **`templates/base/ARCHITECTURE.md`**: the `## Commands` code snippet currently shows `static args = {}`; extend it (or add a second snippet) to show a populated `Args.string(...)` example so the doc reflects what a real command with arguments looks like, pointing at `task.ts` as the live reference.
+- **`templates/base/README.md`** (generated project's own README): new section introducing `task` / `task complete` / `task list` as the args/subcommand reference example, alongside the existing `hello` mention — briefly note that the three files also tour different `Args` types (string, enum-constrained string, integer, boolean).
+- **`templates/base/ARCHITECTURE.md`**: the `## Commands` code snippet currently shows `static args = {}`; extend it (or add a second snippet) to show a populated `Args.string(...)` example so the doc reflects what a real command with arguments looks like, pointing at `task.ts`/`task/complete.ts`/`task/list.ts` as the live references for the different arg types.
 - **`clispark/README.md`** (generator's own README): update the status table/feature list to reflect M7 as done, per the project's standing instruction to keep this README current each milestone.
 
 ## Error Handling
@@ -99,6 +111,10 @@ None beyond what `BaseCommand`/oclif already provide. These are demo commands wi
 
 Same pattern as `hello.test.ts`: one test file per command (`task.test.ts`, `task/complete.test.ts`, `task/list.test.ts`), using `@oclif/test`'s `runCommand()`.
 
-**Open point to verify empirically during implementation (not assumed):** the exact `runCommand()` invocation syntax for a nested subcommand against the project's actual installed oclif version — e.g. whether `runCommand('task complete 1')` (space-separated) or `runCommand('task:complete 1')` (colon-separated) is what resolves correctly. Consistent with how this project has always treated oclif behavior (M3, M5, M6 all found real discrepancies between assumption and actual behavior) — confirm with a real test run rather than assuming either form.
+**Open points to verify empirically during implementation (not assumed):**
+- The exact `runCommand()` invocation syntax for a nested subcommand against the project's actual installed oclif version — e.g. whether `runCommand('task complete 1')` (space-separated) or `runCommand('task:complete 1')` (colon-separated) is what resolves correctly. Consistent with how this project has always treated oclif behavior (M3, M5, M6 all found real discrepancies between assumption and actual behavior) — confirm with a real test run rather than assuming either form.
+- `Args.string`'s `options` validation: confirm the actual rejection message oclif produces for `priority` given a value outside `low`/`medium`/`high`, and that it stays a clean `Error: ...` (no raw stack) consistent with the rest of clispark's error-handling convention.
+- `Args.integer` validation: confirm the actual rejection message for a non-numeric `id`, and that `args.id` arrives as a real `number` (not a string) inside `run()`.
+- `Args.boolean` parsing: confirm which literal input strings oclif accepts as `true`/`false` for `done`, and what happens when it's omitted (`args.done === undefined`, not a default `false`) — that's what the `run()` body above assumes.
 
-**Manual end-to-end verification (same shape as M1–M6):** real scaffold, then real invocations of `task`, `task complete <id>`, `task list`, and `task list` with a filter argument, confirming output and that missing-required-arg still produces oclif's clean error format.
+**Manual end-to-end verification (same shape as M1–M6):** real scaffold, then real invocations of `task` (with and without `priority`, including an invalid `priority` value), `task complete <id>` (including a non-numeric `id`), `task list` (with/without `filter` and `done`), confirming output and that invalid/missing args still produce oclif's clean error format.
