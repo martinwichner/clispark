@@ -54,11 +54,12 @@ export function withLogging(
   commandName: string,
   action: (logger: Logger) => Promise<void>,
   logDir: string = paths.log,
+  loggerFactory: typeof createLogger = createLogger,
 ): () => Promise<void> {
   return async () => {
     let handle: LoggerHandle;
     try {
-      handle = createLogger(commandName, logDir);
+      handle = loggerFactory(commandName, logDir);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(`\n✖ ${message}`);
@@ -67,16 +68,28 @@ export function withLogging(
     }
 
     const { logger, logFilePath } = handle;
-    logger.info({ command: commandName }, 'started');
+    try {
+      logger.info({ command: commandName }, 'started');
+    } catch {
+      // best-effort logging; a write failure here must not abort a command that hasn't run yet
+    }
 
     try {
       await action(logger);
-      logger.info({ command: commandName }, 'completed');
+      try {
+        logger.info({ command: commandName }, 'completed');
+      } catch {
+        // best-effort logging; the command still succeeded
+      }
       if (process.env.DEBUG) {
         console.log(`Details: ${logFilePath}`);
       }
     } catch (error) {
-      logger.error({ command: commandName, err: error }, 'failed');
+      try {
+        logger.error({ command: commandName, err: error }, 'failed');
+      } catch {
+        // best-effort logging; never let a log-write failure mask the real error
+      }
       const message = error instanceof Error ? error.message : String(error);
       console.error(`\n✖ ${message}`);
       console.error(`Details: ${logFilePath}`);
