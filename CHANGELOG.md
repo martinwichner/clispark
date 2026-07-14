@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.5.0](https://github.com/martinwichner/clispark/compare/v1.4.0...v1.5.0) (2026-07-14)
+
+
+### Features
+
+* DEBUG-gated live log streaming and log-path visibility on success and failure ([1e2fca1](https://github.com/martinwichner/clispark/commit/1e2fca176a213d8bced4ba90e072e52a847d70b7))
+* redact registryUrl and restrict log file permissions to 0o600 ([f6ed00f](https://github.com/martinwichner/clispark/commit/f6ed00fddcc3abbc21387f439fd41575bb823bb7))
+* sweep log files older than LOG_RETENTION_DAYS (default 14) on every invocation ([1ed8155](https://github.com/martinwichner/clispark/commit/1ed81556e60f10e63f82c0003fcdec809e5072b0))
+
+
+### Bug Fixes
+
+* harden logger write calls against I/O failures on both sides ([242b82b](https://github.com/martinwichner/clispark/commit/242b82bf3b536d4171f0f23d8077ef863dde1964))
+
 ## [1.4.0](https://github.com/martinwichner/clispark/compare/v1.3.0...v1.4.0) (2026-07-13)
 
 
