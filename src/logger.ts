@@ -41,10 +41,11 @@ export function createLogger(commandName: string, logDir: string = paths.log): L
   sweepOldLogs(logDir);
 
   const logFilePath = path.join(logDir, buildLogFileName(commandName));
-  const logger = pino(
-    { redact: ['registryUrl', '*.registryUrl'] },
-    pino.destination({ dest: logFilePath, sync: true, mode: 0o600 }),
-  );
+  const fileDestination = pino.destination({ dest: logFilePath, sync: true, mode: 0o600 });
+  const destination = process.env.DEBUG
+    ? pino.multistream([{ stream: fileDestination }, { stream: process.stdout }])
+    : fileDestination;
+  const logger = pino({ redact: ['registryUrl', '*.registryUrl'] }, destination);
 
   return { logger, logFilePath };
 }
@@ -71,6 +72,9 @@ export function withLogging(
     try {
       await action(logger);
       logger.info({ command: commandName }, 'completed');
+      if (process.env.DEBUG) {
+        console.log(`Details: ${logFilePath}`);
+      }
     } catch (error) {
       logger.error({ command: commandName, err: error }, 'failed');
       const message = error instanceof Error ? error.message : String(error);

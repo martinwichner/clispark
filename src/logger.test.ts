@@ -124,6 +124,35 @@ describe('createLogger', () => {
 
     expect(existsSync(filePath)).toBe(true);
   });
+
+  it('streams log lines to stdout when DEBUG is set', async () => {
+    const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    process.env.DEBUG = '1';
+
+    try {
+      const { logger } = createLogger('scaffold', tmpRoot);
+      logger.info({ command: 'scaffold' }, 'started');
+      await new Promise<void>((resolve) => logger.flush(() => resolve()));
+    } finally {
+      delete process.env.DEBUG;
+    }
+
+    const written = writeSpy.mock.calls.map((call) => String(call[0])).join('');
+    expect(written).toContain('started');
+    writeSpy.mockRestore();
+  });
+
+  it('does not stream to stdout when DEBUG is unset', async () => {
+    const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    delete process.env.DEBUG;
+
+    const { logger } = createLogger('scaffold', tmpRoot);
+    logger.info({ command: 'scaffold' }, 'started');
+    await new Promise<void>((resolve) => logger.flush(() => resolve()));
+
+    expect(writeSpy).not.toHaveBeenCalled();
+    writeSpy.mockRestore();
+  });
 });
 
 describe('withLogging', () => {
@@ -213,5 +242,42 @@ describe('withLogging', () => {
 
     exitSpy.mockRestore();
     vi.restoreAllMocks();
+  });
+
+  it('prints the log file path on success when DEBUG is set', async () => {
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    const action = vi.fn(async () => {});
+    process.env.DEBUG = '1';
+
+    try {
+      const wrapped = withLogging('scaffold', action, tmpRoot);
+      await wrapped();
+    } finally {
+      delete process.env.DEBUG;
+    }
+
+    const printedLines = logSpy.mock.calls.map((call) => String(call[0]));
+    expect(printedLines.some((line) => line.includes('Details:'))).toBe(true);
+
+    exitSpy.mockRestore();
+    logSpy.mockRestore();
+    writeSpy.mockRestore();
+  });
+
+  it('stays silent on success when DEBUG is unset', async () => {
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const action = vi.fn(async () => {});
+    delete process.env.DEBUG;
+
+    const wrapped = withLogging('scaffold', action, tmpRoot);
+    await wrapped();
+
+    expect(logSpy).not.toHaveBeenCalled();
+
+    exitSpy.mockRestore();
+    logSpy.mockRestore();
   });
 });
