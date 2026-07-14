@@ -1157,11 +1157,10 @@ Run the project's established review pass over the full diff before merging: con
 
 - [ ] **Step 8: Update the project plan**
 
-Mark M8 complete (`- [x]` on all five bullets) in `project-ideas/clispark.plan.md`, add a changelog line summarizing what shipped (redaction, retention, DEBUG visibility, hardened writes, permissions — all five original M2.5-deferred items closed) and any bugs found during Task 4/5's real verification (the two real, empirically-confirmed `BaseCommand` write-hardening bugs), following the existing per-milestone changelog convention.
+**Path correction found during Task 5 execution:** `project-ideas/clispark.plan.md` is NOT inside the `clispark` git repository — it lives at `D:/programming/claude-projects/project-ideas/clispark.plan.md`, a sibling directory of `clispark/` under `claude-projects/`, and that directory is not a git repository at all (confirmed: `git rev-parse --is-inside-work-tree` fails there). Edit that file directly at its real path. It is not trackable by `clispark`'s git and needs no `git add`/`git commit` — Step 9 below is a no-op for this file and only applies to files actually inside the `clispark` repo (there are none left to commit at this point in the task).
+
+Mark M8 complete (`- [x]` on all five bullets) in `D:/programming/claude-projects/project-ideas/clispark.plan.md`'s `### M8 (später): Logging-Härtung` section, add a changelog line (German, matching the file's existing changelog entries' style and language) summarizing what shipped (redaction, retention, DEBUG visibility, hardened writes, permissions — all five original M2.5-deferred items closed) and any bugs found during Task 4/5's real verification (the two real, empirically-confirmed `BaseCommand` write-hardening bugs — `catch()`/`finally()` letting a logger-write failure escape as an unhandled throw).
 
 - [ ] **Step 9: Commit the plan update**
 
-```bash
-git add project-ideas/clispark.plan.md
-git commit -m "docs: mark M8 complete in clispark plan"
-```
+No commit needed — `project-ideas/clispark.plan.md` is outside git entirely (see Step 8's path correction). If any other files inside the `clispark` repo were incidentally touched while verifying this task, review with `git status`/`git diff` before deciding whether they need a commit; none are expected.
