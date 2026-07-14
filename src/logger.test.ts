@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm, writeFile, utimes } from 'node:fs/promises';
 import { existsSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import type { Logger } from 'pino';
 import { createLogger, withLogging } from './logger';
 
 describe('createLogger', () => {
@@ -279,5 +280,50 @@ describe('withLogging', () => {
 
     exitSpy.mockRestore();
     logSpy.mockRestore();
+  });
+
+  it('does not propagate a throw from a failing logger write on success', async () => {
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    const action = vi.fn(async () => {});
+    const throwingLoggerFactory: typeof createLogger = (commandName, logDir) => {
+      const handle = createLogger(commandName, logDir);
+      handle.logger.info = (() => {
+        throw new Error('disk full');
+      }) as Logger['info'];
+      return handle;
+    };
+
+    const wrapped = withLogging('scaffold', action, tmpRoot, throwingLoggerFactory);
+    await expect(wrapped()).resolves.toBeUndefined();
+
+    expect(action).toHaveBeenCalledTimes(1);
+    expect(exitSpy).not.toHaveBeenCalled();
+
+    exitSpy.mockRestore();
+  });
+
+  it('does not propagate a throw from a failing logger write on failure, and still prints the clean error', async () => {
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const action = vi.fn(async () => {
+      throw new Error('npm install failed');
+    });
+    const throwingLoggerFactory: typeof createLogger = (commandName, logDir) => {
+      const handle = createLogger(commandName, logDir);
+      handle.logger.error = (() => {
+        throw new Error('disk full');
+      }) as Logger['error'];
+      return handle;
+    };
+
+    const wrapped = withLogging('scaffold', action, tmpRoot, throwingLoggerFactory);
+    await wrapped();
+
+    const printedLines = errorSpy.mock.calls.map((call) => String(call[0]));
+    expect(printedLines.some((line) => line.includes('✖ npm install failed'))).toBe(true);
+    expect(exitSpy).toHaveBeenCalledWith(1);
+
+    exitSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 });

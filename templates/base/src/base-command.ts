@@ -13,11 +13,19 @@ export abstract class BaseCommand extends Command {
     const { logger, logFilePath } = createLogger(this.id ?? 'unknown');
     this.logger = logger;
     this.logFilePath = logFilePath;
-    this.logger.info({ command: this.id }, 'started');
+    try {
+      this.logger.info({ command: this.id }, 'started');
+    } catch {
+      // best-effort logging; a write failure here must not abort a command that hasn't run yet
+    }
   }
 
   protected async catch(err: Interfaces.CommandError): Promise<unknown> {
-    this.logger?.error({ command: this.id, err }, 'failed');
+    try {
+      this.logger?.error({ command: this.id, err }, 'failed');
+    } catch {
+      // best-effort logging; never let a log-write failure mask the real error
+    }
     if (this.logFilePath) {
       console.error(`Details: ${this.logFilePath}`);
     }
@@ -26,7 +34,11 @@ export abstract class BaseCommand extends Command {
 
   protected async finally(err: Error | undefined): Promise<unknown> {
     if (!err) {
-      this.logger?.info({ command: this.id }, 'completed');
+      try {
+        this.logger?.info({ command: this.id }, 'completed');
+      } catch {
+        // best-effort logging; never let a log-write failure crash a successful run
+      }
       if (process.env.DEBUG && this.logFilePath) {
         console.log(`Details: ${this.logFilePath}`);
       }
