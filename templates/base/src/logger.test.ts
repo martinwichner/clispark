@@ -1,6 +1,6 @@
 // templates/base/src/logger.test.ts
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { readFile, rm, mkdtemp } from 'node:fs/promises';
+import { readFile, rm, mkdtemp, writeFile, utimes } from 'node:fs/promises';
 import { existsSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -78,5 +78,51 @@ describe('createLogger', () => {
 
     const mode = statSync(logFilePath).mode & 0o777;
     expect(mode).toBe(0o600);
+  });
+
+  it('deletes log files older than the default 14-day retention window', async () => {
+    const oldFilePath = path.join(tmpRoot, 'old-hello.log');
+    const newFilePath = path.join(tmpRoot, 'new-hello.log');
+    await writeFile(oldFilePath, '{}');
+    await writeFile(newFilePath, '{}');
+    const fifteenDaysAgo = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000);
+    await utimes(oldFilePath, fifteenDaysAgo, fifteenDaysAgo);
+
+    createLogger('hello', tmpRoot);
+
+    expect(existsSync(oldFilePath)).toBe(false);
+    expect(existsSync(newFilePath)).toBe(true);
+  });
+
+  it('honors a LOG_RETENTION_DAYS override', async () => {
+    const filePath = path.join(tmpRoot, 'three-days-old.log');
+    await writeFile(filePath, '{}');
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    await utimes(filePath, threeDaysAgo, threeDaysAgo);
+
+    process.env.LOG_RETENTION_DAYS = '1';
+    try {
+      createLogger('hello', tmpRoot);
+    } finally {
+      delete process.env.LOG_RETENTION_DAYS;
+    }
+
+    expect(existsSync(filePath)).toBe(false);
+  });
+
+  it('falls back to the 14-day default when LOG_RETENTION_DAYS is not a number', async () => {
+    const filePath = path.join(tmpRoot, 'five-days-old.log');
+    await writeFile(filePath, '{}');
+    const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
+    await utimes(filePath, fiveDaysAgo, fiveDaysAgo);
+
+    process.env.LOG_RETENTION_DAYS = 'not-a-number';
+    try {
+      createLogger('hello', tmpRoot);
+    } finally {
+      delete process.env.LOG_RETENTION_DAYS;
+    }
+
+    expect(existsSync(filePath)).toBe(true);
   });
 });
