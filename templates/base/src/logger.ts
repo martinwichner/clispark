@@ -22,7 +22,10 @@ export function createLogger(commandName: string, logDir: string = paths.log): L
   mkdirSync(logDir, { recursive: true });
 
   const logFilePath = path.join(logDir, buildLogFileName(commandName));
-  const logger = pino(pino.destination({ dest: logFilePath, sync: true }));
+  const logger = pino(
+    { redact: ['registryUrl', '*.registryUrl'] },
+    pino.destination({ dest: logFilePath, sync: true, mode: 0o600 }),
+  );
 
   return { logger, logFilePath };
 }

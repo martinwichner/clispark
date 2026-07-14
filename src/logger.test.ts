@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createLogger, withLogging } from './logger';
@@ -50,6 +50,33 @@ describe('createLogger', () => {
     const entry = JSON.parse(content.trim().split('\n')[0]);
     expect(entry.msg).toBe('scaffold started');
     expect(entry.projectName).toBe('my-cli');
+  });
+
+  it('redacts registryUrl values, including one level of nesting', async () => {
+    const { logger, logFilePath } = createLogger('scaffold', tmpRoot);
+
+    logger.info(
+      {
+        registryUrl: 'https://registry.example.com/secret-token',
+        nested: { registryUrl: 'https://nested.example.com/other-secret' },
+      },
+      'scaffold started',
+    );
+    await logger.flush();
+
+    const content = await readFile(logFilePath, 'utf8');
+    expect(content).not.toContain('secret-token');
+    expect(content).not.toContain('nested.example.com');
+    expect(content).toContain('[Redacted]');
+  });
+
+  it('sets the log file to owner-only read/write permissions (POSIX only)', () => {
+    if (process.platform === 'win32') return;
+
+    const { logFilePath } = createLogger('scaffold', tmpRoot);
+
+    const mode = statSync(logFilePath).mode & 0o777;
+    expect(mode).toBe(0o600);
   });
 });
 
