@@ -1,5 +1,5 @@
 // templates/base/src/logger.test.ts
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { readFile, rm, mkdtemp, writeFile, utimes } from 'node:fs/promises';
 import { existsSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -124,5 +124,34 @@ describe('createLogger', () => {
     }
 
     expect(existsSync(filePath)).toBe(true);
+  });
+
+  it('streams log lines to stdout when DEBUG is set', async () => {
+    const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    process.env.DEBUG = '1';
+
+    try {
+      const { logger } = createLogger('hello', tmpRoot);
+      logger.info({ command: 'hello' }, 'started');
+      await new Promise<void>((resolve) => logger.flush(() => resolve()));
+    } finally {
+      delete process.env.DEBUG;
+    }
+
+    const written = writeSpy.mock.calls.map((call) => String(call[0])).join('');
+    expect(written).toContain('started');
+    writeSpy.mockRestore();
+  });
+
+  it('does not stream to stdout when DEBUG is unset', async () => {
+    const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    delete process.env.DEBUG;
+
+    const { logger } = createLogger('hello', tmpRoot);
+    logger.info({ command: 'hello' }, 'started');
+    await new Promise<void>((resolve) => logger.flush(() => resolve()));
+
+    expect(writeSpy).not.toHaveBeenCalled();
+    writeSpy.mockRestore();
   });
 });

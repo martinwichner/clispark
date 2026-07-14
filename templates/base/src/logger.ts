@@ -42,10 +42,11 @@ export function createLogger(commandName: string, logDir: string = paths.log): L
   sweepOldLogs(logDir);
 
   const logFilePath = path.join(logDir, buildLogFileName(commandName));
-  const logger = pino(
-    { redact: ['registryUrl', '*.registryUrl'] },
-    pino.destination({ dest: logFilePath, sync: true, mode: 0o600 }),
-  );
+  const fileDestination = pino.destination({ dest: logFilePath, sync: true, mode: 0o600 });
+  const destination = process.env.DEBUG
+    ? pino.multistream([{ stream: fileDestination }, { stream: process.stdout }])
+    : fileDestination;
+  const logger = pino({ redact: ['registryUrl', '*.registryUrl'] }, destination);
 
   return { logger, logFilePath };
 }
