@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/martinwichner/clispark/compare/v1.5.0...v1.6.0) (2026-07-17)
+
+
+### Features
+
+* **template:** add usage examples to task commands' --help output ([7a91b44](https://github.com/martinwichner/clispark/commit/7a91b4492540a59b0b1eaee8c9376656d61f8a12))
+
 ## [1.5.0](https://github.com/martinwichner/clispark/compare/v1.4.0...v1.5.0) (2026-07-14)
 
 
