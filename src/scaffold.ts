@@ -31,9 +31,29 @@ export function applyPlaceholders(content: string, projectName: string): string 
   return content.replaceAll('{{projectName}}', projectName);
 }
 
-async function replacePlaceholder(filePath: string, projectName: string): Promise<void> {
-  const content = applyPlaceholders(await readFile(filePath, 'utf8'), projectName);
-  await writeFile(filePath, content);
+async function collectFiles(dir: string): Promise<string[]> {
+  const entries = await readdir(dir, { withFileTypes: true });
+  const files = await Promise.all(
+    entries.map((entry) => {
+      const fullPath = path.join(dir, entry.name);
+      return entry.isDirectory() ? collectFiles(fullPath) : Promise.resolve([fullPath]);
+    }),
+  );
+  return files.flat();
+}
+
+// Scans every copied file rather than a hardcoded list, so a new template file
+// that needs {{projectName}} substituted can't silently be forgotten here.
+async function replacePlaceholdersInTree(targetDir: string, projectName: string): Promise<void> {
+  const files = await collectFiles(targetDir);
+  await Promise.all(
+    files.map(async (filePath) => {
+      const content = await readFile(filePath, 'utf8');
+      if (content.includes('{{projectName}}')) {
+        await writeFile(filePath, applyPlaceholders(content, projectName));
+      }
+    }),
+  );
 }
 
 async function markPackageJsonPrivate(targetDir: string): Promise<void> {
@@ -51,10 +71,7 @@ export async function copyTemplate(options: ScaffoldOptions): Promise<void> {
 
   await rename(path.join(targetDir, 'gitignore'), path.join(targetDir, '.gitignore'));
 
-  await replacePlaceholder(path.join(targetDir, 'package.json'), projectName);
-  await replacePlaceholder(path.join(targetDir, 'README.md'), projectName);
-  await replacePlaceholder(path.join(targetDir, 'src', 'logger.ts'), projectName);
-  await replacePlaceholder(path.join(targetDir, 'ARCHITECTURE.md'), projectName);
+  await replacePlaceholdersInTree(targetDir, projectName);
 
   if (publishIntent === false) {
     await markPackageJsonPrivate(targetDir);

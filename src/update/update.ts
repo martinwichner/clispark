@@ -90,21 +90,29 @@ export async function updateProject(targetDir: string, deps: UpdateDeps = defaul
   const newCoreFiles: Record<string, string> = {};
   const fileWrites: { targetPath: string; content: string }[] = [];
 
-  for (const relativePath of CORE_FILE_PATHS) {
-    const newContent = applyPlaceholders(
-      await readFile(path.join(TEMPLATE_DIR, templateSourcePath(relativePath)), 'utf8'),
-      projectName,
-    );
-    const newHash = hashContent(newContent);
+  // Reads + hashes run in parallel; results are then applied in CORE_FILE_PATHS
+  // order below so files/fileWrites stay deterministic regardless of I/O timing.
+  const perFileResults = await Promise.all(
+    CORE_FILE_PATHS.map(async (relativePath) => {
+      const newContent = applyPlaceholders(
+        await readFile(path.join(TEMPLATE_DIR, templateSourcePath(relativePath)), 'utf8'),
+        projectName,
+      );
+      const newHash = hashContent(newContent);
 
-    let currentHash: string | undefined;
-    try {
-      currentHash = hashContent(await readFile(path.join(targetDir, relativePath), 'utf8'));
-    } catch {
-      currentHash = undefined;
-    }
+      let currentHash: string | undefined;
+      try {
+        currentHash = hashContent(await readFile(path.join(targetDir, relativePath), 'utf8'));
+      } catch {
+        currentHash = undefined;
+      }
 
-    const result = reconcileEntry(currentHash, oldManifest.coreFiles[relativePath], newHash, stringEquals);
+      const result = reconcileEntry(currentHash, oldManifest.coreFiles[relativePath], newHash, stringEquals);
+      return { relativePath, newContent, result };
+    }),
+  );
+
+  for (const { relativePath, newContent, result } of perFileResults) {
     files.push({ path: relativePath, outcome: result.outcome });
     newCoreFiles[relativePath] = result.value;
 
