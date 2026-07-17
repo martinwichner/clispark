@@ -7,5 +7,6 @@ export interface WizardAnswers {
   projectName: string;
   profile: Profile;
   registryUrl: string;
+  publishIntent: boolean;
   nameAvailability: NameCheckResult;
 }

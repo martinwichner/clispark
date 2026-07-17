@@ -22,7 +22,7 @@ describe('runWizard', () => {
 
   it('asks name, then profile, then returns the answers when the name is available on first try', async () => {
     vi.mocked(text).mockResolvedValueOnce('my-cli');
-    vi.mocked(select).mockResolvedValueOnce('private');
+    vi.mocked(select).mockResolvedValueOnce('private').mockResolvedValueOnce(true);
     const checkAvailability = vi.fn<(name: string, registryUrl?: string) => Promise<NameCheckResult>>().mockResolvedValueOnce('available');
 
     const result = await runWizard({ checkAvailability });
@@ -31,6 +31,7 @@ describe('runWizard', () => {
       projectName: 'my-cli',
       profile: 'private',
       registryUrl: 'https://registry.npmjs.org',
+      publishIntent: true,
       nameAvailability: 'available',
     });
     expect(checkAvailability).toHaveBeenCalledTimes(1);
@@ -44,7 +45,7 @@ describe('runWizard', () => {
     vi.mocked(text)
       .mockResolvedValueOnce('taken-name')
       .mockResolvedValueOnce('free-name');
-    vi.mocked(select).mockResolvedValueOnce('private');
+    vi.mocked(select).mockResolvedValueOnce('private').mockResolvedValueOnce(true);
     const checkAvailability = vi
       .fn<(name: string, registryUrl?: string) => Promise<NameCheckResult>>()
       .mockResolvedValueOnce('taken')
@@ -54,7 +55,8 @@ describe('runWizard', () => {
 
     expect(result.projectName).toBe('free-name');
     expect(checkAvailability).toHaveBeenCalledTimes(2);
-    expect(select).toHaveBeenCalledTimes(1);
+    // profile + publish-intent, neither re-asked during the name retry loop
+    expect(select).toHaveBeenCalledTimes(2);
     expect(log.warn).toHaveBeenCalledWith(expect.stringContaining('taken-name'));
   });
 
@@ -62,7 +64,7 @@ describe('runWizard', () => {
     vi.mocked(text)
       .mockResolvedValueOnce('my-cli')
       .mockResolvedValueOnce('https://npm.mycompany.dev');
-    vi.mocked(select).mockResolvedValueOnce('work');
+    vi.mocked(select).mockResolvedValueOnce('work').mockResolvedValueOnce(true);
     const checkAvailability = vi.fn<(name: string, registryUrl?: string) => Promise<NameCheckResult>>().mockResolvedValueOnce('available');
 
     const result = await runWizard({ checkAvailability });
@@ -73,12 +75,24 @@ describe('runWizard', () => {
 
   it('continues with "unverified" and a warning when the registry check fails', async () => {
     vi.mocked(text).mockResolvedValueOnce('my-cli');
-    vi.mocked(select).mockResolvedValueOnce('private');
+    vi.mocked(select).mockResolvedValueOnce('private').mockResolvedValueOnce(true);
     const checkAvailability = vi.fn<(name: string, registryUrl?: string) => Promise<NameCheckResult>>().mockResolvedValueOnce('unverified');
 
     const result = await runWizard({ checkAvailability });
 
     expect(result.nameAvailability).toBe('unverified');
     expect(log.warn).toHaveBeenCalled();
+  });
+
+  it('skips the availability check entirely when publish intent is No', async () => {
+    vi.mocked(text).mockResolvedValueOnce('my-cli');
+    vi.mocked(select).mockResolvedValueOnce('private').mockResolvedValueOnce(false);
+    const checkAvailability = vi.fn<(name: string, registryUrl?: string) => Promise<NameCheckResult>>();
+
+    const result = await runWizard({ checkAvailability });
+
+    expect(result.publishIntent).toBe(false);
+    expect(result.nameAvailability).toBe('skipped');
+    expect(checkAvailability).not.toHaveBeenCalled();
   });
 });

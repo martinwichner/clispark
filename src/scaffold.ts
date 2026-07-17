@@ -9,6 +9,7 @@ export interface ScaffoldOptions {
   projectName: string;
   targetDir: string;
   registryUrl?: string;
+  publishIntent?: boolean;
 }
 
 export const TEMPLATE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'templates', 'base');
@@ -34,8 +35,15 @@ async function replacePlaceholder(filePath: string, projectName: string): Promis
   await writeFile(filePath, content);
 }
 
+async function markPackageJsonPrivate(targetDir: string): Promise<void> {
+  const packageJsonPath = path.join(targetDir, 'package.json');
+  const pkg = JSON.parse(await readFile(packageJsonPath, 'utf8')) as Record<string, unknown>;
+  pkg.private = true;
+  await writeFile(packageJsonPath, JSON.stringify(pkg, null, 2) + '\n');
+}
+
 export async function copyTemplate(options: ScaffoldOptions): Promise<void> {
-  const { projectName, targetDir, registryUrl } = options;
+  const { projectName, targetDir, registryUrl, publishIntent } = options;
 
   await assertTargetDirIsUsable(targetDir);
   await cp(TEMPLATE_DIR, targetDir, { recursive: true });
@@ -46,6 +54,10 @@ export async function copyTemplate(options: ScaffoldOptions): Promise<void> {
   await replacePlaceholder(path.join(targetDir, 'README.md'), projectName);
   await replacePlaceholder(path.join(targetDir, 'src', 'logger.ts'), projectName);
   await replacePlaceholder(path.join(targetDir, 'ARCHITECTURE.md'), projectName);
+
+  if (publishIntent === false) {
+    await markPackageJsonPrivate(targetDir);
+  }
 
   if (registryUrl && registryUrl !== DEFAULT_REGISTRY_URL) {
     await writeFile(path.join(targetDir, '.npmrc'), `registry=${registryUrl}\n`);

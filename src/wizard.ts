@@ -1,6 +1,6 @@
 // src/wizard.ts
 import { intro, outro, text, select, log, isCancel, cancel } from '@clack/prompts';
-import { checkPackageNameAvailability, DEFAULT_REGISTRY_URL } from './registry';
+import { checkPackageNameAvailability, DEFAULT_REGISTRY_URL, type NameCheckResult } from './registry';
 import type { Profile, WizardAnswers } from './types';
 
 export interface WizardDeps {
@@ -57,26 +57,41 @@ export async function runWizard(deps: WizardDeps = defaultDeps): Promise<WizardA
     registryUrl = (registryValue as string) || DEFAULT_REGISTRY_URL;
   }
 
-  let nameAvailability = await deps.checkAvailability(projectName, registryUrl);
+  const publishIntentValue = await select({
+    message: 'Do you plan to publish this to npm?',
+    options: [
+      { value: false, label: 'No' },
+      { value: true, label: 'Yes' },
+    ],
+    initialValue: false,
+  });
+  exitIfCancelled(publishIntentValue);
+  const publishIntent = publishIntentValue as boolean;
 
-  while (nameAvailability === 'taken') {
-    log.warn(`"${projectName}" is already taken on ${registryUrl}. Please choose a different name.`);
+  let nameAvailability: NameCheckResult = 'skipped';
 
-    const retryValue = await text({
-      message: 'Project name',
-      validate: validateProjectName,
-    });
-    exitIfCancelled(retryValue);
-    projectName = retryValue as string;
-
+  if (publishIntent) {
     nameAvailability = await deps.checkAvailability(projectName, registryUrl);
-  }
 
-  if (nameAvailability === 'unverified') {
-    log.warn(`Could not verify availability of "${projectName}" on ${registryUrl}. Continuing anyway.`);
+    while (nameAvailability === 'taken') {
+      log.warn(`"${projectName}" is already taken on ${registryUrl}. Please choose a different name.`);
+
+      const retryValue = await text({
+        message: 'Project name',
+        validate: validateProjectName,
+      });
+      exitIfCancelled(retryValue);
+      projectName = retryValue as string;
+
+      nameAvailability = await deps.checkAvailability(projectName, registryUrl);
+    }
+
+    if (nameAvailability === 'unverified') {
+      log.warn(`Could not verify availability of "${projectName}" on ${registryUrl}. Continuing anyway.`);
+    }
   }
 
   outro(`Ready to scaffold "${projectName}".`);
 
-  return { projectName, profile, registryUrl, nameAvailability };
+  return { projectName, profile, registryUrl, publishIntent, nameAvailability };
 }

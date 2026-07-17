@@ -85,6 +85,27 @@ describe('copyTemplate', () => {
     await expect(readFile(path.join(targetDirDefaultUrl, '.npmrc'), 'utf8')).rejects.toThrow();
   });
 
+  it('marks the generated package.json private when publishIntent is false', async () => {
+    const targetDir = path.join(tmpRoot, 'no-publish');
+
+    await copyTemplate({ projectName: 'no-publish', targetDir, publishIntent: false });
+
+    const pkg = JSON.parse(await readFile(path.join(targetDir, 'package.json'), 'utf8'));
+    expect(pkg.private).toBe(true);
+  });
+
+  it('does not add a private field when publishIntent is true or omitted', async () => {
+    const targetDirTrue = path.join(tmpRoot, 'publish-true');
+    await copyTemplate({ projectName: 'publish-true', targetDir: targetDirTrue, publishIntent: true });
+    const pkgTrue = JSON.parse(await readFile(path.join(targetDirTrue, 'package.json'), 'utf8'));
+    expect(pkgTrue.private).toBeUndefined();
+
+    const targetDirOmitted = path.join(tmpRoot, 'publish-omitted');
+    await copyTemplate({ projectName: 'publish-omitted', targetDir: targetDirOmitted });
+    const pkgOmitted = JSON.parse(await readFile(path.join(targetDirOmitted, 'package.json'), 'utf8'));
+    expect(pkgOmitted.private).toBeUndefined();
+  });
+
   it('creates the target directory when it does not exist yet', async () => {
     const targetDir = path.join(tmpRoot, 'new-project');
 
