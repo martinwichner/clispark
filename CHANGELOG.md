@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/martinwichner/clispark/compare/v1.7.1...v1.8.0) (2026-07-17)
+
+
+### Features
+
+* **template:** demonstrate Flags via task list's --done flag ([f224f71](https://github.com/martinwichner/clispark/commit/f224f71b3fc2bf50a449b969d0caf6fe9d9bf8dd))
+
 ## [1.7.1](https://github.com/martinwichner/clispark/compare/v1.7.0...v1.7.1) (2026-07-17)
 
 
