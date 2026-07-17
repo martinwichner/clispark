@@ -1,6 +1,6 @@
 export const DEFAULT_REGISTRY_URL = 'https://registry.npmjs.org';
 
-export type NameCheckResult = 'available' | 'taken' | 'unverified';
+export type NameCheckResult = 'available' | 'taken' | 'unverified' | 'skipped';
 
 export async function checkPackageNameAvailability(
   name: string,

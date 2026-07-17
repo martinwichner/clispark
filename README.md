@@ -12,7 +12,7 @@ Interactive scaffolding tool for new CLI projects. Run `npx clispark` to generat
 npx clispark
 ```
 
-Answer three prompts — project name, work/private profile, and (for "work") an optional private registry URL — and clispark scaffolds a new directory, running `git init`, `npm install`, and `npm run build` for you. Thirty seconds later:
+Answer four prompts — project name, work/private profile, an optional private registry URL (for "work"), and whether you plan to publish to npm — and clispark scaffolds a new directory, running `git init`, `npm install`, and `npm run build` for you. Thirty seconds later:
 
 ```bash
 cd my-cli
@@ -40,9 +40,10 @@ npx clispark
 
 The wizard asks:
 
-1. **Project name** — checked for availability against the target npm registry as you type; a taken name prompts you to try another instead of blocking hard.
+1. **Project name**
 2. **Profile** — `work` or `private`. `work` unlocks an optional registry URL prompt.
 3. **Registry URL** (work profile only) — leave empty for the public npm registry, or point at a private/company registry. If set, an `.npmrc` is generated so every future `npm install` in the project uses it automatically.
+4. **Publish to npm?** (default: No) — if yes, the project name is checked for availability against the target npm registry, and a taken name prompts you to try another instead of blocking hard. If no, the check is skipped entirely and the generated `package.json` is marked `"private": true`, so an accidental `npm publish` refuses to run.
 
 Scaffolding then happens automatically: files are copied, `git init` plus an initial commit run, and `npm install && npm run build` leave you with a directly runnable project.
 
