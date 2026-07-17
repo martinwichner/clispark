@@ -4,3 +4,5 @@ dist
 .claude/
 .superpowers/
 graphify-out/
+CLAUDE.md
+.gitattributes
