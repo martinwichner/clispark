@@ -1,9 +1,9 @@
 // templates/base/src/commands/task/list.ts
-import { Args } from '@oclif/core';
+import { Args, Flags } from '@oclif/core';
 import { BaseCommand } from '../../base-command';
 
 export default class TaskList extends BaseCommand {
-  static description = 'List tasks (demonstrates a subcommand with two optional arguments of different types)';
+  static description = 'List tasks (demonstrates an optional argument combined with a boolean flag)';
   static examples = [
     {
       command: '<%= config.bin %> task list',
@@ -14,19 +14,20 @@ export default class TaskList extends BaseCommand {
       description: 'Lists tasks matching a filter term',
     },
     {
-      command: '<%= config.bin %> task list groceries true',
+      command: '<%= config.bin %> task list groceries --done',
       description: 'Lists tasks matching a filter, showing only completed ones',
     },
   ];
   static args = {
     filter: Args.string({ required: false, description: 'Optional filter term' }),
-    done: Args.boolean({ required: false, description: 'Only show completed tasks (true/false)' }),
   };
-  static flags = {};
+  static flags = {
+    done: Flags.boolean({ description: 'Only show completed tasks' }),
+  };
 
   async run(): Promise<void> {
-    const { args } = await this.parse(TaskList);
+    const { args, flags } = await this.parse(TaskList);
     const base = args.filter ? `Listing tasks matching "${args.filter}"` : 'Listing all tasks';
-    this.log(args.done !== undefined ? `${base} (completed only: ${args.done})` : base);
+    this.log(flags.done ? `${base} (completed only: true)` : base);
   }
 }

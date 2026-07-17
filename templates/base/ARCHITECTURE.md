@@ -65,7 +65,20 @@ Every entry in a command's `static args` is built from `@oclif/core`'s `Args` he
   // `task <title> urgent` → "Expected urgent to be one of: low, medium, high"
   ```
 
-See `task.ts` (string + enum-constrained string), `task/complete.ts` (integer), and `task/list.ts` (string + boolean) for these in a real, runnable command.
+See `task.ts` (string + enum-constrained string), `task/complete.ts` (integer), and `task/list.ts` (string arg + boolean flag) for these in a real, runnable command.
+
+## Flags
+
+Flags (`--name`/`-n`) are `@oclif/core`'s other input mechanism, declared in `static flags` alongside (or instead of) `static args`. Unlike args, they're named and order-independent — the more common choice for optional inputs once a command has more than one or two of them.
+
+- **`Flags.boolean()`** — presence-based: passing the flag sets it to `true`, omitting it leaves it `undefined`.
+  ```ts
+  done: Flags.boolean({ description: 'Only show completed tasks' })
+  // `task list --done` → done === true; omitted → done === undefined
+  ```
+- Flags otherwise mirror the `Args` catalogue above (`Flags.string()`, `Flags.integer()`, `options: [...]`, etc.) — the choice between an arg and a flag is about calling convention (positional vs. named), not available types.
+
+See `task/list.ts`'s `--done` flag for this in a real, runnable command.
 
 ## Command Discovery
 
