@@ -22,4 +22,12 @@ describe('task list', () => {
     const { stdout } = await runCommand('task list groceries no');
     expect(stdout).toContain('(completed only: false)');
   });
+
+  it('shows usage examples in --help', async () => {
+    const { stdout } = await runCommand('task list --help');
+    expect(stdout).toContain('EXAMPLES');
+    expect(stdout).toContain('task list');
+    expect(stdout).toContain('task list groceries');
+    expect(stdout).toContain('task list groceries true');
+  });
 });

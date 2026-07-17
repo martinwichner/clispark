@@ -4,6 +4,12 @@ import { BaseCommand } from '../../base-command';
 
 export default class TaskComplete extends BaseCommand {
   static description = 'Complete a task (demonstrates a subcommand with a required integer argument)';
+  static examples = [
+    {
+      command: '<%= config.bin %> task complete 1',
+      description: 'Marks task 1 as complete',
+    },
+  ];
   static args = {
     id: Args.integer({ required: true, description: 'Task ID to complete' }),
   };

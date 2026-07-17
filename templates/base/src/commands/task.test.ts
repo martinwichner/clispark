@@ -23,4 +23,11 @@ describe('task', () => {
     const { error } = await runCommand('task');
     expect(error?.message).toContain('Missing 1 required arg');
   });
+
+  it('shows usage examples in --help', async () => {
+    const { stdout } = await runCommand('task --help');
+    expect(stdout).toContain('EXAMPLES');
+    expect(stdout).toContain('task "Buy milk"');
+    expect(stdout).toContain('task "Buy milk" high');
+  });
 });
