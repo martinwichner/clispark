@@ -17,4 +17,10 @@ describe('task complete', () => {
     const { error } = await runCommand('task complete');
     expect(error?.message).toContain('Missing 1 required arg');
   });
+
+  it('shows a usage example in --help', async () => {
+    const { stdout } = await runCommand('task complete --help');
+    expect(stdout).toContain('EXAMPLES');
+    expect(stdout).toContain('task complete 1');
+  });
 });
