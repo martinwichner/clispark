@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1](https://github.com/martinwichner/clispark/compare/v1.8.0...v1.8.1) (2026-07-17)
+
+
+### Bug Fixes
+
+* composite action can't checkout itself - move checkout to job level ([bc35d4a](https://github.com/martinwichner/clispark/commit/bc35d4ac4b4cfdc241b53090e25f2b50b12a0890))
+
 ## [1.8.0](https://github.com/martinwichner/clispark/compare/v1.7.1...v1.8.0) (2026-07-17)
 
 
