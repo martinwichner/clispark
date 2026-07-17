@@ -49,12 +49,13 @@ export function hashContent(content: string): string {
 }
 
 export async function hashCoreFiles(dir: string): Promise<Record<string, string>> {
-  const hashes: Record<string, string> = {};
-  for (const relativePath of CORE_FILE_PATHS) {
-    const content = await readFile(path.join(dir, relativePath), 'utf8');
-    hashes[relativePath] = hashContent(content);
-  }
-  return hashes;
+  const entries = await Promise.all(
+    CORE_FILE_PATHS.map(async (relativePath) => {
+      const content = await readFile(path.join(dir, relativePath), 'utf8');
+      return [relativePath, hashContent(content)] as const;
+    }),
+  );
+  return Object.fromEntries(entries);
 }
 
 export function extractCoreFields(
