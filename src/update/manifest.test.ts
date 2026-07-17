@@ -16,6 +16,7 @@ import {
   templateSourcePath,
   writeManifest,
 } from './manifest';
+import { UserError } from '../errors';
 
 describe('hashContent', () => {
   it('produces a stable sha256 hex digest', () => {
@@ -137,8 +138,9 @@ describe('writeManifest / readManifest / requireManifest', () => {
     expect(await readManifest(tmpRoot)).toEqual(sampleManifest);
   });
 
-  it('requireManifest throws a clear error when no manifest exists', async () => {
+  it('requireManifest throws a clear UserError when no manifest exists', async () => {
     await expect(requireManifest(tmpRoot)).rejects.toThrow(/no \.clispark\/manifest\.json found/i);
+    await expect(requireManifest(tmpRoot)).rejects.toBeInstanceOf(UserError);
   });
 
   it('requireManifest returns the manifest when it exists', async () => {

@@ -6,6 +6,15 @@ import pino, { type Logger } from 'pino';
 
 const paths = envPaths('clispark', { suffix: '' });
 
+/** Runs fn, silently swallowing any error — for best-effort work that must never abort the caller. */
+export function safely(fn: () => void): void {
+  try {
+    fn();
+  } catch {
+    // best-effort; a failure here must never affect the surrounding operation
+  }
+}
+
 export interface LoggerHandle {
   logger: Logger;
   logFilePath: string;
@@ -43,13 +52,15 @@ const SWEEP_MARKER_FILE = '.last-sweep';
 const SWEEP_THROTTLE_MS = 24 * 60 * 60 * 1000; // once a day is enough given day-granularity retention
 
 function sweepOldLogs(logDir: string): void {
-  try {
+  safely(() => {
     const markerPath = path.join(logDir, SWEEP_MARKER_FILE);
+    let shouldSweep = true;
     try {
-      if (Date.now() - statSync(markerPath).mtimeMs < SWEEP_THROTTLE_MS) return;
+      shouldSweep = Date.now() - statSync(markerPath).mtimeMs >= SWEEP_THROTTLE_MS;
     } catch {
       // no marker yet (first run in this directory) - sweep now
     }
+    if (!shouldSweep) return;
 
     const cutoffMs = Date.now() - getRetentionDays() * 24 * 60 * 60 * 1000;
     for (const file of readdirSync(logDir)) {
@@ -60,9 +71,7 @@ function sweepOldLogs(logDir: string): void {
       }
     }
     writeFileSync(markerPath, '');
-  } catch {
-    // best-effort cleanup; a broken sweep must never block the actual command
-  }
+  });
 }
 
 export function createLogger(commandName: string, logDir: string = paths.log): LoggerHandle {
@@ -97,28 +106,16 @@ export function withLogging(
     }
 
     const { logger, logFilePath } = handle;
-    try {
-      logger.info({ command: commandName }, 'started');
-    } catch {
-      // best-effort logging; a write failure here must not abort a command that hasn't run yet
-    }
+    safely(() => logger.info({ command: commandName }, 'started'));
 
     try {
       await action(logger);
-      try {
-        logger.info({ command: commandName }, 'completed');
-      } catch {
-        // best-effort logging; the command still succeeded
-      }
+      safely(() => logger.info({ command: commandName }, 'completed'));
       if (process.env.DEBUG) {
         console.log(`Details: ${logFilePath}`);
       }
     } catch (error) {
-      try {
-        logger.error({ command: commandName, err: error }, 'failed');
-      } catch {
-        // best-effort logging; never let a log-write failure mask the real error
-      }
+      safely(() => logger.error({ command: commandName, err: error }, 'failed'));
       const message = error instanceof Error ? error.message : String(error);
       console.error(`\n✖ ${message}`);
       console.error(`Details: ${logFilePath}`);

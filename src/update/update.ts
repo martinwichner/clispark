@@ -13,6 +13,7 @@ import {
   type Manifest,
 } from './manifest';
 import { reconcileEntry, stringEquals } from './reconcile';
+import { UserError } from '../errors';
 import { compareVersions } from './releasenotes';
 import { mergePackageJson, type FieldOutcome, type PackageJsonShape } from './update-package-json';
 
@@ -67,7 +68,7 @@ export interface UpdateResult {
 export async function updateProject(targetDir: string, deps: UpdateDeps = defaultUpdateDeps): Promise<UpdateResult> {
   const status = (await deps.captureCommand('git', ['status', '--porcelain'], targetDir)).trim();
   if (status.length > 0) {
-    throw new Error('Working tree is not clean. Commit or stash your changes before running update.');
+    throw new UserError('Working tree is not clean. Commit or stash your changes before running update.');
   }
 
   const oldManifest = await requireManifest(targetDir);

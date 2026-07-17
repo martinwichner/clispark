@@ -5,6 +5,7 @@ import path from 'node:path';
 import { scaffoldProject } from '../scaffold';
 import { formatUpdateSummary, updateProject } from './update';
 import { CORE_FILE_PATHS, getGeneratorVersion, readManifest, type Manifest } from './manifest';
+import { UserError } from '../errors';
 
 async function scaffoldFixture(tmpRoot: string, name: string): Promise<string> {
   const targetDir = path.join(tmpRoot, name);
@@ -27,7 +28,7 @@ describe('updateProject', () => {
     await rm(tmpRoot, { recursive: true, force: true });
   });
 
-  it('aborts with a clear error when the git working tree is dirty', async () => {
+  it('aborts with a clear UserError when the git working tree is dirty', async () => {
     const targetDir = await scaffoldFixture(tmpRoot, 'dirty-project');
     const deps = {
       runCommand: vi.fn(async () => {}),
@@ -35,6 +36,7 @@ describe('updateProject', () => {
     };
 
     await expect(updateProject(targetDir, deps)).rejects.toThrow(/working tree is not clean/i);
+    await expect(updateProject(targetDir, deps)).rejects.toBeInstanceOf(UserError);
     expect(deps.runCommand).not.toHaveBeenCalled();
   });
 
