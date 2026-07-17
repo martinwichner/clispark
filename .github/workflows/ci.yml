@@ -13,11 +13,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-      - run: npm ci
+      - uses: ./.github/actions/setup
       - run: npx tsc --noEmit
       - run: npx eslint src scripts
       - run: npx vitest run
@@ -29,11 +25,7 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-      - run: npm ci
+      - uses: ./.github/actions/setup
       - name: Security audit (blocking gate)
         run: npm audit --audit-level=high
       - name: Ensure security-audit labels exist
@@ -53,11 +45,7 @@ jobs:
   scaffold-smoke:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-      - run: npm ci
+      - uses: ./.github/actions/setup
       - name: Configure git identity for scaffolded project commit
         run: |
           git config --global user.email "ci@example.com"

@@ -1,0 +1,13 @@
+name: Setup
+description: Checkout the repository, install Node 24 with npm dependency caching, and run npm ci
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v7
+    - uses: actions/setup-node@v6
+      with:
+        node-version: 24
+        cache: npm
+    - run: npm ci
+      shell: bash
