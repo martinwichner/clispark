@@ -73,7 +73,14 @@ oclif discovers commands at runtime from the `oclif.commands` path in `package.j
 
 ## Logging
 
-`src/logger.ts` writes structured JSON logs via `pino`, one file per command invocation, to an OS-appropriate log directory (via `env-paths`) — never to the project's own working directory. Every log line includes the command name. On failure, the full error (including stack trace) is logged, while the terminal only ever shows a clean `Error: <message>` — never a raw stack trace.
+`src/logger.ts` writes structured JSON logs via `pino`, one file per command invocation, to an OS-appropriate log directory (via `env-paths`) — never to the project's own working directory. Every log line includes the command name. On failure, the full error (including stack trace) is logged, while the terminal only ever shows a clean `Error: <message>` — never a raw stack trace; the terminal also prints `Details: <path to the log file>` so the full error is one file away.
+
+A few things run automatically around every log call:
+
+- **Retention:** before opening a new log file, `sweepOldLogs()` deletes files older than `LOG_RETENTION_DAYS` (default `14`).
+- **Redaction:** `pino`'s `redact` option is configured with `SENSITIVE_LOG_KEYS` — a plain, exported array of secret-shaped field names (`password`, `token`, `apiKey`, etc., matched at the top level and one level of nesting). It's just a `const` in `src/logger.ts`; add to it directly if your commands log other sensitive fields.
+- **`DEBUG=1`:** streams every log line to stdout live (via `pino.multistream()`) in addition to the file, and prints `Details: <path>` on success too, not just on failure — useful while developing a new command.
+- **File permissions:** the log file itself is created with mode `0o600` (owner read/write only); this is a no-op on Windows, which has no POSIX permission bits.
 
 ## Testing
 
