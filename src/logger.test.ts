@@ -71,6 +71,24 @@ describe('createLogger', () => {
     expect(content).toContain('[Redacted]');
   });
 
+  it('redacts generic secret-shaped fields, including one level of nesting', async () => {
+    const { logger, logFilePath } = createLogger('scaffold', tmpRoot);
+
+    logger.info(
+      {
+        token: 'ghp_super-secret-value',
+        nested: { apiKey: 'sk-another-secret-value' },
+      },
+      'scaffold started',
+    );
+    await logger.flush();
+
+    const content = await readFile(logFilePath, 'utf8');
+    expect(content).not.toContain('ghp_super-secret-value');
+    expect(content).not.toContain('sk-another-secret-value');
+    expect(content).toContain('[Redacted]');
+  });
+
   it('sets the log file to owner-only read/write permissions (POSIX only)', () => {
     if (process.platform === 'win32') return;
 
