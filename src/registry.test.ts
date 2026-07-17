@@ -12,7 +12,10 @@ describe('checkPackageNameAvailability', () => {
     global.fetch = vi.fn().mockResolvedValue({ status: 404 } as Response);
     const result = await checkPackageNameAvailability('some-free-name');
     expect(result).toBe('available');
-    expect(global.fetch).toHaveBeenCalledWith(`${DEFAULT_REGISTRY_URL}/some-free-name`);
+    expect(global.fetch).toHaveBeenCalledWith(
+      `${DEFAULT_REGISTRY_URL}/some-free-name`,
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
   });
 
   it('returns "taken" when the registry responds 200', async () => {
@@ -36,6 +39,15 @@ describe('checkPackageNameAvailability', () => {
   it('uses a custom registry URL when provided', async () => {
     global.fetch = vi.fn().mockResolvedValue({ status: 404 } as Response);
     await checkPackageNameAvailability('my-cli', 'https://npm.mycompany.dev');
-    expect(global.fetch).toHaveBeenCalledWith('https://npm.mycompany.dev/my-cli');
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://npm.mycompany.dev/my-cli',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it('returns "unverified" when the request times out', async () => {
+    global.fetch = vi.fn().mockRejectedValue(new DOMException('The operation was aborted.', 'TimeoutError'));
+    const result = await checkPackageNameAvailability('some-name');
+    expect(result).toBe('unverified');
   });
 });

@@ -1,6 +1,6 @@
 // templates/base/src/logger.ts
 import { randomBytes } from 'node:crypto';
-import { mkdirSync, readdirSync, statSync, unlinkSync } from 'node:fs';
+import { mkdirSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import envPaths from 'env-paths';
 import pino, { type Logger } from 'pino';
@@ -40,15 +40,27 @@ function buildRedactPaths(keys: string[]): string[] {
   return keys.flatMap((key) => [key, `*.${key}`]);
 }
 
+const SWEEP_MARKER_FILE = '.last-sweep';
+const SWEEP_THROTTLE_MS = 24 * 60 * 60 * 1000; // once a day is enough given day-granularity retention
+
 function sweepOldLogs(logDir: string): void {
   try {
+    const markerPath = path.join(logDir, SWEEP_MARKER_FILE);
+    try {
+      if (Date.now() - statSync(markerPath).mtimeMs < SWEEP_THROTTLE_MS) return;
+    } catch {
+      // no marker yet (first run in this directory) - sweep now
+    }
+
     const cutoffMs = Date.now() - getRetentionDays() * 24 * 60 * 60 * 1000;
     for (const file of readdirSync(logDir)) {
+      if (file === SWEEP_MARKER_FILE) continue;
       const filePath = path.join(logDir, file);
       if (statSync(filePath).mtimeMs < cutoffMs) {
         unlinkSync(filePath);
       }
     }
+    writeFileSync(markerPath, '');
   } catch {
     // best-effort cleanup; a broken sweep must never block the actual command
   }

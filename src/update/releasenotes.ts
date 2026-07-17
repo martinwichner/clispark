@@ -30,6 +30,7 @@ export interface ReleaseNotesResult {
 }
 
 const RELEASES_URL = 'https://api.github.com/repos/martinwichner/clispark/releases';
+const FETCH_TIMEOUT_MS = 5000;
 
 export async function fetchReleaseNotes(
   targetDir: string,
@@ -43,7 +44,7 @@ export async function fetchReleaseNotes(
     return { status: 'up-to-date', fromVersion, toVersion, releases: [] };
   }
 
-  const response = await fetchFn(RELEASES_URL);
+  const response = await fetchFn(RELEASES_URL, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   if (!response.ok) {
     throw new Error(`Failed to fetch release notes: GitHub API responded with ${response.status}`);
   }

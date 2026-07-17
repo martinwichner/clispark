@@ -71,6 +71,22 @@ describe('fetchReleaseNotes', () => {
 
     await expect(fetchReleaseNotes(tmpRoot, fetchFn as unknown as typeof fetch)).rejects.toThrow(/500/);
   });
+
+  it('passes an abort signal so a hung request times out instead of blocking forever', async () => {
+    await writeManifest(tmpRoot, baseManifest('1.0.0'));
+    const fetchFn = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
+
+    await fetchReleaseNotes(tmpRoot, fetchFn as unknown as typeof fetch);
+
+    expect(fetchFn).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ signal: expect.any(AbortSignal) }));
+  });
+
+  it('propagates a timeout as a normal rejection', async () => {
+    await writeManifest(tmpRoot, baseManifest('1.0.0'));
+    const fetchFn = vi.fn().mockRejectedValue(new DOMException('The operation was aborted.', 'TimeoutError'));
+
+    await expect(fetchReleaseNotes(tmpRoot, fetchFn as unknown as typeof fetch)).rejects.toThrow();
+  });
 });
 
 describe('formatReleaseNotes', () => {
