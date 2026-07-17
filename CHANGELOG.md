@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.1](https://github.com/martinwichner/clispark/compare/v1.6.0...v1.6.1) (2026-07-17)
+
+
+### Bug Fixes
+
+* use rebase instead of squash for release-please PR auto-merge ([9345aee](https://github.com/martinwichner/clispark/commit/9345aee6117dedfb7e8555dfef59b95a5765a125))
+
 ## [1.6.0](https://github.com/martinwichner/clispark/compare/v1.5.0...v1.6.0) (2026-07-17)
 
 
