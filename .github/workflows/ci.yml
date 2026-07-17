@@ -13,6 +13,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - run: npx tsc --noEmit
       - run: npx eslint src scripts
@@ -25,6 +26,7 @@ jobs:
       contents: read
       issues: write
     steps:
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - name: Security audit (blocking gate)
         run: npm audit --audit-level=high
@@ -45,6 +47,7 @@ jobs:
   scaffold-smoke:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - name: Configure git identity for scaffolded project commit
         run: |
