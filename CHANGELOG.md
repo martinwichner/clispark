@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/martinwichner/clispark/compare/v1.6.2...v1.7.0) (2026-07-17)
+
+
+### Features
+
+* gate npm name-availability check behind publish intent ([e724410](https://github.com/martinwichner/clispark/commit/e72441042430690dbc5aea0dd66c119084099c0b))
+
 ## [1.6.2](https://github.com/martinwichner/clispark/compare/v1.6.1...v1.6.2) (2026-07-17)
 
 
