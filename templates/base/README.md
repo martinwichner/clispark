@@ -16,11 +16,11 @@ Two example commands ship in `src/commands/` as copy-paste starting points:
   ```bash
   node bin/run.ts hello
   ```
-- **`task`** / **`task complete`** / **`task list`** (`src/commands/task.ts`, `src/commands/task/`) — a reference for oclif's argument and subcommand patterns: required args, optional args, an enum-constrained arg, an integer arg, a boolean arg, and how a folder under `src/commands/` becomes a subcommand.
+- **`task`** / **`task complete`** / **`task list`** (`src/commands/task.ts`, `src/commands/task/`) — a reference for oclif's argument, flag, and subcommand patterns: required args, optional args, an enum-constrained arg, an integer arg, a boolean flag, and how a folder under `src/commands/` becomes a subcommand.
   ```bash
   node bin/run.ts task "Buy milk" high
   node bin/run.ts task complete 1
-  node bin/run.ts task list groceries
+  node bin/run.ts task list groceries --done
   ```
   See `ARCHITECTURE.md`'s "Argument Types" section for the full set of argument types oclif supports, including a couple this example doesn't use.
 

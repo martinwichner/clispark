@@ -29,7 +29,7 @@ Every generated project includes:
 - **Structured logging** (`pino`, one log file per invocation in an OS-appropriate log directory) that automatically covers every command
 - **Consistent error handling** with no opt-out — clean `Error: <message>` output on failure, full stack trace captured in the log file
 - **A working test setup** (`vitest` + `@oclif/test`) with an example test to copy from
-- **Example commands** — a minimal `hello` starting point plus a `task`/`task complete`/`task list` reference covering required args, optional args, enum-constrained args, integer and boolean args, and subcommands
+- **Example commands** — a minimal `hello` starting point plus a `task`/`task complete`/`task list` reference covering required args, optional args, enum-constrained args, an integer arg, a boolean flag, and subcommands
 - **A clean build pipeline** (`tsup`) producing a directly runnable binary
 
 ## Usage

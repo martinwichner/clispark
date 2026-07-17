@@ -13,14 +13,14 @@ describe('task list', () => {
     expect(stdout).toContain('Listing tasks matching "groceries"');
   });
 
-  it('combines a filter with the done flag', async () => {
-    const { stdout } = await runCommand('task list groceries true');
+  it('combines a filter with the --done flag', async () => {
+    const { stdout } = await runCommand('task list groceries --done');
     expect(stdout).toContain('Listing tasks matching "groceries" (completed only: true)');
   });
 
-  it('parses "no" as false for the done arg', async () => {
-    const { stdout } = await runCommand('task list groceries no');
-    expect(stdout).toContain('(completed only: false)');
+  it('omits the completed-only note when --done is not passed', async () => {
+    const { stdout } = await runCommand('task list groceries');
+    expect(stdout).not.toContain('completed only');
   });
 
   it('shows usage examples in --help', async () => {
@@ -28,6 +28,6 @@ describe('task list', () => {
     expect(stdout).toContain('EXAMPLES');
     expect(stdout).toContain('task list');
     expect(stdout).toContain('task list groceries');
-    expect(stdout).toContain('task list groceries true');
+    expect(stdout).toContain('task list groceries --done');
   });
 });
