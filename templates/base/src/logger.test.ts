@@ -53,21 +53,21 @@ describe('createLogger', () => {
     expect(entry.command).toBe('hello');
   });
 
-  it('redacts registryUrl values, including one level of nesting', async () => {
+  it('redacts generic secret-shaped fields, including one level of nesting', async () => {
     const { logger, logFilePath } = createLogger('hello', tmpRoot);
 
     logger.info(
       {
-        registryUrl: 'https://registry.example.com/secret-token',
-        nested: { registryUrl: 'https://nested.example.com/other-secret' },
+        token: 'ghp_super-secret-value',
+        nested: { apiKey: 'sk-another-secret-value' },
       },
       'started',
     );
     await logger.flush();
 
     const content = await readFile(logFilePath, 'utf8');
-    expect(content).not.toContain('secret-token');
-    expect(content).not.toContain('nested.example.com');
+    expect(content).not.toContain('ghp_super-secret-value');
+    expect(content).not.toContain('sk-another-secret-value');
     expect(content).toContain('[Redacted]');
   });
 

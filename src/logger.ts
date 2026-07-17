@@ -22,6 +22,23 @@ function getRetentionDays(): number {
   return Number.isFinite(parsed) ? parsed : 14;
 }
 
+// Common secret-shaped field names, redacted at the top level and one level of
+// nesting (`*.<key>`). Edit this list directly if your own logging needs more.
+export const SENSITIVE_LOG_KEYS = [
+  'password',
+  'secret',
+  'token',
+  'apiKey',
+  'accessToken',
+  'refreshToken',
+  'clientSecret',
+  'authorization',
+];
+
+function buildRedactPaths(keys: string[]): string[] {
+  return keys.flatMap((key) => [key, `*.${key}`]);
+}
+
 function sweepOldLogs(logDir: string): void {
   try {
     const cutoffMs = Date.now() - getRetentionDays() * 24 * 60 * 60 * 1000;
@@ -45,7 +62,7 @@ export function createLogger(commandName: string, logDir: string = paths.log): L
   const destination = process.env.DEBUG
     ? pino.multistream([{ stream: fileDestination }, { stream: process.stdout }])
     : fileDestination;
-  const logger = pino({ redact: ['registryUrl', '*.registryUrl'] }, destination);
+  const logger = pino({ redact: buildRedactPaths([...SENSITIVE_LOG_KEYS, 'registryUrl']) }, destination);
 
   return { logger, logFilePath };
 }
