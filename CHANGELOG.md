@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.1](https://github.com/martinwichner/clispark/compare/v1.7.0...v1.7.1) (2026-07-17)
+
+
+### Performance Improvements
+
+* throttle log sweep and add fetch timeouts ([9edabda](https://github.com/martinwichner/clispark/commit/9edabda843935d08837aa64e70ddbc6a2db4817c))
+
 ## [1.7.0](https://github.com/martinwichner/clispark/compare/v1.6.2...v1.7.0) (2026-07-17)
 
 
