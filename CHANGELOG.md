@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.2](https://github.com/martinwichner/clispark/compare/v1.6.1...v1.6.2) (2026-07-17)
+
+
+### Bug Fixes
+
+* generalize sensitive-key log redaction beyond registryUrl ([0b37ec4](https://github.com/martinwichner/clispark/commit/0b37ec4ae09d5b2e06773df8332a24f149f42dfb))
+
 ## [1.6.1](https://github.com/martinwichner/clispark/compare/v1.6.0...v1.6.1) (2026-07-17)
 
 
