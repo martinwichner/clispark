@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { UserError } from '../errors';
 
 export const CORE_FILE_PATHS = [
   'bin/run.ts',
@@ -104,7 +105,7 @@ export async function readManifest(targetDir: string): Promise<Manifest | undefi
 export async function requireManifest(targetDir: string): Promise<Manifest> {
   const manifest = await readManifest(targetDir);
   if (!manifest) {
-    throw new Error(
+    throw new UserError(
       'No .clispark/manifest.json found — this project predates update support, or is not a clispark project.',
     );
   }

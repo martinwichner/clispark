@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { copyTemplate, scaffoldProject } from './scaffold';
 import { DEFAULT_REGISTRY_URL } from './registry';
+import { UserError } from './errors';
 
 describe('copyTemplate', () => {
   let tmpRoot: string;
@@ -125,7 +126,7 @@ describe('copyTemplate', () => {
     expect(pkg.name).toBe('empty-dir');
   });
 
-  it('throws a clear error when the target directory already exists and is not empty', async () => {
+  it('throws a clear UserError when the target directory already exists and is not empty', async () => {
     const targetDir = path.join(tmpRoot, 'occupied');
     await mkdir(targetDir);
     await writeFile(path.join(targetDir, 'existing-file.txt'), 'hello');
@@ -133,6 +134,7 @@ describe('copyTemplate', () => {
     await expect(copyTemplate({ projectName: 'occupied', targetDir })).rejects.toThrow(
       /already exists and is not empty/,
     );
+    await expect(copyTemplate({ projectName: 'occupied', targetDir })).rejects.toBeInstanceOf(UserError);
   });
 });
 

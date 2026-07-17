@@ -4,6 +4,7 @@ import path from 'node:path';
 import { cp, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { DEFAULT_REGISTRY_URL } from './registry';
 import { buildManifest, getGeneratorVersion, writeManifest } from './update/manifest';
+import { UserError } from './errors';
 
 export interface ScaffoldOptions {
   projectName: string;
@@ -22,7 +23,7 @@ async function assertTargetDirIsUsable(targetDir: string): Promise<void> {
     return;
   }
   if (entries.length > 0) {
-    throw new Error(`Directory "${targetDir}" already exists and is not empty.`);
+    throw new UserError(`Directory "${targetDir}" already exists and is not empty.`);
   }
 }
 
