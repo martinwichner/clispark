@@ -112,6 +112,30 @@ describe('createLogger', () => {
     expect(existsSync(newFilePath)).toBe(true);
   });
 
+  it('throttles the sweep: a second call within the same day does not re-scan for newly-aged files', async () => {
+    const firstOldFile = path.join(tmpRoot, 'first-old.log');
+    await writeFile(firstOldFile, '{}');
+    const fifteenDaysAgo = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000);
+    await utimes(firstOldFile, fifteenDaysAgo, fifteenDaysAgo);
+
+    createLogger('scaffold', tmpRoot);
+    expect(existsSync(firstOldFile)).toBe(false); // first call always sweeps (no marker yet)
+
+    const secondOldFile = path.join(tmpRoot, 'second-old.log');
+    await writeFile(secondOldFile, '{}');
+    await utimes(secondOldFile, fifteenDaysAgo, fifteenDaysAgo);
+
+    createLogger('scaffold', tmpRoot);
+    expect(existsSync(secondOldFile)).toBe(true); // throttled: no sweep this time
+
+    const markerPath = path.join(tmpRoot, '.last-sweep');
+    const overADayAgo = new Date(Date.now() - 25 * 60 * 60 * 1000);
+    await utimes(markerPath, overADayAgo, overADayAgo);
+
+    createLogger('scaffold', tmpRoot);
+    expect(existsSync(secondOldFile)).toBe(false); // throttle window elapsed: sweeps again
+  });
+
   it('honors a LOG_RETENTION_DAYS override', async () => {
     const filePath = path.join(tmpRoot, 'three-days-old.log');
     await writeFile(filePath, '{}');
