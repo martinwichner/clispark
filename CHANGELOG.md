@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.0](https://github.com/martinwichner/clispark/compare/v1.10.0...v1.11.0) (2026-07-18)
+
+
+### Features
+
+* add clispark whoami easter egg ([16c92e0](https://github.com/martinwichner/clispark/commit/16c92e079ff3353746c3bbd04fb9a1891d6d464d))
+
 ## [1.10.0](https://github.com/martinwichner/clispark/compare/v1.9.0...v1.10.0) (2026-07-18)
 
 
