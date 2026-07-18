@@ -3,6 +3,7 @@ dist
 *.log
 .claude/
 .superpowers/
+.worktrees/
 graphify-out/
 CLAUDE.md
 .gitattributes
