@@ -4,8 +4,10 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { scaffoldProject } from '../scaffold';
 import { formatUpdateSummary, updateProject } from './update';
-import { CORE_FILE_PATHS, getGeneratorVersion, readManifest, type Manifest } from './manifest';
+import { getGeneratorVersion, hashContent, readManifest, type Manifest } from './manifest';
+import { nodeOclifAdapter, CORE_FILE_PATHS } from './adapters/node-oclif';
 import { UserError } from '../errors';
+import type { UpdateAdapter } from './adapter';
 
 async function scaffoldFixture(tmpRoot: string, name: string): Promise<string> {
   const targetDir = path.join(tmpRoot, name);
@@ -35,8 +37,8 @@ describe('updateProject', () => {
       captureCommand: vi.fn(async () => ' M src/commands/hello.ts'),
     };
 
-    await expect(updateProject(targetDir, deps)).rejects.toThrow(/working tree is not clean/i);
-    await expect(updateProject(targetDir, deps)).rejects.toBeInstanceOf(UserError);
+    await expect(updateProject(targetDir, nodeOclifAdapter, deps)).rejects.toThrow(/working tree is not clean/i);
+    await expect(updateProject(targetDir, nodeOclifAdapter, deps)).rejects.toBeInstanceOf(UserError);
     expect(deps.runCommand).not.toHaveBeenCalled();
   });
 
@@ -45,14 +47,16 @@ describe('updateProject', () => {
     await scaffoldProject({ projectName: 'no-manifest-project', targetDir }, { runCommand: vi.fn(async () => {}) });
     await rm(path.join(targetDir, '.clispark'), { recursive: true, force: true });
 
-    await expect(updateProject(targetDir, cleanGitDeps())).rejects.toThrow(/no \.clispark\/manifest\.json found/i);
+    await expect(updateProject(targetDir, nodeOclifAdapter, cleanGitDeps())).rejects.toThrow(
+      /no \.clispark\/manifest\.json found/i,
+    );
   });
 
   it('reports "up-to-date" and makes no changes when the manifest already matches the running version', async () => {
     const targetDir = await scaffoldFixture(tmpRoot, 'fresh-project');
     const deps = cleanGitDeps();
 
-    const result = await updateProject(targetDir, deps);
+    const result = await updateProject(targetDir, nodeOclifAdapter, deps);
 
     expect(result.status).toBe('up-to-date');
     expect(deps.runCommand).not.toHaveBeenCalled();
@@ -67,7 +71,7 @@ describe('updateProject', () => {
     await writeFile(manifestPath, JSON.stringify(oldManifest, null, 2) + '\n');
 
     const deps = cleanGitDeps();
-    const result = await updateProject(targetDir, deps);
+    const result = await updateProject(targetDir, nodeOclifAdapter, deps);
 
     expect(result.status).toBe('up-to-date');
     expect(result.fromVersion).toBe('99.0.0');
@@ -92,7 +96,7 @@ describe('updateProject', () => {
     await writeFile(tsconfigPath, originalTsconfig.replace('"strict": true', '"strict": false'));
 
     const deps = cleanGitDeps();
-    const result = await updateProject(targetDir, deps);
+    const result = await updateProject(targetDir, nodeOclifAdapter, deps);
 
     expect(result.status).toBe('updated');
     expect(result.fromVersion).toBe('0.0.1');
@@ -130,7 +134,7 @@ describe('updateProject', () => {
     }
 
     const deps = cleanGitDeps();
-    const result = await updateProject(targetDir, deps);
+    const result = await updateProject(targetDir, nodeOclifAdapter, deps);
 
     expect(result.status).toBe('no-changes');
     expect(result.files.every((f) => f.outcome === 'skipped')).toBe(true);
@@ -158,7 +162,7 @@ describe('updateProject', () => {
     }
 
     const deps = cleanGitDeps();
-    const result = await updateProject(targetDir, deps);
+    const result = await updateProject(targetDir, nodeOclifAdapter, deps);
 
     expect(result.status).toBe('updated');
     expect(
@@ -178,6 +182,67 @@ describe('updateProject', () => {
     const newManifest = await readManifest(targetDir);
     expect(newManifest?.generatorVersion).toBe(getGeneratorVersion());
     expect(newManifest?.coreFiles['src/some-removed-file.ts']).toBeUndefined();
+  });
+
+  it('drives entirely off a fake adapter, proving the generic engine has no hardcoded npm/oclif knowledge', async () => {
+    const targetDir = await scaffoldFixture(tmpRoot, 'fake-adapter-project');
+
+    // A hypothetical non-Node adapter: tracks a single core file, and does no
+    // package-manifest field merging at all (some ecosystems, e.g. a bare
+    // PowerShell module, may not have a meaningful "dependencies" concept).
+    const fakeAdapter: UpdateAdapter = {
+      coreFilePaths: ['tsconfig.json'],
+      templateSourcePath: (relativePath) => relativePath,
+      manifestFileName: 'package.json',
+      readManifestFile: async (dir) => JSON.parse(await readFile(path.join(dir, 'package.json'), 'utf8')),
+      writeManifestFile: async () => {
+        throw new Error('fakeAdapter never writes the manifest file');
+      },
+      parseManifestFile: (rawContent) => JSON.parse(rawContent),
+      readProjectName: (manifestFile) => (manifestFile as { name: string }).name,
+      extractCoreFields: () => ({ coreDependencies: {}, coreScripts: {}, coreFields: {} }),
+      mergeManifestFile: () => ({
+        updatedFile: {},
+        changed: false,
+        dependencies: [],
+        scripts: [],
+        fields: [],
+        coreDependencies: {},
+        coreScripts: {},
+        coreFields: {},
+      }),
+    };
+
+    const tsconfigHash = hashContent(await readFile(path.join(targetDir, 'tsconfig.json'), 'utf8'));
+    const manifestPath = path.join(targetDir, '.clispark', 'manifest.json');
+    await writeFile(
+      manifestPath,
+      JSON.stringify(
+        {
+          generatorVersion: '0.0.1',
+          coreFiles: { 'tsconfig.json': tsconfigHash },
+          coreDependencies: {},
+          coreScripts: {},
+          coreFields: {},
+        },
+        null,
+        2,
+      ) + '\n',
+    );
+
+    const deps = cleanGitDeps();
+    const result = await updateProject(targetDir, fakeAdapter, deps);
+
+    expect(result.status).toBe('updated');
+    expect(result.files).toEqual([{ path: 'tsconfig.json', outcome: 'replaced' }]);
+    expect(result.dependencies).toEqual([]);
+    expect(result.scripts).toEqual([]);
+    expect(result.fields).toEqual([]);
+
+    const newManifest = await readManifest(targetDir);
+    expect(newManifest?.coreDependencies).toEqual({});
+    expect(newManifest?.coreScripts).toEqual({});
+    expect(newManifest?.coreFields).toEqual({});
   });
 });
 
