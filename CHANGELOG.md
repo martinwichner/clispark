@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.10.0](https://github.com/martinwichner/clispark/compare/v1.9.0...v1.10.0) (2026-07-18)
+
+
+### Features
+
+* add findPackageRoot utility and LanguagePack/RegistryChecker interfaces ([9977514](https://github.com/martinwichner/clispark/commit/9977514ce6480553435d68b63f5e51d82015d1cd))
+* add language field to Manifest and buildManifest ([f3f2d41](https://github.com/martinwichner/clispark/commit/f3f2d410eee9606aa1b934da614b6d13bcc5182e))
+* add nodeOclifPack and LANGUAGE_PACKS lookup ([485cf6e](https://github.com/martinwichner/clispark/commit/485cf6e07ce2886718bf48d41b4ccfd21b266306))
+* add npm RegistryChecker, remove superseded registry.ts ([d425998](https://github.com/martinwichner/clispark/commit/d425998dc7ad20383d8b39597e57b2170388ab13))
+
+
+### Bug Fixes
+
+* add missing language field to Manifest test fixtures in node-oclif.test.ts and releasenotes.test.ts ([3b6444d](https://github.com/martinwichner/clispark/commit/3b6444d298ec88693011875f81d0ce10a2ee6965))
+* update ci.yml's scaffold-smoke job to pass nodeOclifPack to scaffoldProject ([8b976e9](https://github.com/martinwichner/clispark/commit/8b976e92edacc7ec8e2fa7a4c5fc200a4b82bbbc))
+
 ## [1.9.0](https://github.com/martinwichner/clispark/compare/v1.8.1...v1.9.0) (2026-07-18)
 
 
