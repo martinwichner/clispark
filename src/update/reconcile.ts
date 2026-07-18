@@ -1,5 +1,11 @@
 export type ReconcileOutcome = 'added' | 'replaced' | 'skipped';
 
+/** A named field/dependency/script whose reconciliation outcome should be reported to the user (e.g. "pino: replaced"). */
+export interface FieldOutcome {
+  key: string;
+  outcome: ReconcileOutcome;
+}
+
 export interface ReconcileResult<T> {
   outcome: ReconcileOutcome;
   value: T;
