@@ -8,6 +8,7 @@ import { compareVersions, fetchReleaseNotes, formatReleaseNotes } from './releas
 function baseManifest(generatorVersion: string): Manifest {
   return {
     generatorVersion,
+    language: 'node',
     coreFiles: {},
     coreDependencies: {},
     coreScripts: {},
