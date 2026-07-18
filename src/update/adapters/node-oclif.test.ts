@@ -8,6 +8,7 @@ import type { Manifest } from '../manifest';
 function baseManifest(overrides: Partial<Manifest> = {}): Manifest {
   return {
     generatorVersion: '1.0.0',
+    language: 'node',
     coreFiles: {},
     coreDependencies: {},
     coreScripts: {},
