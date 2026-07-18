@@ -10,6 +10,7 @@ import { getGeneratorVersion, requireManifest } from './update/manifest';
 import { LANGUAGE_PACKS } from './languages';
 import type { LanguagePack } from './languages/pack';
 import { UserError } from './errors';
+import { getWhoamiOutput } from './whoami';
 
 const program = new Command();
 
@@ -74,6 +75,17 @@ program
       const result = await fetchReleaseNotes(targetDir);
       logger.info({ status: result.status }, 'releasenotes completed');
       console.log(formatReleaseNotes(result));
+    }),
+  );
+
+program
+  .command('whoami')
+  .description('A little something extra')
+  .action(
+    withLogging('whoami', async (logger) => {
+      logger.info({}, 'whoami started');
+      console.log(await getWhoamiOutput());
+      logger.info({}, 'whoami completed');
     }),
   );
 
