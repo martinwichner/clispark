@@ -2,7 +2,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import spawn from 'cross-spawn';
-import { applyPlaceholders, TEMPLATE_DIR } from '../scaffold';
+import { applyPlaceholders } from '../scaffold';
 import { getGeneratorVersion, hashContent, requireManifest, writeManifest, type Manifest } from './manifest';
 import { reconcileEntry, stringEquals, type FieldOutcome } from './reconcile';
 import { UserError } from '../errors';
@@ -60,6 +60,8 @@ export interface UpdateResult {
 export async function updateProject(
   targetDir: string,
   adapter: UpdateAdapter,
+  templateDir: string,
+  language: string,
   deps: UpdateDeps = defaultUpdateDeps,
 ): Promise<UpdateResult> {
   const status = (await deps.captureCommand('git', ['status', '--porcelain'], targetDir)).trim();
@@ -79,7 +81,7 @@ export async function updateProject(
   const projectName = adapter.readProjectName(currentManifestFile);
 
   const newTemplateRaw = applyPlaceholders(
-    await readFile(path.join(TEMPLATE_DIR, adapter.manifestFileName), 'utf8'),
+    await readFile(path.join(templateDir, adapter.manifestFileName), 'utf8'),
     projectName,
   );
   const newTemplateManifestFile = adapter.parseManifestFile(newTemplateRaw);
@@ -93,7 +95,7 @@ export async function updateProject(
   const perFileResults = await Promise.all(
     adapter.coreFilePaths.map(async (relativePath) => {
       const newContent = applyPlaceholders(
-        await readFile(path.join(TEMPLATE_DIR, adapter.templateSourcePath(relativePath)), 'utf8'),
+        await readFile(path.join(templateDir, adapter.templateSourcePath(relativePath)), 'utf8'),
         projectName,
       );
       const newHash = hashContent(newContent);
@@ -159,6 +161,7 @@ export async function updateProject(
 
   const newManifest: Manifest = {
     generatorVersion: toVersion,
+    language,
     coreFiles: newCoreFiles,
     coreDependencies: fileMerge.coreDependencies,
     coreScripts: fileMerge.coreScripts,

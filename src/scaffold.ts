@@ -1,10 +1,9 @@
-import spawn from 'cross-spawn';
-import { fileURLToPath } from 'node:url';
-import path from 'node:path';
+// src/scaffold.ts
 import { cp, readdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { DEFAULT_REGISTRY_URL } from './registry';
+import path from 'node:path';
+import spawn from 'cross-spawn';
+import type { LanguagePack } from './languages/pack';
 import { buildManifest, getGeneratorVersion, writeManifest } from './update/manifest';
-import { nodeOclifAdapter } from './update/adapters/node-oclif';
 import { UserError } from './errors';
 
 export interface ScaffoldOptions {
@@ -13,8 +12,6 @@ export interface ScaffoldOptions {
   registryUrl?: string;
   publishIntent?: boolean;
 }
-
-export const TEMPLATE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'templates', 'base');
 
 async function assertTargetDirIsUsable(targetDir: string): Promise<void> {
   let entries: string[];
@@ -57,28 +54,21 @@ async function replacePlaceholdersInTree(targetDir: string, projectName: string)
   );
 }
 
-async function markPackageJsonPrivate(targetDir: string): Promise<void> {
-  const packageJsonPath = path.join(targetDir, 'package.json');
-  const pkg = JSON.parse(await readFile(packageJsonPath, 'utf8')) as Record<string, unknown>;
-  pkg.private = true;
-  await writeFile(packageJsonPath, JSON.stringify(pkg, null, 2) + '\n');
-}
-
-export async function copyTemplate(options: ScaffoldOptions): Promise<void> {
+export async function copyTemplate(options: ScaffoldOptions, pack: LanguagePack): Promise<void> {
   const { projectName, targetDir, registryUrl, publishIntent } = options;
 
   await assertTargetDirIsUsable(targetDir);
-  await cp(TEMPLATE_DIR, targetDir, { recursive: true });
+  await cp(pack.templateDir, targetDir, { recursive: true });
 
   await rename(path.join(targetDir, 'gitignore'), path.join(targetDir, '.gitignore'));
 
   await replacePlaceholdersInTree(targetDir, projectName);
 
   if (publishIntent === false) {
-    await markPackageJsonPrivate(targetDir);
+    await pack.registry.applyPrivateIntent(targetDir);
   }
 
-  if (registryUrl && registryUrl !== DEFAULT_REGISTRY_URL) {
+  if (registryUrl && registryUrl !== pack.registry.defaultUrl) {
     await writeFile(path.join(targetDir, '.npmrc'), `registry=${registryUrl}\n`);
   }
 }
@@ -105,17 +95,20 @@ const defaultScaffoldDeps: ScaffoldDeps = { runCommand: defaultRunCommand };
 
 export async function scaffoldProject(
   options: ScaffoldOptions,
+  pack: LanguagePack,
   deps: ScaffoldDeps = defaultScaffoldDeps,
 ): Promise<void> {
-  await copyTemplate(options);
+  await copyTemplate(options, pack);
 
   const { targetDir } = options;
-  const manifest = await buildManifest(targetDir, getGeneratorVersion(), nodeOclifAdapter);
+  const manifest = await buildManifest(targetDir, getGeneratorVersion(), pack.id, pack.updateAdapter);
   await writeManifest(targetDir, manifest);
 
   await deps.runCommand('git', ['init'], targetDir);
   await deps.runCommand('git', ['add', '-A'], targetDir);
   await deps.runCommand('git', ['commit', '-m', 'chore: initial scaffold from clispark'], targetDir);
-  await deps.runCommand('npm', ['install'], targetDir);
-  await deps.runCommand('npm', ['run', 'build'], targetDir);
+
+  for (const scaffoldCommand of pack.scaffoldCommands) {
+    await deps.runCommand(scaffoldCommand.command, scaffoldCommand.args, targetDir);
+  }
 }
