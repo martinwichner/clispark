@@ -1,14 +1,16 @@
 // src/wizard.ts
 import { intro, outro, text, select, log, isCancel, cancel } from '@clack/prompts';
-import { checkPackageNameAvailability, DEFAULT_REGISTRY_URL, type NameCheckResult } from './registry';
+import { LANGUAGE_PACKS } from './languages';
+import type { LanguagePack } from './languages/pack';
+import type { NameCheckResult } from './languages/registry-checker';
 import type { Profile, WizardAnswers } from './types';
 
 export interface WizardDeps {
-  checkAvailability: typeof checkPackageNameAvailability;
+  languagePacks: Record<string, LanguagePack>;
 }
 
 const defaultDeps: WizardDeps = {
-  checkAvailability: checkPackageNameAvailability,
+  languagePacks: LANGUAGE_PACKS,
 };
 
 function exitIfCancelled(value: unknown): void {
@@ -18,20 +20,20 @@ function exitIfCancelled(value: unknown): void {
   }
 }
 
-function validateProjectName(value: string): string | undefined {
-  if (!value || value.trim().length === 0) return 'Project name is required.';
-  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(value)) {
-    return 'Use lowercase letters and numbers, with single hyphens between words (no leading, trailing, or repeated hyphens).';
-  }
-  return undefined;
-}
-
 export async function runWizard(deps: WizardDeps = defaultDeps): Promise<WizardAnswers> {
   intro('clispark — scaffold a new CLI project');
 
+  const packs = Object.values(deps.languagePacks);
+  const languageValue = await select({
+    message: 'Which language?',
+    options: packs.map((pack) => ({ value: pack.id, label: pack.displayName })),
+  });
+  exitIfCancelled(languageValue);
+  const pack = deps.languagePacks[languageValue as string];
+
   const nameValue = await text({
     message: 'Project name',
-    validate: validateProjectName,
+    validate: pack.validateProjectName,
   });
   exitIfCancelled(nameValue);
   let projectName = nameValue as string;
@@ -46,19 +48,19 @@ export async function runWizard(deps: WizardDeps = defaultDeps): Promise<WizardA
   exitIfCancelled(profileValue);
   const profile = profileValue as Profile;
 
-  let registryUrl = DEFAULT_REGISTRY_URL;
+  let registryUrl = pack.registry.defaultUrl;
   if (profile === 'work') {
     const registryValue = await text({
-      message: 'Custom npm registry URL (leave empty for npmjs.org)',
-      placeholder: DEFAULT_REGISTRY_URL,
-      defaultValue: DEFAULT_REGISTRY_URL,
+      message: pack.registry.promptLabel,
+      placeholder: pack.registry.defaultUrl,
+      defaultValue: pack.registry.defaultUrl,
     });
     exitIfCancelled(registryValue);
-    registryUrl = (registryValue as string) || DEFAULT_REGISTRY_URL;
+    registryUrl = (registryValue as string) || pack.registry.defaultUrl;
   }
 
   const publishIntentValue = await select({
-    message: 'Do you plan to publish this to npm?',
+    message: 'Do you plan to publish this?',
     options: [
       { value: false, label: 'No' },
       { value: true, label: 'Yes' },
@@ -71,19 +73,19 @@ export async function runWizard(deps: WizardDeps = defaultDeps): Promise<WizardA
   let nameAvailability: NameCheckResult = 'skipped';
 
   if (publishIntent) {
-    nameAvailability = await deps.checkAvailability(projectName, registryUrl);
+    nameAvailability = await pack.registry.checkNameAvailability(projectName, registryUrl);
 
     while (nameAvailability === 'taken') {
       log.warn(`"${projectName}" is already taken on ${registryUrl}. Please choose a different name.`);
 
       const retryValue = await text({
         message: 'Project name',
-        validate: validateProjectName,
+        validate: pack.validateProjectName,
       });
       exitIfCancelled(retryValue);
       projectName = retryValue as string;
 
-      nameAvailability = await deps.checkAvailability(projectName, registryUrl);
+      nameAvailability = await pack.registry.checkNameAvailability(projectName, registryUrl);
     }
 
     if (nameAvailability === 'unverified') {
@@ -93,5 +95,5 @@ export async function runWizard(deps: WizardDeps = defaultDeps): Promise<WizardA
 
   outro(`Ready to scaffold "${projectName}".`);
 
-  return { projectName, profile, registryUrl, publishIntent, nameAvailability };
+  return { language: pack.id, projectName, profile, registryUrl, publishIntent, nameAvailability };
 }
