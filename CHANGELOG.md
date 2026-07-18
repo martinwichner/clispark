@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.0](https://github.com/martinwichner/clispark/compare/v1.8.1...v1.9.0) (2026-07-18)
+
+
+### Features
+
+* add node-oclif UpdateAdapter implementation ([3140a35](https://github.com/martinwichner/clispark/commit/3140a35b4ed941f70e84af6eac10da89fd0143d3))
+* add UpdateAdapter interface for update-system decoupling ([9756971](https://github.com/martinwichner/clispark/commit/9756971737ee421dd249d403357dbbdc04755e6a))
+
 ## [1.8.1](https://github.com/martinwichner/clispark/compare/v1.8.0...v1.8.1) (2026-07-17)
 
 
