@@ -9,6 +9,7 @@ import type { UpdateAdapter } from './adapter';
 
 export interface Manifest {
   generatorVersion: string;
+  language: string;
   coreFiles: Record<string, string>;
   coreDependencies: Record<string, string>;
   coreScripts: Record<string, string>;
@@ -32,12 +33,13 @@ export async function hashCoreFiles(dir: string, adapter: UpdateAdapter): Promis
 export async function buildManifest(
   targetDir: string,
   generatorVersion: string,
+  language: string,
   adapter: UpdateAdapter,
 ): Promise<Manifest> {
   const coreFiles = await hashCoreFiles(targetDir, adapter);
   const manifestFile = await adapter.readManifestFile(targetDir);
   const { coreDependencies, coreScripts, coreFields } = adapter.extractCoreFields(manifestFile);
-  return { generatorVersion, coreFiles, coreDependencies, coreScripts, coreFields };
+  return { generatorVersion, language, coreFiles, coreDependencies, coreScripts, coreFields };
 }
 
 export const MANIFEST_RELATIVE_PATH = path.join('.clispark', 'manifest.json');

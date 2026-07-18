@@ -56,8 +56,9 @@ describe('hashCoreFiles / buildManifest', () => {
   });
 
   it('buildManifest assembles a full manifest from a target directory', async () => {
-    const manifest = await buildManifest(tmpRoot, '9.9.9', nodeOclifAdapter);
+    const manifest = await buildManifest(tmpRoot, '9.9.9', 'node', nodeOclifAdapter);
     expect(manifest.generatorVersion).toBe('9.9.9');
+    expect(manifest.language).toBe('node');
     expect(manifest.coreFiles['tsconfig.json']).toBe(hashContent('content of tsconfig.json'));
     expect(manifest.coreDependencies).toEqual({ pino: '^9.0.0', vitest: '^2.0.0' });
     expect(manifest.coreScripts.build).toBe('build');
@@ -78,6 +79,7 @@ describe('writeManifest / readManifest / requireManifest', () => {
 
   const sampleManifest = {
     generatorVersion: '1.0.0',
+    language: 'node',
     coreFiles: { 'tsconfig.json': 'abc' },
     coreDependencies: {},
     coreScripts: {},
