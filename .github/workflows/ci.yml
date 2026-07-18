@@ -57,11 +57,12 @@ jobs:
         run: |
           cat > ci-smoke-verify.mjs << 'EOF'
           import { scaffoldProject } from './src/scaffold';
+          import { nodeOclifPack } from './src/languages/packs/node-oclif';
           import path from 'node:path';
           import os from 'node:os';
 
           const targetDir = path.join(os.tmpdir(), 'clispark-ci-smoke', 'smoke-test-cli');
-          await scaffoldProject({ projectName: 'smoke-test-cli', targetDir });
+          await scaffoldProject({ projectName: 'smoke-test-cli', targetDir }, nodeOclifPack);
           console.log('scaffold complete:', targetDir);
           EOF
           npx tsx ci-smoke-verify.mjs
