@@ -525,6 +525,10 @@ git commit -m "feat: add nodeOclifPack and LANGUAGE_PACKS lookup"
 **Files:**
 - Modify: `src/update/manifest.ts`
 - Modify: `src/update/manifest.test.ts`
+- Modify: `src/update/adapters/node-oclif.test.ts`
+- Modify: `src/update/releasenotes.test.ts`
+
+**Correction found during Task 4's own implementation:** making `Manifest.language` required breaks typecheck in every test file that constructs a literal `Manifest`-shaped object, not just the ones this task's author originally anticipated (`update.ts`/`update.test.ts`, fixed in Task 5). Two more exist: `node-oclif.test.ts`'s `baseManifest()` helper and `releasenotes.test.ts`'s `baseManifest()` helper. Both are fixed in this task (Step 1a below), since they're a direct, mechanical consequence of this task's own interface change — not part of Task 5's actual scope (generalizing `scaffold.ts`/`update.ts`'s *behavior*).
 
 **Interfaces:**
 - Produces: `Manifest` gains `language: string` (right after `generatorVersion`); `buildManifest(targetDir: string, generatorVersion: string, language: string, adapter: UpdateAdapter)` — `language` is a new required third parameter, inserted before `adapter`
@@ -561,6 +565,41 @@ Also update `sampleManifest` (used by the `writeManifest`/`readManifest`/`requir
     coreFields: { engines: {}, oclif: {} },
   };
 ```
+
+- [ ] **Step 1a: Fix the two other `Manifest`-fixture-constructing test files**
+
+In `src/update/adapters/node-oclif.test.ts`, add `language: 'node',` to the `baseManifest()` helper's returned object, right after `generatorVersion: '1.0.0',`:
+
+```ts
+function baseManifest(overrides: Partial<Manifest> = {}): Manifest {
+  return {
+    generatorVersion: '1.0.0',
+    language: 'node',
+    coreFiles: {},
+    coreDependencies: {},
+    coreScripts: {},
+    coreFields: { engines: {}, oclif: {} },
+    ...overrides,
+  };
+}
+```
+
+In `src/update/releasenotes.test.ts`, add `language: 'node',` to the `baseManifest()` helper's returned object, right after `generatorVersion,`:
+
+```ts
+function baseManifest(generatorVersion: string): Manifest {
+  return {
+    generatorVersion,
+    language: 'node',
+    coreFiles: {},
+    coreDependencies: {},
+    coreScripts: {},
+    coreFields: { engines: {}, oclif: {} },
+  };
+}
+```
+
+Neither file's test *assertions* change — both helpers are internal fixtures, and no test in either file asserts anything about a `language` value, so this is a pure type-satisfaction fix with zero behavior change.
 
 - [ ] **Step 2: Run the tests to verify they fail (manifest.ts hasn't changed yet)**
 
@@ -605,15 +644,20 @@ Every other function in the file (`hashContent`, `hashCoreFiles`, `writeManifest
 Run: `npx vitest run src/update/manifest.test.ts`
 Expected: PASS, all tests green
 
+- [ ] **Step 4a: Run `node-oclif.test.ts` and `releasenotes.test.ts` to verify Step 1a's fixture fix works**
+
+Run: `npx vitest run src/update/adapters/node-oclif.test.ts src/update/releasenotes.test.ts`
+Expected: PASS, all tests green (Step 1a's one-line fixture additions are enough — no other change needed in either file).
+
 - [ ] **Step 5: Typecheck**
 
 Run: `npm run typecheck`
-Expected: still FAILS — confirm the error set is now the Task 2 set (`wizard.ts`, `wizard.test.ts`, `types.ts`, `scaffold.ts`, `scaffold.test.ts`) PLUS `src/update/update.ts` and `src/update/update.test.ts` (both call `buildManifest`/reference `Manifest` indirectly through `scaffold.ts`'s test fixtures — read the actual error list rather than assuming; if `update.ts`/`update.test.ts` don't yet show errors from this change alone, that's fine too, they get rewritten in Task 5 regardless).
+Expected: still FAILS — confirm the error set is now `src/wizard.ts`, `src/wizard.test.ts`, `src/types.ts`, `src/scaffold.ts`, `src/scaffold.test.ts`, and `src/update/update.ts` (the last one constructs a `Manifest` literal missing `language` at its own return-a-new-manifest step — read the actual error list rather than assuming; all six are resolved by Tasks 5–6, not this task).
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/update/manifest.ts src/update/manifest.test.ts
+git add src/update/manifest.ts src/update/manifest.test.ts src/update/adapters/node-oclif.test.ts src/update/releasenotes.test.ts
 git commit -m "feat: add language field to Manifest and buildManifest"
 ```
 
