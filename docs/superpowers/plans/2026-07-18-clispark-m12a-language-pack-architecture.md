@@ -330,7 +330,7 @@ git rm src/registry.ts src/registry.test.ts
 - [ ] **Step 6: Confirm the resulting typecheck failures are confined to the expected files**
 
 Run: `npm run typecheck`
-Expected: FAILS — confirm the *only* errors are in `src/wizard.ts`, `src/wizard.test.ts`, `src/types.ts`, and `src/scaffold.test.ts` (all reference the now-deleted `./registry` module). These are resolved by Tasks 5–6, not this task.
+Expected: FAILS — confirm the *only* errors are in `src/wizard.ts`, `src/wizard.test.ts`, `src/types.ts`, `src/scaffold.ts`, and `src/scaffold.test.ts` (all reference the now-deleted `./registry` module — note `scaffold.ts` itself imports `DEFAULT_REGISTRY_URL` from it, not just its test). These are resolved by Tasks 5–6, not this task.
 
 - [ ] **Step 7: Commit**
 
@@ -506,7 +506,7 @@ Expected: PASS
 - [ ] **Step 9: Typecheck and lint**
 
 Run: `npm run typecheck`
-Expected: still FAILS at this point, confined to the same files named at the end of Task 2 (`wizard.ts`, `wizard.test.ts`, `types.ts`, `scaffold.test.ts`) — this task doesn't touch any of them.
+Expected: still FAILS at this point, confined to the same files named at the end of Task 2 (`wizard.ts`, `wizard.test.ts`, `types.ts`, `scaffold.ts`, `scaffold.test.ts`) — this task doesn't touch any of them.
 
 Run: `npm run lint`
 Expected: PASS (lint doesn't type-check across files the way `tsc` does, so the files broken by Task 2's deletion don't block it — if it unexpectedly fails, read the output before assuming it's the same pre-existing issue).
@@ -608,7 +608,7 @@ Expected: PASS, all tests green
 - [ ] **Step 5: Typecheck**
 
 Run: `npm run typecheck`
-Expected: still FAILS — confirm the error set is now the Task 2 set (`wizard.ts`, `wizard.test.ts`, `types.ts`, `scaffold.test.ts`) PLUS `src/update/update.ts` and `src/update/update.test.ts` (both call `buildManifest`/reference `Manifest` indirectly through `scaffold.ts`'s test fixtures — read the actual error list rather than assuming; if `update.ts`/`update.test.ts` don't yet show errors from this change alone, that's fine too, they get rewritten in Task 5 regardless).
+Expected: still FAILS — confirm the error set is now the Task 2 set (`wizard.ts`, `wizard.test.ts`, `types.ts`, `scaffold.ts`, `scaffold.test.ts`) PLUS `src/update/update.ts` and `src/update/update.test.ts` (both call `buildManifest`/reference `Manifest` indirectly through `scaffold.ts`'s test fixtures — read the actual error list rather than assuming; if `update.ts`/`update.test.ts` don't yet show errors from this change alone, that's fine too, they get rewritten in Task 5 regardless).
 
 - [ ] **Step 6: Commit**
 
