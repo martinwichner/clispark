@@ -5,6 +5,7 @@ import { runWizard } from './wizard';
 import { scaffoldProject } from './scaffold';
 import { withLogging } from './logger';
 import { formatUpdateSummary, updateProject } from './update/update';
+import { nodeOclifAdapter } from './update/adapters/node-oclif';
 import { fetchReleaseNotes, formatReleaseNotes } from './update/releasenotes';
 import { getGeneratorVersion } from './update/manifest';
 
@@ -40,7 +41,7 @@ program
     withLogging('update', async (logger) => {
       const targetDir = process.cwd();
       logger.info({ targetDir }, 'update started');
-      const result = await updateProject(targetDir);
+      const result = await updateProject(targetDir, nodeOclifAdapter);
       logger.info({ status: result.status }, 'update completed');
       console.log(formatUpdateSummary(result));
     }),
