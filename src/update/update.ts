@@ -3,19 +3,11 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import spawn from 'cross-spawn';
 import { applyPlaceholders, TEMPLATE_DIR } from '../scaffold';
-import {
-  CORE_FILE_PATHS,
-  getGeneratorVersion,
-  hashContent,
-  requireManifest,
-  templateSourcePath,
-  writeManifest,
-  type Manifest,
-} from './manifest';
-import { reconcileEntry, stringEquals } from './reconcile';
+import { getGeneratorVersion, hashContent, requireManifest, writeManifest, type Manifest } from './manifest';
+import { reconcileEntry, stringEquals, type FieldOutcome } from './reconcile';
 import { UserError } from '../errors';
 import { compareVersions } from './releasenotes';
-import { mergePackageJson, type FieldOutcome, type PackageJsonShape } from './update-package-json';
+import type { UpdateAdapter } from './adapter';
 
 export interface UpdateDeps {
   runCommand: (command: string, args: string[], cwd: string) => Promise<void>;
@@ -65,7 +57,11 @@ export interface UpdateResult {
   fields: FieldOutcome[];
 }
 
-export async function updateProject(targetDir: string, deps: UpdateDeps = defaultUpdateDeps): Promise<UpdateResult> {
+export async function updateProject(
+  targetDir: string,
+  adapter: UpdateAdapter,
+  deps: UpdateDeps = defaultUpdateDeps,
+): Promise<UpdateResult> {
   const status = (await deps.captureCommand('git', ['status', '--porcelain'], targetDir)).trim();
   if (status.length > 0) {
     throw new UserError('Working tree is not clean. Commit or stash your changes before running update.');
@@ -79,23 +75,25 @@ export async function updateProject(targetDir: string, deps: UpdateDeps = defaul
     return { status: 'up-to-date', fromVersion, toVersion, files: [], dependencies: [], scripts: [], fields: [] };
   }
 
-  const currentPkg = JSON.parse(await readFile(path.join(targetDir, 'package.json'), 'utf8')) as PackageJsonShape;
-  const projectName = currentPkg.name;
+  const currentManifestFile = await adapter.readManifestFile(targetDir);
+  const projectName = adapter.readProjectName(currentManifestFile);
 
-  const newTemplatePkg = JSON.parse(
-    applyPlaceholders(await readFile(path.join(TEMPLATE_DIR, 'package.json'), 'utf8'), projectName),
-  ) as PackageJsonShape;
+  const newTemplateRaw = applyPlaceholders(
+    await readFile(path.join(TEMPLATE_DIR, adapter.manifestFileName), 'utf8'),
+    projectName,
+  );
+  const newTemplateManifestFile = adapter.parseManifestFile(newTemplateRaw);
 
   const files: FileOutcomeEntry[] = [];
   const newCoreFiles: Record<string, string> = {};
   const fileWrites: { targetPath: string; content: string }[] = [];
 
-  // Reads + hashes run in parallel; results are then applied in CORE_FILE_PATHS
+  // Reads + hashes run in parallel; results are then applied in adapter.coreFilePaths
   // order below so files/fileWrites stay deterministic regardless of I/O timing.
   const perFileResults = await Promise.all(
-    CORE_FILE_PATHS.map(async (relativePath) => {
+    adapter.coreFilePaths.map(async (relativePath) => {
       const newContent = applyPlaceholders(
-        await readFile(path.join(TEMPLATE_DIR, templateSourcePath(relativePath)), 'utf8'),
+        await readFile(path.join(TEMPLATE_DIR, adapter.templateSourcePath(relativePath)), 'utf8'),
         projectName,
       );
       const newHash = hashContent(newContent);
@@ -122,7 +120,7 @@ export async function updateProject(targetDir: string, deps: UpdateDeps = defaul
   }
 
   for (const relativePath of Object.keys(oldManifest.coreFiles)) {
-    if ((CORE_FILE_PATHS as readonly string[]).includes(relativePath)) continue;
+    if (adapter.coreFilePaths.includes(relativePath)) continue;
     try {
       await readFile(path.join(targetDir, relativePath), 'utf8');
       files.push({ path: relativePath, outcome: 'no-longer-core' });
@@ -131,12 +129,12 @@ export async function updateProject(targetDir: string, deps: UpdateDeps = defaul
     }
   }
 
-  const pkgMerge = mergePackageJson(currentPkg, oldManifest, newTemplatePkg);
+  const fileMerge = adapter.mergeManifestFile(currentManifestFile, oldManifest, newTemplateManifestFile);
 
   const hasFileChanges = files.some(
     (f) => f.outcome === 'added' || f.outcome === 'replaced' || f.outcome === 'no-longer-core',
   );
-  const hasChanges = hasFileChanges || pkgMerge.changed;
+  const hasChanges = hasFileChanges || fileMerge.changed;
 
   if (!hasChanges) {
     return {
@@ -144,9 +142,9 @@ export async function updateProject(targetDir: string, deps: UpdateDeps = defaul
       fromVersion,
       toVersion,
       files,
-      dependencies: pkgMerge.dependencies,
-      scripts: pkgMerge.scripts,
-      fields: pkgMerge.fields,
+      dependencies: fileMerge.dependencies,
+      scripts: fileMerge.scripts,
+      fields: fileMerge.fields,
     };
   }
 
@@ -155,16 +153,16 @@ export async function updateProject(targetDir: string, deps: UpdateDeps = defaul
     await writeFile(write.targetPath, write.content);
   }
 
-  if (pkgMerge.changed) {
-    await writeFile(path.join(targetDir, 'package.json'), JSON.stringify(pkgMerge.updatedPkg, null, 2) + '\n');
+  if (fileMerge.changed) {
+    await adapter.writeManifestFile(targetDir, fileMerge.updatedFile);
   }
 
   const newManifest: Manifest = {
     generatorVersion: toVersion,
     coreFiles: newCoreFiles,
-    coreDependencies: pkgMerge.coreDependencies,
-    coreScripts: pkgMerge.coreScripts,
-    coreFields: pkgMerge.coreFields,
+    coreDependencies: fileMerge.coreDependencies,
+    coreScripts: fileMerge.coreScripts,
+    coreFields: fileMerge.coreFields,
   };
   await writeManifest(targetDir, newManifest);
 
@@ -176,9 +174,9 @@ export async function updateProject(targetDir: string, deps: UpdateDeps = defaul
     fromVersion,
     toVersion,
     files,
-    dependencies: pkgMerge.dependencies,
-    scripts: pkgMerge.scripts,
-    fields: pkgMerge.fields,
+    dependencies: fileMerge.dependencies,
+    scripts: fileMerge.scripts,
+    fields: fileMerge.fields,
   };
 }
 
@@ -216,7 +214,7 @@ export function formatUpdateSummary(result: UpdateResult): string {
     (o) => o.outcome !== 'skipped',
   );
   if (fieldOutcomes.length) {
-    lines.push(`  package.json: ${fieldOutcomes.map((o) => `${o.key} (${o.outcome})`).join(', ')}`);
+    lines.push(`  Manifest: ${fieldOutcomes.map((o) => `${o.key} (${o.outcome})`).join(', ')}`);
   }
 
   if (result.status === 'updated') {
