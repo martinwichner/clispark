@@ -4,6 +4,7 @@ import path from 'node:path';
 import { cp, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { DEFAULT_REGISTRY_URL } from './registry';
 import { buildManifest, getGeneratorVersion, writeManifest } from './update/manifest';
+import { nodeOclifAdapter } from './update/adapters/node-oclif';
 import { UserError } from './errors';
 
 export interface ScaffoldOptions {
@@ -109,7 +110,7 @@ export async function scaffoldProject(
   await copyTemplate(options);
 
   const { targetDir } = options;
-  const manifest = await buildManifest(targetDir, getGeneratorVersion());
+  const manifest = await buildManifest(targetDir, getGeneratorVersion(), nodeOclifAdapter);
   await writeManifest(targetDir, manifest);
 
   await deps.runCommand('git', ['init'], targetDir);
