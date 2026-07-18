@@ -4,7 +4,8 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { copyTemplate, scaffoldProject } from './scaffold';
-import { DEFAULT_REGISTRY_URL } from './registry';
+import { nodeOclifPack } from './languages/packs/node-oclif';
+import { NPM_DEFAULT_REGISTRY_URL } from './languages/registry-checkers/npm';
 import { UserError } from './errors';
 
 describe('copyTemplate', () => {
@@ -21,7 +22,7 @@ describe('copyTemplate', () => {
   it('copies all template files into a new target directory, replacing {{projectName}}', async () => {
     const targetDir = path.join(tmpRoot, 'my-cli');
 
-    await copyTemplate({ projectName: 'my-cli', targetDir });
+    await copyTemplate({ projectName: 'my-cli', targetDir }, nodeOclifPack);
 
     const pkg = JSON.parse(await readFile(path.join(targetDir, 'package.json'), 'utf8'));
     expect(pkg.name).toBe('my-cli');
@@ -62,11 +63,10 @@ describe('copyTemplate', () => {
   it('writes a .npmrc with the custom registry when registryUrl differs from the default', async () => {
     const targetDir = path.join(tmpRoot, 'custom-registry');
 
-    await copyTemplate({
-      projectName: 'custom-registry',
-      targetDir,
-      registryUrl: 'https://registry.example.com',
-    });
+    await copyTemplate(
+      { projectName: 'custom-registry', targetDir, registryUrl: 'https://registry.example.com' },
+      nodeOclifPack,
+    );
 
     const npmrc = await readFile(path.join(targetDir, '.npmrc'), 'utf8');
     expect(npmrc).toBe('registry=https://registry.example.com\n');
@@ -74,22 +74,25 @@ describe('copyTemplate', () => {
 
   it('does not write a .npmrc when registryUrl is omitted or equal to the default', async () => {
     const targetDirNoUrl = path.join(tmpRoot, 'no-registry-url');
-    await copyTemplate({ projectName: 'no-registry-url', targetDir: targetDirNoUrl });
+    await copyTemplate({ projectName: 'no-registry-url', targetDir: targetDirNoUrl }, nodeOclifPack);
     await expect(readFile(path.join(targetDirNoUrl, '.npmrc'), 'utf8')).rejects.toThrow();
 
     const targetDirDefaultUrl = path.join(tmpRoot, 'default-registry-url');
-    await copyTemplate({
-      projectName: 'default-registry-url',
-      targetDir: targetDirDefaultUrl,
-      registryUrl: DEFAULT_REGISTRY_URL,
-    });
+    await copyTemplate(
+      {
+        projectName: 'default-registry-url',
+        targetDir: targetDirDefaultUrl,
+        registryUrl: NPM_DEFAULT_REGISTRY_URL,
+      },
+      nodeOclifPack,
+    );
     await expect(readFile(path.join(targetDirDefaultUrl, '.npmrc'), 'utf8')).rejects.toThrow();
   });
 
   it('marks the generated package.json private when publishIntent is false', async () => {
     const targetDir = path.join(tmpRoot, 'no-publish');
 
-    await copyTemplate({ projectName: 'no-publish', targetDir, publishIntent: false });
+    await copyTemplate({ projectName: 'no-publish', targetDir, publishIntent: false }, nodeOclifPack);
 
     const pkg = JSON.parse(await readFile(path.join(targetDir, 'package.json'), 'utf8'));
     expect(pkg.private).toBe(true);
@@ -97,12 +100,12 @@ describe('copyTemplate', () => {
 
   it('does not add a private field when publishIntent is true or omitted', async () => {
     const targetDirTrue = path.join(tmpRoot, 'publish-true');
-    await copyTemplate({ projectName: 'publish-true', targetDir: targetDirTrue, publishIntent: true });
+    await copyTemplate({ projectName: 'publish-true', targetDir: targetDirTrue, publishIntent: true }, nodeOclifPack);
     const pkgTrue = JSON.parse(await readFile(path.join(targetDirTrue, 'package.json'), 'utf8'));
     expect(pkgTrue.private).toBeUndefined();
 
     const targetDirOmitted = path.join(tmpRoot, 'publish-omitted');
-    await copyTemplate({ projectName: 'publish-omitted', targetDir: targetDirOmitted });
+    await copyTemplate({ projectName: 'publish-omitted', targetDir: targetDirOmitted }, nodeOclifPack);
     const pkgOmitted = JSON.parse(await readFile(path.join(targetDirOmitted, 'package.json'), 'utf8'));
     expect(pkgOmitted.private).toBeUndefined();
   });
@@ -110,7 +113,7 @@ describe('copyTemplate', () => {
   it('creates the target directory when it does not exist yet', async () => {
     const targetDir = path.join(tmpRoot, 'new-project');
 
-    await copyTemplate({ projectName: 'new-project', targetDir });
+    await copyTemplate({ projectName: 'new-project', targetDir }, nodeOclifPack);
 
     const pkg = JSON.parse(await readFile(path.join(targetDir, 'package.json'), 'utf8'));
     expect(pkg.name).toBe('new-project');
@@ -120,7 +123,7 @@ describe('copyTemplate', () => {
     const targetDir = path.join(tmpRoot, 'empty-dir');
     await mkdir(targetDir);
 
-    await copyTemplate({ projectName: 'empty-dir', targetDir });
+    await copyTemplate({ projectName: 'empty-dir', targetDir }, nodeOclifPack);
 
     const pkg = JSON.parse(await readFile(path.join(targetDir, 'package.json'), 'utf8'));
     expect(pkg.name).toBe('empty-dir');
@@ -131,10 +134,12 @@ describe('copyTemplate', () => {
     await mkdir(targetDir);
     await writeFile(path.join(targetDir, 'existing-file.txt'), 'hello');
 
-    await expect(copyTemplate({ projectName: 'occupied', targetDir })).rejects.toThrow(
+    await expect(copyTemplate({ projectName: 'occupied', targetDir }, nodeOclifPack)).rejects.toThrow(
       /already exists and is not empty/,
     );
-    await expect(copyTemplate({ projectName: 'occupied', targetDir })).rejects.toBeInstanceOf(UserError);
+    await expect(copyTemplate({ projectName: 'occupied', targetDir }, nodeOclifPack)).rejects.toBeInstanceOf(
+      UserError,
+    );
   });
 });
 
@@ -156,7 +161,7 @@ describe('scaffoldProject', () => {
       calls.push({ command, args, cwd });
     });
 
-    await scaffoldProject({ projectName: 'my-cli', targetDir }, { runCommand });
+    await scaffoldProject({ projectName: 'my-cli', targetDir }, nodeOclifPack, { runCommand });
 
     expect(calls.map((c) => `${c.command} ${c.args.join(' ')}`)).toEqual([
       'git init',
@@ -178,20 +183,21 @@ describe('scaffoldProject', () => {
       if (command === 'npm') throw new Error('npm install failed');
     });
 
-    await expect(scaffoldProject({ projectName: 'fails', targetDir }, { runCommand })).rejects.toThrow(
+    await expect(scaffoldProject({ projectName: 'fails', targetDir }, nodeOclifPack, { runCommand })).rejects.toThrow(
       'npm install failed',
     );
   });
 
-  it('writes a .clispark/manifest.json with generatorVersion and core file hashes', async () => {
+  it('writes a .clispark/manifest.json with generatorVersion, language, and core file hashes', async () => {
     const targetDir = path.join(tmpRoot, 'manifest-project');
     const runCommand = vi.fn(async () => {});
 
-    await scaffoldProject({ projectName: 'manifest-project', targetDir }, { runCommand });
+    await scaffoldProject({ projectName: 'manifest-project', targetDir }, nodeOclifPack, { runCommand });
 
     const manifest = JSON.parse(await readFile(path.join(targetDir, '.clispark', 'manifest.json'), 'utf8'));
     expect(typeof manifest.generatorVersion).toBe('string');
     expect(manifest.generatorVersion.length).toBeGreaterThan(0);
+    expect(manifest.language).toBe('node');
     expect(manifest.coreFiles['src/base-command.ts']).toMatch(/^[0-9a-f]{64}$/);
     expect(manifest.coreDependencies['@oclif/core']).toBe('^4.0.0');
     expect(manifest.coreScripts.build).toBe('tsup');
