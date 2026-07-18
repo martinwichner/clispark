@@ -5,52 +5,23 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { UserError } from '../errors';
-
-export const CORE_FILE_PATHS = [
-  'bin/run.ts',
-  'src/index.ts',
-  'src/base-command.ts',
-  'src/logger.ts',
-  'tsup.config.ts',
-  'vitest.config.ts',
-  'tsconfig.json',
-  'ARCHITECTURE.md',
-  '.gitignore',
-] as const;
-
-export const CORE_SCRIPT_NAMES = ['build', 'postbuild', 'pretest', 'test', 'typecheck'] as const;
-
-/** The base template stores .gitignore as "gitignore" (renamed on copy); every other core path is identical in the template and in a generated project. */
-export function templateSourcePath(relativePath: string): string {
-  return relativePath === '.gitignore' ? 'gitignore' : relativePath;
-}
+import type { UpdateAdapter } from './adapter';
 
 export interface Manifest {
   generatorVersion: string;
   coreFiles: Record<string, string>;
   coreDependencies: Record<string, string>;
   coreScripts: Record<string, string>;
-  coreFields: {
-    engines: Record<string, string>;
-    oclif: Record<string, unknown>;
-  };
-}
-
-export interface PackageJsonCore {
-  dependencies?: Record<string, string>;
-  devDependencies?: Record<string, string>;
-  scripts?: Record<string, string>;
-  engines?: Record<string, string>;
-  oclif?: Record<string, unknown>;
+  coreFields: Record<string, unknown>;
 }
 
 export function hashContent(content: string): string {
   return createHash('sha256').update(content).digest('hex');
 }
 
-export async function hashCoreFiles(dir: string): Promise<Record<string, string>> {
+export async function hashCoreFiles(dir: string, adapter: UpdateAdapter): Promise<Record<string, string>> {
   const entries = await Promise.all(
-    CORE_FILE_PATHS.map(async (relativePath) => {
+    adapter.coreFilePaths.map(async (relativePath) => {
       const content = await readFile(path.join(dir, relativePath), 'utf8');
       return [relativePath, hashContent(content)] as const;
     }),
@@ -58,31 +29,14 @@ export async function hashCoreFiles(dir: string): Promise<Record<string, string>
   return Object.fromEntries(entries);
 }
 
-export function extractCoreFields(
-  pkg: PackageJsonCore,
-): Pick<Manifest, 'coreDependencies' | 'coreScripts' | 'coreFields'> {
-  const coreDependencies = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
-
-  const coreScripts: Record<string, string> = {};
-  for (const name of CORE_SCRIPT_NAMES) {
-    const value = pkg.scripts?.[name];
-    if (value !== undefined) coreScripts[name] = value;
-  }
-
-  return {
-    coreDependencies,
-    coreScripts,
-    coreFields: {
-      engines: pkg.engines ?? {},
-      oclif: pkg.oclif ?? {},
-    },
-  };
-}
-
-export async function buildManifest(targetDir: string, generatorVersion: string): Promise<Manifest> {
-  const coreFiles = await hashCoreFiles(targetDir);
-  const pkg = JSON.parse(await readFile(path.join(targetDir, 'package.json'), 'utf8')) as PackageJsonCore;
-  const { coreDependencies, coreScripts, coreFields } = extractCoreFields(pkg);
+export async function buildManifest(
+  targetDir: string,
+  generatorVersion: string,
+  adapter: UpdateAdapter,
+): Promise<Manifest> {
+  const coreFiles = await hashCoreFiles(targetDir, adapter);
+  const manifestFile = await adapter.readManifestFile(targetDir);
+  const { coreDependencies, coreScripts, coreFields } = adapter.extractCoreFields(manifestFile);
   return { generatorVersion, coreFiles, coreDependencies, coreScripts, coreFields };
 }
 
