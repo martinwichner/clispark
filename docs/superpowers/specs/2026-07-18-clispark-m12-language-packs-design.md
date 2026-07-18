@@ -152,6 +152,7 @@ Kein PowerShell-Code in dieser Session, nur Gegenprobe, dass `LanguagePack` wirk
 - Sauberster Weg für pino-artiges `redact` in Serilog (vermutlich ein eigener kleiner Enricher, kein fertiges Paket)
 - Geeignete npm-Bibliothek für DOM-basiertes XML-Lesen/-Schreiben in clispark selbst (z.B. `@xmldom/xmldom`, noch nicht final geprüft)
 - clispark's eigene CI (`ci.yml`) braucht ein .NET SDK auf den Runnern für einen echten Scaffold-Smoke-Test — lokal bereits verfügbar (.NET SDK 9.0.306), auf GitHub-Actions-Runnern in der Regel vorinstalliert, aber vor Umsetzung zu bestätigen
+- **Echter Fund aus dem M12a-Whole-Branch-Review (2026-07-18):** `scaffold.ts`s Custom-Registry-URL-Logik (`copyTemplate()`) ist noch npm-spezifisch fest verdrahtet — schreibt immer eine `.npmrc` mit `registry=<url>`-Inhalt, unabhängig vom gewählten Pack. Das widerspricht dem eigentlichen Ziel (generische Schicht bleibt unverändert bei neuen Sprachen): ein NuGet-Feed braucht eine `NuGet.config`, kein `.npmrc`. Der `LanguageRegistry`-Vertrag hat aktuell keine Methode, um eine Registry-URL in eine ökosystem-eigene Konfigurationsdatei zu übersetzen. Für M12a folgenlos (Node bleibt korrekt), aber **vor M12b nachziehen**: entweder `LanguageRegistry` um z.B. `applyRegistryUrl(targetDir, url)` erweitern (analog zu `applyPrivateIntent`) und `scaffold.ts` entsprechend generalisieren, oder explizit als Scope-Erweiterung in den M12b-Plan aufnehmen — nicht erst mittendrin entdecken.
 
 ## Ergebnis
 
