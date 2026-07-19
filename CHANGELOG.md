@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.0](https://github.com/martinwichner/clispark/compare/v1.12.0...v1.13.0) (2026-07-19)
+
+
+### Features
+
+* add --joke/--fact flags to clispark whoami ([ecfb4c8](https://github.com/martinwichner/clispark/commit/ecfb4c88361e5ee22beb396ccdaaf5c7dc4ebf4a))
+
 ## [1.12.0](https://github.com/martinwichner/clispark/compare/v1.11.0...v1.12.0) (2026-07-19)
 
 
