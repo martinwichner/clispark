@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.0](https://github.com/martinwichner/clispark/compare/v1.11.0...v1.12.0) (2026-07-19)
+
+
+### Features
+
+* add fun machine facts to whoami easter egg ([f05e4c1](https://github.com/martinwichner/clispark/commit/f05e4c110cc20f579156fbf35565a14fc0b6f4c2))
+
 ## [1.11.0](https://github.com/martinwichner/clispark/compare/v1.10.0...v1.11.0) (2026-07-18)
 
 
