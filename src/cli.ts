@@ -11,12 +11,15 @@ import { LANGUAGE_PACKS } from './languages';
 import type { LanguagePack } from './languages/pack';
 import { UserError } from './errors';
 import { getWhoamiOutput, type WhoamiMode } from './whoami';
+import { printConfetti } from './confetti';
 
 const program = new Command();
 
 program
   .name('clispark')
   .description('Interactive scaffolding tool for new CLI projects')
+  .option('--no-confetti', 'Skip the confetti after a successful run')
+  .configureHelp({ showGlobalOptions: true })
   .version(getGeneratorVersion());
 
 function resolvePack(language: string): LanguagePack {
@@ -27,7 +30,7 @@ function resolvePack(language: string): LanguagePack {
   return pack;
 }
 
-program.action(
+program.action((options: { confetti?: boolean }) =>
   withLogging('scaffold', async (logger) => {
     const answers = await runWizard();
     const targetDir = path.join(process.cwd(), answers.projectName);
@@ -46,13 +49,14 @@ program.action(
     logger.info({ projectName: answers.projectName }, 'scaffold completed');
 
     console.log(`\nDone! Your new CLI project is ready at ${targetDir}`);
-  }),
+    if (options.confetti !== false) printConfetti();
+  })(),
 );
 
 program
   .command('update')
   .description('Update generator-managed core files and dependencies to the latest clispark version')
-  .action(
+  .action((_options: unknown, command: Command) =>
     withLogging('update', async (logger) => {
       const targetDir = process.cwd();
       const manifest = await requireManifest(targetDir);
@@ -62,7 +66,9 @@ program
       const result = await updateProject(targetDir, pack.updateAdapter, pack.templateDir, language);
       logger.info({ status: result.status }, 'update completed');
       console.log(formatUpdateSummary(result));
-    }),
+      const { confetti } = command.optsWithGlobals<{ confetti?: boolean }>();
+      if (confetti !== false && result.status === 'updated') printConfetti();
+    })(),
   );
 
 program
