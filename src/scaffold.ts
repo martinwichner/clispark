@@ -69,7 +69,7 @@ export async function copyTemplate(options: ScaffoldOptions, pack: LanguagePack)
   }
 
   if (registryUrl && registryUrl !== pack.registry.defaultUrl) {
-    await writeFile(path.join(targetDir, '.npmrc'), `registry=${registryUrl}\n`);
+    await pack.registry.applyRegistryUrl(targetDir, registryUrl);
   }
 }
 

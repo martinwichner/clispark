@@ -77,3 +77,22 @@ describe('npmRegistryChecker.applyPrivateIntent', () => {
     expect(pkg.name).toBe('my-cli');
   });
 });
+
+describe('npmRegistryChecker.applyRegistryUrl', () => {
+  let tmpRoot: string;
+
+  beforeEach(async () => {
+    tmpRoot = await mkdtemp(path.join(tmpdir(), 'clispark-npm-registry-checker-test-'));
+  });
+
+  afterEach(async () => {
+    await rm(tmpRoot, { recursive: true, force: true });
+  });
+
+  it('writes a .npmrc with the given registry URL', async () => {
+    await npmRegistryChecker.applyRegistryUrl(tmpRoot, 'https://registry.example.com');
+
+    const npmrc = await readFile(path.join(tmpRoot, '.npmrc'), 'utf8');
+    expect(npmrc).toBe('registry=https://registry.example.com\n');
+  });
+});
