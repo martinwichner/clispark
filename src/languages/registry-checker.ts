@@ -8,4 +8,5 @@ export type NameCheckResult = 'available' | 'taken' | 'unverified' | 'skipped';
 export interface RegistryChecker {
   checkNameAvailability(name: string, registryUrl: string): Promise<NameCheckResult>;
   applyPrivateIntent(targetDir: string): Promise<void>;
+  applyRegistryUrl(targetDir: string, registryUrl: string): Promise<void>;
 }

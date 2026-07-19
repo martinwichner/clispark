@@ -28,5 +28,6 @@ export const nodeOclifPack: LanguagePack = {
     promptLabel: 'Custom npm registry URL (leave empty for npmjs.org)',
     checkNameAvailability: npmRegistryChecker.checkNameAvailability,
     applyPrivateIntent: npmRegistryChecker.applyPrivateIntent,
+    applyRegistryUrl: npmRegistryChecker.applyRegistryUrl,
   },
 };

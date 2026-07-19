@@ -50,6 +50,7 @@ function fakePack(checkNameAvailability: (name: string, registryUrl: string) => 
       promptLabel: 'Custom npm registry URL (leave empty for npmjs.org)',
       checkNameAvailability,
       applyPrivateIntent: vi.fn(),
+      applyRegistryUrl: vi.fn(),
     },
   };
 }

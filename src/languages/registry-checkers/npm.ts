@@ -27,7 +27,12 @@ async function applyPrivateIntent(targetDir: string): Promise<void> {
   await writeFile(packageJsonPath, JSON.stringify(pkg, null, 2) + '\n');
 }
 
+async function applyRegistryUrl(targetDir: string, registryUrl: string): Promise<void> {
+  await writeFile(path.join(targetDir, '.npmrc'), `registry=${registryUrl}\n`);
+}
+
 export const npmRegistryChecker: RegistryChecker = {
   checkNameAvailability,
   applyPrivateIntent,
+  applyRegistryUrl,
 };
