@@ -1,5 +1,7 @@
 # M12: Language-Pack-Architektur + .NET-Template
 
+> **Update (2026-07-19, vor M12b-Umsetzung):** M12a ist seit diesem Datum bereits abgeschlossen (`v1.10.0`). Der Abschnitt "Offene Recherchepunkte für die Umsetzung" wurde durch echte Recherche aufgelöst und durch den Abschnitt "M12b: Geklärte Punkte vor Umsetzung" ersetzt/ergänzt — dort stehen jetzt die tatsächlichen Antworten statt offener Fragen. Der Rest des Dokuments (Architektur, .NET-Template-Inhalt, NuGet-Adapter/Checker) bleibt inhaltlich wie am 18.07. entworfen und gilt weiterhin, bis auf die dort explizit vermerkten Änderungen (XML-Update-Strategie, Target Framework).
+
 ## Kontext
 
 M11 Tier 3 (2026-07-18 gemergt, v1.9.0) hat das Update-System vom oclif/TypeScript-Template entkoppelt, aber bewusst nur das Update-System — Scaffold-Engine und Wizard blieben explizit Node/npm-spezifisch, als separate, spätere Design-Session zurückgestellt.
@@ -108,19 +110,21 @@ Die heutige `validateProjectName` (npm-Style: lowercase-mit-Bindestrichen) ist f
 
 **Paketierung:** `dotnet tool install -g`-globales Tool (direktes Äquivalent zu `npx`/globalem npm-Install), Veröffentlichung über NuGet.org.
 
+**Target Framework:** `net10.0` (aktuelles LTS, Stand Juli 2026) — konsistent mit der "immer aktuell"-Haltung des Projekts (Node >=24, TypeScript Everywhere).
+
 **Projektstruktur:** Solution mit zwei Projekten — `src/Cli.csproj` (Haupt-Tool, wird gepackt) + `tests/Cli.Tests.csproj` (xUnit, referenziert das Hauptprojekt) + `Cli.sln`. Entspricht gängiger .NET-Konvention (Tests leben nicht neben dem Code wie bei vitest). **Wichtig:** Datei-/Ordnernamen sind fest, unabhängig vom gewählten Projektnamen (`src/Cli.csproj` heißt immer so) — der Projektname landet nur in MSBuild-Properties (`PackageId`, `AssemblyName`, `RootNamespace`) innerhalb der Dateien. Gleiches Prinzip wie bei `package.json`, dessen Pfad sich nie ändert, nur der `name`-Feldinhalt.
 
 **Auto-Discovery:** Marker-Interface `ICliCommand` (Methode `Command Build()`, liefert ein konfiguriertes `System.CommandLine.Command`) plus `[Command("task list")]`-Attribut zur expliziten Deklaration des Aufrufpfads (Klassenname allein reicht bei verschachtelten Subcommands nicht). `Program.cs` scannt beim Start die Assembly per Reflection nach allen `ICliCommand`-Implementierungen und registriert sie automatisch am `RootCommand` — funktional das Gleiche wie oclifs dateisystembasierte Discovery, nur kompilierungsbedingt über Reflection statt Dateisystem-Scan. Dieses Prinzip ("Command-Datei ablegen → automatisch erkannt") gilt als Architektur-Vorgabe für **jedes** Sprach-Pack, auch wenn die Implementierung pro Sprache zwangsläufig unterschiedlicher Code ist.
 
 **Fehlerbehandlung:** Kein Klassenvererbungsmodell wie oclifs `BaseCommand` (System.CommandLine arbeitet anders), stattdessen ein zentraler Ausführungs-Wrapper um die Root-Command-Invocation: fängt `CliUserException` (Äquivalent zu `UserError`) ab → sauberes `Error: <message>` ohne Stacktrace, Exit-Code 1; alles andere → volle Details. Gleiche UX-Prinzipien wie das etablierte M2.5/M8-Verhalten. Logger wird injiziert über einen leichtgewichtigen `Microsoft.Extensions.DependencyInjection`-Container (kein vollständiger Generic Host).
 
-**Logging (Serilog):** Datei-Sink + `DEBUG`-gesteuertes Live-Konsolen-Streaming, Retention-Sweep, restriktive Datei-Rechte unter Unix — mechanisch die gleiche Logik wie `templates/node/src/logger.ts`, in Serilog-Idiomen. Zwei Punkte brauchen kurze Recherche während der Umsetzung (siehe "Offene Recherchepunkte"): das .NET-Äquivalent zu `env-paths`, und der sauberste Weg für pino-artiges `redact` in Serilog.
+**Logging (Serilog):** Datei-Sink + `DEBUG`-gesteuertes Live-Konsolen-Streaming, Retention-Sweep, restriktive Datei-Rechte unter Unix — mechanisch die gleiche Logik wie `templates/node/src/logger.ts`, in Serilog-Idiomen. Das .NET-Äquivalent zu `env-paths` (`Xdg.Directories`) und der Redaction-Ansatz (eigener `ILogEventEnricher`) sind geklärt, siehe "M12b: Geklärte Punkte vor Umsetzung" unten.
 
 **Beispiel-Commands:** Analog zu `hello.ts`/`task.ts` — Argumenttyp-Katalog in der ARCHITECTURE.md (Pflicht-String-Argument, optionales Argument mit erlaubten Werten, Boolean-Flag, Integer-Argument, Subcommand-Verschachtelung).
 
 ## NuGet-`UpdateAdapter`
 
-Der Adapter-Code selbst ist TypeScript (Teil von clispark, nicht des generierten .NET-Projekts) — er liest/schreibt/parst das `.csproj` des Zielprojekts als XML-Text. Braucht eine neue npm-Abhängigkeit in clispark für XML-Handling.
+Der Adapter-Code selbst ist TypeScript (Teil von clispark, nicht des generierten .NET-Projekts) — er liest/schreibt/parst das `.csproj` des Zielprojekts als XML-Text.
 
 **Was ist "das Manifest"?** Nur `src/Cli.csproj` (nicht das Test-Projekt) — enthält `<Version>`, `<PackageId>`, `<PackAsTool>`, `<ToolCommandName>`, `<TargetFramework>` (Engines-Äquivalent), `<PackageReference>`-Einträge (Dependencies-Äquivalent). `tests/Cli.Tests.csproj` wird wie jede andere Kern-Datei per Content-Hash behandelt (ersetzen/überspringen), kein Feld-Merging.
 
@@ -128,7 +132,7 @@ Der Adapter-Code selbst ist TypeScript (Teil von clispark, nicht des generierten
 
 **Drei-Wege-Merge:** Läuft über die bestehende, generische `reconcileEntry`/`stringEquals`/`deepEquals`-Logik aus `reconcile.ts` — **keine Änderung nötig**. Dependencies (Name→Version-String) und `TargetFramework` (einzelner String statt Objekt wie `engines`) passen 1:1 in die bestehende Merge-Logik.
 
-**XML-Diff-Risiko:** Naive "Parse zu JS-Objekt → komplett neu serialisieren"-Bibliotheken verlieren Kommentare/Formatierung und erzeugen unnötig große Diffs. Stattdessen: eine DOM-basierte Bibliothek (z.B. `@xmldom/xmldom`), die nur tatsächlich geänderte Knoten mutiert (z.B. nur den `<Version>`-Textknoten oder ein einzelnes `<PackageReference>`-Element), statt die Datei komplett neu aufzubauen.
+**XML-Update-Strategie (2026-07-19 entschieden — Änderung gegenüber dem ursprünglichen Entwurf):** Keine DOM-Bibliothek, keine neue npm-Dependency. Da clispark die `.csproj`-Datei selbst erzeugt (Format/Einrückung bekannt und vollständig unter eigener Kontrolle), reicht gezielte Text-/Regex-Ersetzung bekannter Tags (`<Version>`, `<TargetFramework>`, einzelne `<PackageReference>`-Elemente) — der Rest der Datei bleibt byte-identisch, keine Formatierungs-Drift. Die bestehende `UpdateAdapter`-Schnittstelle (`src/update/adapter.ts`) typisiert die Manifest-Repräsentation ohnehin als `unknown`, passt also ohne jede Interface-Änderung: `parseManifestFile(rawContent)` liefert ein Objekt `{ raw: string, version, targetFramework, packageReferences, packageId, toolCommandName }` (Werte per Regex extrahiert), `mergeManifestFile()` läuft unverändert über die bestehende Reconcile-Logik (identisch zum Node-Adapter-Muster), `writeManifestFile()` schreibt die gemergten Werte per gezielter Regex-Ersetzung zurück in den `raw`-String und persistiert das Ergebnis. Ein DOM-Ansatz (z.B. `@xmldom/xmldom`) wurde bewusst verworfen: laut Recherche verändert dessen Reserialisierung teilweise Whitespace/Attribut-Reihenfolge, was hier unnötige Diffs erzeugen würde.
 
 ## NuGet-`RegistryChecker`
 
@@ -146,13 +150,16 @@ Kein PowerShell-Code in dieser Session, nur Gegenprobe, dass `LanguagePack` wirk
 - **Jegliche Release-Automatisierung für generierte Projekte** (NuGet Trusted Publishing, GitHub-Actions-Publish-Workflows o.ä.) — clispark scaffoldet schon heute keine CI/CD in generierte Node-Projekte, das ändert sich nicht. Der Nutzer kümmert sich selbst um das Publishing seines eigenen Tools.
 - **CI/CD-Erweiterung für clispark selbst** (eigenes `.github/workflows` braucht künftig ein .NET SDK für einen Scaffold-Smoke-Test des neuen Templates) — praktischer Umsetzungs-Task, kein Architektur-Thema, gehört in den Implementierungsplan.
 
-## Offene Recherchepunkte für die Umsetzung
+## M12b: Geklärte Punkte vor Umsetzung (2026-07-19)
 
-- .NET-Äquivalent zu `env-paths` für plattformkonforme Log-Verzeichnis-Pfade (XDG-Konformität unter Linux insbesondere)
-- Sauberster Weg für pino-artiges `redact` in Serilog (vermutlich ein eigener kleiner Enricher, kein fertiges Paket)
-- Geeignete npm-Bibliothek für DOM-basiertes XML-Lesen/-Schreiben in clispark selbst (z.B. `@xmldom/xmldom`, noch nicht final geprüft)
-- clispark's eigene CI (`ci.yml`) braucht ein .NET SDK auf den Runnern für einen echten Scaffold-Smoke-Test — lokal bereits verfügbar (.NET SDK 9.0.306), auf GitHub-Actions-Runnern in der Regel vorinstalliert, aber vor Umsetzung zu bestätigen
-- **Echter Fund aus dem M12a-Whole-Branch-Review (2026-07-18):** `scaffold.ts`s Custom-Registry-URL-Logik (`copyTemplate()`) ist noch npm-spezifisch fest verdrahtet — schreibt immer eine `.npmrc` mit `registry=<url>`-Inhalt, unabhängig vom gewählten Pack. Das widerspricht dem eigentlichen Ziel (generische Schicht bleibt unverändert bei neuen Sprachen): ein NuGet-Feed braucht eine `NuGet.config`, kein `.npmrc`. Der `LanguageRegistry`-Vertrag hat aktuell keine Methode, um eine Registry-URL in eine ökosystem-eigene Konfigurationsdatei zu übersetzen. Für M12a folgenlos (Node bleibt korrekt), aber **vor M12b nachziehen**: entweder `LanguageRegistry` um z.B. `applyRegistryUrl(targetDir, url)` erweitern (analog zu `applyPrivateIntent`) und `scaffold.ts` entsprechend generalisieren, oder explizit als Scope-Erweiterung in den M12b-Plan aufnehmen — nicht erst mittendrin entdecken.
+Ersetzt den ursprünglichen "Offene Recherchepunkte"-Abschnitt — alle Punkte wurden per echter Recherche bzw. Nutzerentscheidung aufgelöst, keiner bleibt offen:
+
+- **.NET-Äquivalent zu `env-paths`:** `Xdg.Directories` (NuGet-Paket, ~11 KB, .NET Standard 2.0 + NativeAOT-fähig) — respektiert `XDG_CONFIG_HOME`/`XDG_DATA_HOME` unter Linux, nutzt plattformgerechte Defaults unter Windows/macOS. Direktes Gegenstück zu `env-paths`.
+- **pino-artiges `redact` in Serilog:** Recherche bestätigt — kein fertiges Bordmittel oder etabliertes Paket deckt das exakt ab. Braucht einen eigenen kleinen `ILogEventEnricher`, der bekannte sensible Property-Namen (Äquivalent zu `SENSITIVE_LOG_KEYS`) vor dem Schreiben maskiert. Keine neue NuGet-Dependency für clispark selbst nötig (das ist generierter .NET-Code, keine clispark-eigene Abhängigkeit).
+- **XML-Lesen/-Schreiben in clispark selbst:** Keine DOM-Bibliothek — gezielte Regex-Ersetzung, siehe Abschnitt "NuGet-`UpdateAdapter`" oben für Details und Begründung.
+- **`ci.yml` braucht ein .NET SDK auf den Runnern:** Bestätigt kein Blocker — `ubuntu-latest`-Runner-Images haben aktuell .NET SDK 8.0.x/9.0.x/10.0.x vorinstalliert (Quelle: `actions/runner-images`-Repo, Ubuntu-24.04-Image). Kein zusätzlicher `actions/setup-dotnet`-Schritt zwingend nötig, kann aber für Versions-Determinismus trotzdem sinnvoll sein — Detail für den Implementierungsplan.
+- **Target Framework:** `net10.0` entschieden (siehe .NET-Template-Inhalt oben).
+- **`.npmrc`/`LanguageRegistry`-Lücke (Fund aus dem M12a-Whole-Branch-Review):** `scaffold.ts`s Custom-Registry-URL-Logik (`copyTemplate()`, aktuell Zeilen 71–72) ist noch npm-spezifisch fest verdrahtet — schreibt immer eine `.npmrc`, unabhängig vom gewählten Pack. **Lösung, als früher Task in den M12b-Implementierungsplan aufgenommen (kein separater Vorab-PR):** `RegistryChecker`-Interface (`src/languages/registry-checker.ts`) bekommt eine neue Methode `applyRegistryUrl(targetDir: string, url: string): Promise<void>`. `scaffold.ts` ruft stattdessen generisch `pack.registry.applyRegistryUrl(targetDir, registryUrl)` auf, wenn `registryUrl && registryUrl !== pack.registry.defaultUrl`. Der npm-Checker (`registry-checkers/npm.ts`) behält das bisherige `.npmrc`-Verhalten unverändert bei (reine Verschiebung, kein Verhaltenswechsel für Node). Der neue NuGet-Checker (`registry-checkers/nuget.ts`) schreibt eine `NuGet.config` mit `<clear/>` gefolgt von genau einer `<add>`-Quelle (der Custom-URL) — spiegelt npms Vollüberschreibungs-Semantik (die `registry=<url>`-Zeile in `.npmrc` überschreibt npms Auflösung ebenfalls vollständig, nicht additiv).
 
 ## Ergebnis
 
