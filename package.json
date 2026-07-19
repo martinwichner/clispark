@@ -1,6 +1,6 @@
 {
   "name": "clispark",
-  "version": "1.12.0",
+  "version": "1.13.0",
   "description": "Interactive scaffolding tool for new CLI projects",
   "keywords": [
     "cli",
