@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.15.0](https://github.com/martinwichner/clispark/compare/v1.14.0...v1.15.0) (2026-07-19)
+
+
+### Features
+
+* add .NET template example commands and tests ([e94ae66](https://github.com/martinwichner/clispark/commit/e94ae6621ae55ef4ed462f39b4f36a22a544d625))
+* add .NET template infrastructure (command discovery, error handling, logging) ([fbe99a4](https://github.com/martinwichner/clispark/commit/fbe99a4f37b27d185cf849a7710771907fc906bb))
+* add NuGet RegistryChecker ([ce18347](https://github.com/martinwichner/clispark/commit/ce18347c881f10891a24bfb8c4b188d9c072626a))
+* add NuGet UpdateAdapter (regex-based .csproj editing) ([173c36b](https://github.com/martinwichner/clispark/commit/173c36b020e83528e1a883fd20385636ef06886e))
+* register the .NET LanguagePack ([0699cf7](https://github.com/martinwichner/clispark/commit/0699cf7a7af41a30d8008b2429105fa806a0314e))
+
+
+### Bug Fixes
+
+* escape regex-special characters in dotnet UpdateAdapter's tag/package-name interpolation ([a68ec0c](https://github.com/martinwichner/clispark/commit/a68ec0cbc76852fd0e861bbf1e70095a9795994e))
+
 ## [1.14.0](https://github.com/martinwichner/clispark/compare/v1.13.0...v1.14.0) (2026-07-19)
 
 
