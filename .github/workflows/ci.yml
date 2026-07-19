@@ -80,3 +80,43 @@ jobs:
             echo "bin/run.ts did not produce the expected greeting" >&2
             exit 1
           fi
+
+  scaffold-smoke-dotnet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Configure git identity for scaffolded project commit
+        run: |
+          git config --global user.email "ci@example.com"
+          git config --global user.name "CI"
+      - name: Scaffold a real .NET project and verify it builds and tests itself
+        run: |
+          cat > ci-smoke-verify-dotnet.mjs << 'EOF'
+          import { scaffoldProject } from './src/scaffold';
+          import { dotnetPack } from './src/languages/packs/dotnet';
+          import path from 'node:path';
+          import os from 'node:os';
+
+          const targetDir = path.join(os.tmpdir(), 'clispark-ci-smoke-dotnet', 'SmokeTestCli');
+          await scaffoldProject({ projectName: 'SmokeTestCli', targetDir }, dotnetPack);
+          console.log('scaffold complete:', targetDir);
+          EOF
+          npx tsx ci-smoke-verify-dotnet.mjs
+          rm ci-smoke-verify-dotnet.mjs
+      - name: Run the generated project's own test suite
+        run: |
+          cd "$(node -e "console.log(require('os').tmpdir())")/clispark-ci-smoke-dotnet/SmokeTestCli"
+          dotnet test Cli.slnx
+      - name: Run the generated project's entry point directly
+        run: |
+          cd "$(node -e "console.log(require('os').tmpdir())")/clispark-ci-smoke-dotnet/SmokeTestCli"
+          output="$(dotnet run --project src -- hello World)"
+          echo "$output"
+          if [[ "$output" != *"Hello, World!"* ]]; then
+            echo "Program.cs did not produce the expected greeting" >&2
+            exit 1
+          fi
