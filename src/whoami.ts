@@ -1,4 +1,5 @@
 // src/whoami.ts
+import os from 'node:os';
 
 const JOKE_API_URL = 'https://v2.jokeapi.dev/joke/Programming,Miscellaneous';
 const FETCH_TIMEOUT_MS = 3000;
@@ -52,6 +53,53 @@ function pickFallbackQuote(): string {
   return FALLBACK_QUOTES[Math.floor(Math.random() * FALLBACK_QUOTES.length)];
 }
 
+export interface OsFacts {
+  uptime: () => number;
+  hostname: () => string;
+  cpus: () => os.CpuInfo[];
+  totalmem: () => number;
+  platform: () => NodeJS.Platform;
+  release: () => string;
+  arch: () => string;
+}
+
+const defaultOsFacts: OsFacts = {
+  uptime: () => os.uptime(),
+  hostname: () => os.hostname(),
+  cpus: () => os.cpus(),
+  totalmem: () => os.totalmem(),
+  platform: () => os.platform(),
+  release: () => os.release(),
+  arch: () => os.arch(),
+};
+
+function formatUptime(seconds: number): string {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (days > 0 || hours > 0) parts.push(`${hours}h`);
+  parts.push(`${minutes}m`);
+  return parts.join(' ');
+}
+
+const FACT_GENERATORS: Array<(facts: OsFacts) => string> = [
+  (facts) => `This machine has been up for ${formatUptime(facts.uptime())}.`,
+  (facts) => `Hostname: ${facts.hostname()}`,
+  (facts) => {
+    const cpus = facts.cpus();
+    return `CPU: ${cpus[0]?.model.trim() ?? 'unknown'} (${cpus.length} logical cores)`;
+  },
+  (facts) => `RAM: ${(facts.totalmem() / 1024 ** 3).toFixed(1)} GB total`,
+  (facts) => `OS: ${facts.platform()} ${facts.release()} (${facts.arch()})`,
+];
+
+export function getRandomFunFact(osFacts: OsFacts = defaultOsFacts, randomFn: () => number = Math.random): string {
+  const index = Math.floor(randomFn() * FACT_GENERATORS.length);
+  return FACT_GENERATORS[index](osFacts);
+}
+
 async function fetchJoke(language: string, fetchFn: typeof fetch): Promise<string | undefined> {
   try {
     const url = `${JOKE_API_URL}?lang=${language}&safe-mode`;
@@ -66,7 +114,15 @@ async function fetchJoke(language: string, fetchFn: typeof fetch): Promise<strin
   }
 }
 
-export async function getWhoamiOutput(fetchFn: typeof fetch = fetch): Promise<string> {
+export async function getWhoamiOutput(
+  fetchFn: typeof fetch = fetch,
+  osFacts: OsFacts = defaultOsFacts,
+  randomFn: () => number = Math.random,
+): Promise<string> {
+  if (randomFn() < 0.5) {
+    return `${LOGO}\n${getRandomFunFact(osFacts, randomFn)}\n`;
+  }
+
   const language = detectJokeLanguage();
   const quote = (await fetchJoke(language, fetchFn)) ?? pickFallbackQuote();
   return `${LOGO}\n${quote}\n`;

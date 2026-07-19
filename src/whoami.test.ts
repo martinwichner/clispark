@@ -1,6 +1,19 @@
 // src/whoami.test.ts
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { detectJokeLanguage, getWhoamiOutput, LOGO, FALLBACK_QUOTES } from './whoami';
+import { detectJokeLanguage, getWhoamiOutput, getRandomFunFact, LOGO, FALLBACK_QUOTES, type OsFacts } from './whoami';
+
+const forceJoke = () => 0.99;
+const forceFact = () => 0;
+
+const stubOsFacts: OsFacts = {
+  uptime: () => 90061, // 1d 1h 1m
+  hostname: () => 'test-host',
+  cpus: () => [{ model: '  Test CPU  ' } as unknown as ReturnType<OsFacts['cpus']>[number]],
+  totalmem: () => 8 * 1024 ** 3,
+  platform: () => 'linux',
+  release: () => '6.0.0',
+  arch: () => 'x64',
+};
 
 describe('detectJokeLanguage', () => {
   it('maps a supported locale to its primary language subtag', () => {
@@ -36,7 +49,7 @@ describe('getWhoamiOutput', () => {
       json: async () => ({ error: false, type: 'single', joke: 'Why did the CLI cross the road?' }),
     } as unknown as Response);
 
-    const output = await getWhoamiOutput(fetchFn);
+    const output = await getWhoamiOutput(fetchFn, undefined, forceJoke);
 
     expect(output).toContain(LOGO);
     expect(output).toContain('Why did the CLI cross the road?');
@@ -51,7 +64,7 @@ describe('getWhoamiOutput', () => {
       json: async () => ({ error: false, type: 'twopart', setup: 'Setup line', delivery: 'Delivery line' }),
     } as unknown as Response);
 
-    const output = await getWhoamiOutput(fetchFn);
+    const output = await getWhoamiOutput(fetchFn, undefined, forceJoke);
 
     expect(output).toContain('Setup line');
     expect(output).toContain('Delivery line');
@@ -63,7 +76,7 @@ describe('getWhoamiOutput', () => {
       json: async () => ({ error: true }),
     } as unknown as Response);
 
-    const output = await getWhoamiOutput(fetchFn);
+    const output = await getWhoamiOutput(fetchFn, undefined, forceJoke);
 
     expect(output).toContain(LOGO);
     expect(FALLBACK_QUOTES.some((quote) => output.includes(quote))).toBe(true);
@@ -72,7 +85,7 @@ describe('getWhoamiOutput', () => {
   it('falls back to a bundled quote when the API responds with a non-ok status', async () => {
     const fetchFn = vi.fn().mockResolvedValue({ ok: false } as unknown as Response);
 
-    const output = await getWhoamiOutput(fetchFn);
+    const output = await getWhoamiOutput(fetchFn, undefined, forceJoke);
 
     expect(FALLBACK_QUOTES.some((quote) => output.includes(quote))).toBe(true);
   });
@@ -80,7 +93,7 @@ describe('getWhoamiOutput', () => {
   it('falls back to a bundled quote when the network request throws (offline)', async () => {
     const fetchFn = vi.fn().mockRejectedValue(new Error('network down'));
 
-    const output = await getWhoamiOutput(fetchFn);
+    const output = await getWhoamiOutput(fetchFn, undefined, forceJoke);
 
     expect(output).toContain(LOGO);
     expect(FALLBACK_QUOTES.some((quote) => output.includes(quote))).toBe(true);
@@ -89,8 +102,45 @@ describe('getWhoamiOutput', () => {
   it('falls back to a bundled quote when the request times out', async () => {
     const fetchFn = vi.fn().mockRejectedValue(new DOMException('The operation was aborted.', 'TimeoutError'));
 
-    const output = await getWhoamiOutput(fetchFn);
+    const output = await getWhoamiOutput(fetchFn, undefined, forceJoke);
 
     expect(FALLBACK_QUOTES.some((quote) => output.includes(quote))).toBe(true);
+  });
+
+  it('shows a fun fact instead of a joke when the random draw favors facts', async () => {
+    const fetchFn = vi.fn();
+
+    const output = await getWhoamiOutput(fetchFn, stubOsFacts, forceFact);
+
+    expect(output).toContain(LOGO);
+    expect(output).toContain('This machine has been up for 1d 1h 1m.');
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+});
+
+describe('getRandomFunFact', () => {
+  it('reports uptime formatted as days/hours/minutes', () => {
+    expect(getRandomFunFact(stubOsFacts, () => 0)).toBe('This machine has been up for 1d 1h 1m.');
+  });
+
+  it('reports the hostname', () => {
+    expect(getRandomFunFact(stubOsFacts, () => 0.21)).toBe('Hostname: test-host');
+  });
+
+  it('reports CPU model and core count, trimming whitespace', () => {
+    expect(getRandomFunFact(stubOsFacts, () => 0.41)).toBe('CPU: Test CPU (1 logical cores)');
+  });
+
+  it('reports total RAM in GB', () => {
+    expect(getRandomFunFact(stubOsFacts, () => 0.61)).toBe('RAM: 8.0 GB total');
+  });
+
+  it('reports OS platform, release and architecture', () => {
+    expect(getRandomFunFact(stubOsFacts, () => 0.81)).toBe('OS: linux 6.0.0 (x64)');
+  });
+
+  it('falls back to "unknown" when no CPU info is available', () => {
+    const noCpuFacts: OsFacts = { ...stubOsFacts, cpus: () => [] };
+    expect(getRandomFunFact(noCpuFacts, () => 0.41)).toBe('CPU: unknown (0 logical cores)');
   });
 });
