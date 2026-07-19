@@ -73,14 +73,15 @@ export interface CommandGenerator {
 
 **`generateCommand`:** Für `pathSegments: ['task', 'export']`:
 - Datei: `src/commands/task/export.ts`
-- Klasse: `Export extends BaseCommand` (letztes Pfadsegment, PascalCase — spiegelt das bestehende Namensmuster von `task/complete.ts`s `Complete`-Klasse)
+- Klasse: `TaskExport extends BaseCommand` — **Korrektur nach Prototyping (2026-07-19):** nicht nur das letzte Pfadsegment, sondern die volle Pfad-Verkettung in PascalCase, exakt wie beim bestehenden `task/complete.ts`s `TaskComplete`-Klasse (nicht `Complete`, wie ursprünglich hier notiert — real am generierten Code verifiziert). Macht die Namensregel zwischen Node und .NET einheitlich (beide: voller Pfad, .NET hängt zusätzlich `Command` an).
 - `static args`, aufgebaut aus den `ParameterSpec`s:
   - `string` → `Args.string({ description, required })`
   - `integer` → `Args.integer({ description, required })`
-  - `boolean` → `Args.boolean({ description, required })`
+  - `boolean` → `Args.boolean({ description, required })` — **real verifiziert**, obwohl das bestehende Template `boolean` bisher nur als `Flags.boolean()` zeigt (`task/list.ts`s `--done`), nie als positionales `Args.boolean()`; Recherche+Test bestätigten, dass `Args.boolean()` trotzdem eine echte, funktionierende oclif-API ist (dokumentiert in `ARCHITECTURE.md`, aber vor diesem Prototyping nie in generiertem Code exerciert).
   - `enum` → `Args.string({ description, required, options: allowedValues })`
-- `run()`: `await this.parse(Export); this.log(...)` gibt die empfangenen Werte aus (Platzhalter-Body)
-- Testdatei: `src/commands/task/export.test.ts`, nach `hello.test.ts`-Muster (`runCommand()`, prüft nur, dass der Erfolgspfad ohne Fehler durchläuft und die erwartete Ausgabe enthält)
+- **Neue, real gefundene Reihenfolge-Regel:** oclif verlangt zwingend, dass alle Pflicht-Args vor allen optionalen Args stehen — eine Testkombination mit optional-vor-required schlug mit `Error: Invalid argument spec` fehl (Build- bzw. Laufzeitfehler, kein Compile-Fehler). Der Wizard muss das erzwingen (siehe Wizard-Ablauf-Abschnitt, aktualisiert).
+- `run()`: `await this.parse(TaskExport); this.log(...)` gibt die empfangenen Werte aus (Platzhalter-Body)
+- Testdatei: `src/commands/task/export.test.ts`, nach `task/complete.test.ts`-Muster (`runCommand('task export ...')`, prüft nur, dass der Erfolgspfad ohne Fehler durchläuft und die erwartete Ausgabe enthält)
 
 Fehlt ein Zwischenordner (z.B. `src/commands/task/` existiert noch nicht, weil `task` bisher kein Command ist), wird er automatisch angelegt — oclifs eigene Discovery braucht keine echte `task.ts`-Datei, damit `task export` funktioniert (topic-Verhalten, bereits am bestehenden `task`/`task list`/`task complete`-Trio erkennbar: eine implizite Topic-Hilfe reicht).
 
@@ -108,7 +109,7 @@ Neuer Befehl `clispark add` (registriert wie `update`/`releasenotes`: liest zuer
 1. `pack.commandGenerator.listExistingCommands(targetDir)` aufrufen.
 2. **Rekursive Pfad-Auswahl:** Auswahlmenü mit "Neuer Top-Level-Command" plus einem Eintrag pro vorhandenem Command (verschachtelt dargestellt, z.B. `task > list`). Bei Auswahl eines bestehenden Commands erneut fragen: "Direktes Subcommand hier anlegen" vs. "Unter einem Subcommand von X anlegen" (bei vorhandenen Kindern) — rekursiv, beliebig tief, endet erst wenn der Nutzer "hier" wählt oder ein Blatt ohne Kinder erreicht ist.
 3. **Name** des neuen Commands (letztes Pfadsegment) abfragen. Validierung: `^[a-z][a-zA-Z0-9]*$` (einzelnes Wort, beginnt lowercase — passt zu allen bestehenden Beispiel-Command-Namen `hello`/`task`/`list`/`complete`, macht die PascalCase-Ableitung für Klassennamen eindeutig, keine Bindestriche wie bei npm-Projektnamen üblich). Zusätzlich: Pfad darf nicht bereits existieren (Vergleich gegen die Liste aus Schritt 1).
-4. **Parameter-Schleife:** "Weiteren Parameter hinzufügen?" (Ja/Nein-Schleife). Pro Parameter: Name (gleiche Validierung `^[a-z][a-zA-Z0-9]*$` wie beim Command-Namen, muss innerhalb des Commands eindeutig sein — wird sowohl als oclif-`args`-Objektschlüssel als auch als .NET-Variablenname verwendet) → Pflicht/Optional → Typ (String/Integer/Boolean/Enum) → bei Enum zusätzlich: erlaubte Werte als kommagetrennte Texteingabe.
+4. **Parameter-Schleife:** "Weiteren Parameter hinzufügen?" (Ja/Nein-Schleife). Pro Parameter: Name (gleiche Validierung `^[a-z][a-zA-Z0-9]*$` wie beim Command-Namen, muss innerhalb des Commands eindeutig sein — wird sowohl als oclif-`args`-Objektschlüssel als auch als .NET-Variablenname verwendet) → Pflicht/Optional → Typ (String/Integer/Boolean/Enum) → bei Enum zusätzlich: erlaubte Werte als kommagetrennte Texteingabe. **Reihenfolge-Regel (real gefunden beim Prototyping, siehe Node-Abschnitt oben):** sobald ein optionaler Parameter hinzugefügt wurde, ist "Pflicht" für alle weiteren Parameter in diesem Command nicht mehr wählbar (oclif lehnt Pflicht-nach-Optional zur Laufzeit mit `Invalid argument spec` ab) — die Pflicht/Optional-Frage zeigt die Option "Pflicht" nur noch an, solange kein optionaler Parameter existiert.
 5. **Zusammenfassung + Bestätigung** (voller Pfad, alle Parameter mit Typ) vor dem tatsächlichen Schreiben.
 6. `pack.commandGenerator.generateCommand(targetDir, spec)` aufrufen, Erfolg melden: erzeugte Dateipfade auflisten (analog zur bestehenden `formatUpdateSummary`-Ausgabe von `clispark update`).
 
