@@ -116,6 +116,27 @@ describe('getWhoamiOutput', () => {
     expect(output).toContain('This machine has been up for 1d 1h 1m.');
     expect(fetchFn).not.toHaveBeenCalled();
   });
+
+  it('mode "joke" always shows a joke, even when the random draw would favor a fact', async () => {
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ error: false, type: 'single', joke: 'Forced joke' }),
+    } as unknown as Response);
+
+    const output = await getWhoamiOutput(fetchFn, stubOsFacts, forceFact, 'joke');
+
+    expect(output).toContain('Forced joke');
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('mode "fact" always shows a fact, even when the random draw would favor a joke', async () => {
+    const fetchFn = vi.fn();
+
+    const output = await getWhoamiOutput(fetchFn, stubOsFacts, forceJoke, 'fact');
+
+    expect(output).toContain('OS: linux 6.0.0 (x64)');
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
 });
 
 describe('getRandomFunFact', () => {

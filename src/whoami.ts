@@ -114,12 +114,16 @@ async function fetchJoke(language: string, fetchFn: typeof fetch): Promise<strin
   }
 }
 
+export type WhoamiMode = 'joke' | 'fact' | 'random';
+
 export async function getWhoamiOutput(
   fetchFn: typeof fetch = fetch,
   osFacts: OsFacts = defaultOsFacts,
   randomFn: () => number = Math.random,
+  mode: WhoamiMode = 'random',
 ): Promise<string> {
-  if (randomFn() < 0.5) {
+  const showFact = mode === 'fact' || (mode === 'random' && randomFn() < 0.5);
+  if (showFact) {
     return `${LOGO}\n${getRandomFunFact(osFacts, randomFn)}\n`;
   }
 

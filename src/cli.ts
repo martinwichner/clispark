@@ -10,7 +10,7 @@ import { getGeneratorVersion, requireManifest } from './update/manifest';
 import { LANGUAGE_PACKS } from './languages';
 import type { LanguagePack } from './languages/pack';
 import { UserError } from './errors';
-import { getWhoamiOutput } from './whoami';
+import { getWhoamiOutput, type WhoamiMode } from './whoami';
 
 const program = new Command();
 
@@ -78,15 +78,27 @@ program
     }),
   );
 
+function resolveWhoamiMode(options: { joke?: boolean; fact?: boolean }): WhoamiMode {
+  if (options.joke && options.fact) {
+    throw new UserError('Use either --joke or --fact, not both.');
+  }
+  if (options.joke) return 'joke';
+  if (options.fact) return 'fact';
+  return 'random';
+}
+
 program
   .command('whoami')
   .description('A little something extra')
-  .action(
+  .option('--joke', 'Always show a joke')
+  .option('--fact', 'Always show a fun fact about this machine')
+  .action((options: { joke?: boolean; fact?: boolean }) =>
     withLogging('whoami', async (logger) => {
-      logger.info({}, 'whoami started');
-      console.log(await getWhoamiOutput());
+      const mode = resolveWhoamiMode(options);
+      logger.info({ mode }, 'whoami started');
+      console.log(await getWhoamiOutput(fetch, undefined, undefined, mode));
       logger.info({}, 'whoami completed');
-    }),
+    })(),
   );
 
 program.parseAsync(process.argv).catch((error: unknown) => {
