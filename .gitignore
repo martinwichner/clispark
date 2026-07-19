@@ -7,3 +7,6 @@ dist
 graphify-out/
 CLAUDE.md
 .gitattributes
+templates/dotnet/**/bin/
+templates/dotnet/**/obj/
+templates/dotnet/**/nupkg/
