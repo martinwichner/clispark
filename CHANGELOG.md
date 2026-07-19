@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.0](https://github.com/martinwichner/clispark/compare/v1.13.0...v1.14.0) (2026-07-19)
+
+
+### Features
+
+* show confetti after a successful scaffold or update ([c476230](https://github.com/martinwichner/clispark/commit/c476230ad632c79cd80869232a424ac28108fe0d))
+
 ## [1.13.0](https://github.com/martinwichner/clispark/compare/v1.12.0...v1.13.0) (2026-07-19)
 
 
