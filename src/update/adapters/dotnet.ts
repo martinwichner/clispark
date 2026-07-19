@@ -28,6 +28,10 @@ export interface DotnetManifestFile {
   packageReferences: Record<string, string>;
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function extractTag(content: string, tag: string): string {
   const match = content.match(new RegExp(`<${tag}>([^<]*)</${tag}>`));
   if (!match) throw new Error(`.csproj is missing a <${tag}> tag`);
@@ -45,11 +49,12 @@ function extractPackageReferences(content: string): Record<string, string> {
 }
 
 function setTag(content: string, tag: string, value: string): string {
-  return content.replace(new RegExp(`(<${tag}>)[^<]*(</${tag}>)`), `$1${value}$2`);
+  const escapedTag = escapeRegExp(tag);
+  return content.replace(new RegExp(`(<${escapedTag}>)[^<]*(</${escapedTag}>)`), `$1${value}$2`);
 }
 
 function setPackageReferenceVersion(content: string, name: string, version: string): string {
-  const re = new RegExp(`(<PackageReference\\s+Include="${name}"\\s+Version=")[^"]+(")`);
+  const re = new RegExp(`(<PackageReference\\s+Include="${escapeRegExp(name)}"\\s+Version=")[^"]+(")`);
   return content.replace(re, `$1${version}$2`);
 }
 
