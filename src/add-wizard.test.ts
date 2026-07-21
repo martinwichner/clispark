@@ -119,6 +119,47 @@ describe('runAddWizard', () => {
     });
   });
 
+  it('only offers "Optional" for the required/optional prompt once an earlier parameter was optional', async () => {
+    const { generator, generateCommandCalls } = fakeGenerator([]);
+
+    vi.mocked(select).mockResolvedValueOnce('__new_top_level__'); // where to add
+    vi.mocked(text).mockResolvedValueOnce('deploy'); // command name
+    vi.mocked(confirm).mockResolvedValueOnce(true); // add a parameter? -> yes
+    vi.mocked(text).mockResolvedValueOnce('first'); // parameter name
+    vi.mocked(select).mockResolvedValueOnce('string'); // parameter type
+    vi.mocked(select).mockResolvedValueOnce(false); // required/optional -> Optional
+    vi.mocked(confirm).mockResolvedValueOnce(true); // add another? -> yes
+    vi.mocked(text).mockResolvedValueOnce('second'); // parameter name
+    vi.mocked(select).mockResolvedValueOnce('string'); // parameter type
+    vi.mocked(select).mockResolvedValueOnce(false); // required/optional -> Optional (only choice offered)
+    vi.mocked(confirm).mockResolvedValueOnce(false); // add another? -> no
+    vi.mocked(confirm).mockResolvedValueOnce(true); // proceed? -> yes
+
+    await runAddWizard('/tmp/project', { commandGenerator: generator });
+
+    const requiredOptionalCalls = vi
+      .mocked(select)
+      .mock.calls.filter((call) => call[0]?.message === 'Required or optional?');
+    expect(requiredOptionalCalls).toHaveLength(2);
+
+    // First parameter: nothing optional yet, so both choices are offered.
+    expect(requiredOptionalCalls[0][0].options).toEqual([
+      { value: true, label: 'Required' },
+      { value: false, label: 'Optional' },
+    ]);
+
+    // Second parameter: an optional parameter already exists, so "Required" must never be offered.
+    expect(requiredOptionalCalls[1][0].options).toEqual([{ value: false, label: 'Optional' }]);
+
+    expect(generateCommandCalls[0].spec).toEqual({
+      pathSegments: ['deploy'],
+      parameters: [
+        { name: 'first', type: 'string', required: false, allowedValues: undefined },
+        { name: 'second', type: 'string', required: false, allowedValues: undefined },
+      ],
+    });
+  });
+
   it('does not call generateCommand when the user declines the final confirmation', async () => {
     const { generator, generateCommandCalls } = fakeGenerator([]);
 
