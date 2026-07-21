@@ -30,7 +30,7 @@ function toClassName(pathSegments: string[]): string {
 function csharpDeclType(param: ParameterSpec): string {
   const baseType = param.type === 'integer' ? 'int' : param.type === 'boolean' ? 'bool' : 'string';
   if (param.required) return baseType;
-  return baseType === 'string' ? 'string?' : `${baseType}?`;
+  return `${baseType}?`;
 }
 
 function argumentDeclaration(param: ParameterSpec): string {
