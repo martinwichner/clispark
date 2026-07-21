@@ -4,6 +4,7 @@ import { findPackageRoot } from '../../package-root';
 import type { LanguagePack } from '../pack';
 import { dotnetAdapter } from '../../update/adapters/dotnet';
 import { nugetRegistryChecker, NUGET_DEFAULT_REGISTRY_URL } from '../registry-checkers/nuget';
+import { dotnetCommandGenerator } from '../command-generators/dotnet';
 
 function validateProjectName(value: string): string | undefined {
   if (!value || value.trim().length === 0) return 'Project name is required.';
@@ -30,4 +31,5 @@ export const dotnetPack: LanguagePack = {
     applyPrivateIntent: nugetRegistryChecker.applyPrivateIntent,
     applyRegistryUrl: nugetRegistryChecker.applyRegistryUrl,
   },
+  commandGenerator: dotnetCommandGenerator,
 };

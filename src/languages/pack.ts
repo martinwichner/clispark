@@ -1,5 +1,6 @@
 import type { UpdateAdapter } from '../update/adapter';
 import type { RegistryChecker } from './registry-checker';
+import type { CommandGenerator } from './command-generator';
 
 export interface ScaffoldCommand {
   command: string;
@@ -17,11 +18,13 @@ export interface LanguageRegistry extends RegistryChecker {
  * Isolates everything template/language-specific from the generic wizard,
  * scaffold, and CLI-composition layers: where the template lives, which
  * commands turn a fresh copy into a working project, how project names are
- * validated, how the package registry is queried, and (via the existing
- * `UpdateAdapter` from M11 Tier 3) how the update system reads/writes/merges
- * this language's package manifest. One concrete implementation exists today
- * (`packs/node-oclif.ts`); a future non-Node template adds a sibling pack
- * without touching `wizard.ts`, `scaffold.ts`, `update.ts`, or `manifest.ts`.
+ * validated, how the package registry is queried, how new commands are
+ * generated for an already-scaffolded project (via `clispark add`), and (via
+ * the existing `UpdateAdapter` from M11 Tier 3) how the update system
+ * reads/writes/merges this language's package manifest. One concrete
+ * implementation exists today (`packs/node-oclif.ts`); a future non-Node
+ * template adds a sibling pack without touching `wizard.ts`, `scaffold.ts`,
+ * `update.ts`, `add.ts`, or `manifest.ts`.
  */
 export interface LanguagePack {
   readonly id: string;
@@ -31,4 +34,5 @@ export interface LanguagePack {
   validateProjectName(value: string): string | undefined;
   readonly updateAdapter: UpdateAdapter;
   readonly registry: LanguageRegistry;
+  readonly commandGenerator: CommandGenerator;
 }

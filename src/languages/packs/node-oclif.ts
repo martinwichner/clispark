@@ -4,6 +4,7 @@ import { findPackageRoot } from '../../package-root';
 import type { LanguagePack } from '../pack';
 import { nodeOclifAdapter } from '../../update/adapters/node-oclif';
 import { npmRegistryChecker, NPM_DEFAULT_REGISTRY_URL } from '../registry-checkers/npm';
+import { nodeOclifCommandGenerator } from '../command-generators/node-oclif';
 
 function validateProjectName(value: string): string | undefined {
   if (!value || value.trim().length === 0) return 'Project name is required.';
@@ -30,4 +31,5 @@ export const nodeOclifPack: LanguagePack = {
     applyPrivateIntent: npmRegistryChecker.applyPrivateIntent,
     applyRegistryUrl: npmRegistryChecker.applyRegistryUrl,
   },
+  commandGenerator: nodeOclifCommandGenerator,
 };

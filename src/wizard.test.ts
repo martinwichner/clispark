@@ -52,6 +52,10 @@ function fakePack(checkNameAvailability: (name: string, registryUrl: string) => 
       applyPrivateIntent: vi.fn(),
       applyRegistryUrl: vi.fn(),
     },
+    commandGenerator: {
+      listExistingCommands: async () => [],
+      generateCommand: async () => ({ commandFile: '', testFile: '' }),
+    },
   };
 }
 
