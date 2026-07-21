@@ -10,6 +10,7 @@ import { getGeneratorVersion, requireManifest } from './update/manifest';
 import { LANGUAGE_PACKS } from './languages';
 import type { LanguagePack } from './languages/pack';
 import { UserError } from './errors';
+import { runAddWizard } from './add-wizard';
 import { getWhoamiOutput, type WhoamiMode } from './whoami';
 import { printConfetti } from './confetti';
 
@@ -81,6 +82,21 @@ program
       const result = await fetchReleaseNotes(targetDir);
       logger.info({ status: result.status }, 'releasenotes completed');
       console.log(formatReleaseNotes(result));
+    }),
+  );
+
+program
+  .command('add')
+  .description('Add a new command to an already-scaffolded project')
+  .action(
+    withLogging('add', async (logger) => {
+      const targetDir = process.cwd();
+      const manifest = await requireManifest(targetDir);
+      const language = manifest.language ?? 'node';
+      const pack = resolvePack(language);
+      logger.info({ targetDir, language }, 'add started');
+      await runAddWizard(targetDir, { commandGenerator: pack.commandGenerator });
+      logger.info({}, 'add completed');
     }),
   );
 
