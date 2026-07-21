@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.1](https://github.com/martinwichner/clispark/compare/v1.16.0...v1.16.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* keep audit-issues.ts's "Last checked" timestamp current ([de696eb](https://github.com/martinwichner/clispark/commit/de696ebc5fcfec308b2efadcc35de89e118d0d31))
+
 ## [1.16.0](https://github.com/martinwichner/clispark/compare/v1.15.0...v1.16.0) (2026-07-21)
 
 
