@@ -117,7 +117,7 @@ describe('syncIssueForClass', () => {
     expect(calls).toHaveLength(2);
   });
 
-  it('does nothing beyond checking state when findings are unchanged since the last run', async () => {
+  it('refreshes the body (so "Last checked" stays current) but does not comment when findings are unchanged since the last run', async () => {
     const previousBody =
       'example-critical-pkg (critical)\n\n<!-- audit-issues:state:{"example-critical-pkg":"critical"} -->';
     const { runGh, calls } = makeRunGh({
@@ -136,10 +136,15 @@ describe('syncIssueForClass', () => {
       { runGh },
     );
 
-    expect(calls).toEqual([
-      ['issue', 'list', '--label', 'security-audit-blocking', '--state', 'open', '--json', 'number'],
-      ['issue', 'view', '42', '--json', 'body'],
-    ]);
+    expect(calls).toHaveLength(3);
+    expect(calls[0]).toEqual(['issue', 'list', '--label', 'security-audit-blocking', '--state', 'open', '--json', 'number']);
+    expect(calls[1]).toEqual(['issue', 'view', '42', '--json', 'body']);
+    expect(calls[2][0]).toBe('issue');
+    expect(calls[2][1]).toBe('edit');
+    expect(calls[2][2]).toBe('42');
+    const refreshedBody = calls[2][calls[2].indexOf('--body') + 1];
+    expect(refreshedBody).toContain('Last checked: https://example.com/run/2');
+    expect(refreshedBody).toContain('<!-- audit-issues:state:{"example-critical-pkg":"critical"} -->');
   });
 
   it('treats every current finding as new when the existing issue predates the state marker', async () => {

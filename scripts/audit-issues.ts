@@ -1,5 +1,6 @@
 // scripts/audit-issues.ts
 import { execFileSync, execSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 
 export interface AdvisoryVia {
   title?: string;
@@ -174,11 +175,11 @@ export async function syncIssueForClass(options: SyncIssueOptions, deps: SyncIss
   const currentState = toState(findings);
   const { added, updated, resolved } = diffState(previousState, currentState);
 
+  await runGh(['issue', 'edit', String(existingNumber), '--body', body]);
+
   if (added.length === 0 && updated.length === 0 && resolved.length === 0) {
     return;
   }
-
-  await runGh(['issue', 'edit', String(existingNumber), '--body', body]);
 
   const changeLines: string[] = [];
   if (added.length > 0) changeLines.push(`New: ${added.join(', ')}`);
@@ -234,6 +235,6 @@ async function main(): Promise<void> {
   );
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   await main();
 }
