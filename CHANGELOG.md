@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.16.0](https://github.com/martinwichner/clispark/compare/v1.15.0...v1.16.0) (2026-07-21)
+
+
+### Features
+
+* add .NET CommandGenerator ([ca002d5](https://github.com/martinwichner/clispark/commit/ca002d5bfaa7c923e0418bba7596891acd33d52d))
+* add CommandGenerator interface and buildCommandTree utility ([1b88fb3](https://github.com/martinwichner/clispark/commit/1b88fb3911cc53d8ba58b6641924b944c7dbfa23))
+* add Node/oclif CommandGenerator ([3218cf8](https://github.com/martinwichner/clispark/commit/3218cf8bbea6683465aa4e1b774beef7ab78847f))
+* add the interactive clispark add wizard ([2e548a5](https://github.com/martinwichner/clispark/commit/2e548a57f4aeb9733879f554c2cae9cd3696dac4))
+* wire clispark add into the CLI ([c0f7fe1](https://github.com/martinwichner/clispark/commit/c0f7fe16bfe8608677a15a51704835377ffbc412))
+* wire commandGenerator into both LanguagePacks ([8816403](https://github.com/martinwichner/clispark/commit/8816403569bc568b5d3ae42140e1223a4d32561d))
+
 ## [1.15.0](https://github.com/martinwichner/clispark/compare/v1.14.0...v1.15.0) (2026-07-19)
 
 
