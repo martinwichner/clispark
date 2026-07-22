@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.17.0](https://github.com/martinwichner/clispark/compare/v1.16.1...v1.17.0) (2026-07-22)
+
+
+### Features
+
+* add GitHub Issue Templates for feature requests and bug reports ([2c624b8](https://github.com/martinwichner/clispark/commit/2c624b863e0783aac23e886e68464d1b1fd34095)), closes [#83](https://github.com/martinwichner/clispark/issues/83)
+* auto-label new issues by area from the issue-form dropdown ([e666ff9](https://github.com/martinwichner/clispark/commit/e666ff9e695d17848824da15677bd8a4c67c548e)), closes [#84](https://github.com/martinwichner/clispark/issues/84)
+
 ## [1.16.1](https://github.com/martinwichner/clispark/compare/v1.16.0...v1.16.1) (2026-07-21)
 
 
