@@ -1,0 +1,37 @@
+name: Bug Report
+description: Report a bug in clispark
+title: "[Bug]: "
+labels: ["type:bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened? What did you expect to happen instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to Reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: clispark version + OS
+      description: Output of `npx clispark --version` (or your installed version) and your operating system
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of clispark does this affect?
+      options:
+        - node
+        - dotnet
+        - generator
+        - not sure
+    validations:
+      required: true
