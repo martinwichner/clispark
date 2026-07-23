@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.17.1](https://github.com/martinwichner/clispark/compare/v1.17.0...v1.17.1) (2026-07-23)
+
+
+### Bug Fixes
+
+* **triage:** skip needs-triage when issue already has an area:* label ([b619b1a](https://github.com/martinwichner/clispark/commit/b619b1a3de8457cf36e19d77864783e072820e92))
+
 ## [1.17.0](https://github.com/martinwichner/clispark/compare/v1.16.1...v1.17.0) (2026-07-22)
 
 
