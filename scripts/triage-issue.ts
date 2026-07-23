@@ -25,6 +25,10 @@ export function determineAreaLabel(body: string | undefined | null): string {
   return 'needs-triage';
 }
 
+export function hasAreaLabel(labels: readonly string[]): boolean {
+  return labels.some((label) => label.startsWith('area:'));
+}
+
 export interface TriageDeps {
   runGh: (args: string[]) => Promise<string>;
 }
@@ -32,8 +36,12 @@ export interface TriageDeps {
 export async function triageIssue(
   issueNumber: string,
   body: string | undefined | null,
+  existingLabels: readonly string[],
   deps: TriageDeps,
-): Promise<string> {
+): Promise<string | null> {
+  if (hasAreaLabel(existingLabels)) {
+    return null;
+  }
   const label = determineAreaLabel(body);
   await deps.runGh(['issue', 'edit', issueNumber, '--add-label', label]);
   return label;
@@ -48,8 +56,12 @@ async function main(): Promise<void> {
   if (!issueNumber) {
     throw new Error('ISSUE_NUMBER environment variable is required');
   }
-  const label = await triageIssue(issueNumber, process.env.ISSUE_BODY, { runGh: realRunGh });
-  console.log(`Applied label: ${label}`);
+  const existingLabels = (process.env.ISSUE_LABELS ?? '')
+    .split(',')
+    .map((label) => label.trim())
+    .filter((label) => label.length > 0);
+  const label = await triageIssue(issueNumber, process.env.ISSUE_BODY, existingLabels, { runGh: realRunGh });
+  console.log(label ? `Applied label: ${label}` : 'Skipped: issue already has an area:* label');
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
