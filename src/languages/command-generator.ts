@@ -28,6 +28,13 @@ export interface GeneratedFiles {
 export interface CommandGenerator {
   listExistingCommands(targetDir: string): Promise<ExistingCommandNode[]>;
   generateCommand(targetDir: string, spec: CommandSpec): Promise<GeneratedFiles>;
+  /**
+   * Optional hook: when present, add-wizard.ts calls this instead of its
+   * built-in generic single-name prompt to collect the new command's full
+   * path segments. Used by languages whose naming convention doesn't fit a
+   * single free-form word (e.g. PowerShell's Verb+Noun cmdlet naming).
+   */
+  promptCommandIdentity?(pathSegments: string[], existingPaths: Set<string>): Promise<string[]>;
 }
 
 /** Builds a tree of ExistingCommandNode from a flat list of space-separated command paths. */

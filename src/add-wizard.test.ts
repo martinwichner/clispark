@@ -56,6 +56,22 @@ describe('runAddWizard', () => {
     expect(generateCommandCalls[0].spec).toEqual({ pathSegments: ['deploy'], parameters: [] });
   });
 
+  it('uses promptCommandIdentity instead of the generic name prompt when the generator provides it', async () => {
+    const { generator, generateCommandCalls } = fakeGenerator([]);
+    const promptCommandIdentity = vi.fn(async () => ['Get-Something']);
+    const generatorWithIdentity: CommandGenerator = { ...generator, promptCommandIdentity };
+
+    vi.mocked(select).mockResolvedValueOnce('__new_top_level__'); // where to add
+    vi.mocked(confirm).mockResolvedValueOnce(false); // "add a parameter?" -> no
+    vi.mocked(confirm).mockResolvedValueOnce(true); // "proceed?" -> yes
+
+    await runAddWizard('/tmp/project', { commandGenerator: generatorWithIdentity });
+
+    expect(promptCommandIdentity).toHaveBeenCalledWith([], new Set());
+    expect(text).not.toHaveBeenCalledWith(expect.objectContaining({ message: 'Command name' }));
+    expect(generateCommandCalls[0].spec).toEqual({ pathSegments: ['Get-Something'], parameters: [] });
+  });
+
   it('creates a nested command under an existing one with a required string parameter', async () => {
     const existing: ExistingCommandNode[] = [
       { path: 'task', displayLabel: 'task', children: [] },
