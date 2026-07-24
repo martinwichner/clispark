@@ -17,15 +17,23 @@ const SAMPLE_MANIFEST = `@{
 `;
 
 describe('powershellAdapter.readManifestFile / parseManifestFile', () => {
-  it('reads real ModuleVersion and RequiredModules from a real .psd1 via pwsh', async () => {
-    const dir = await mkdtemp(path.join(tmpdir(), 'ps-manifest-'));
-    await writeFile(path.join(dir, 'Module.psd1'), SAMPLE_MANIFEST);
+  it(
+    'reads real ModuleVersion and RequiredModules from a real .psd1 via pwsh',
+    async () => {
+      const dir = await mkdtemp(path.join(tmpdir(), 'ps-manifest-'));
+      await writeFile(path.join(dir, 'Module.psd1'), SAMPLE_MANIFEST);
 
-    const manifestFile = (await powershellAdapter.readManifestFile(dir)) as PowershellManifestFile;
+      const manifestFile = (await powershellAdapter.readManifestFile(dir)) as PowershellManifestFile;
 
-    expect(manifestFile.version).toBe('0.1.0');
-    expect(manifestFile.requiredModules).toEqual(['PSFramework', 'Pester', 'Microsoft.PowerShell.PSResourceGet']);
-  });
+      expect(manifestFile.version).toBe('0.1.0');
+      expect(manifestFile.requiredModules).toEqual(['PSFramework', 'Pester', 'Microsoft.PowerShell.PSResourceGet']);
+    },
+    // A real `pwsh` subprocess spawn is slow to start cold on a shared CI runner — the default
+    // 5000ms vitest timeout is tuned for in-process test code, not process startup latency.
+    // This is the first test in the file to invoke pwsh, so it eats the full cold-start cost;
+    // later pwsh-invoking tests benefit from a warm OS file cache and stay under 5s even locally.
+    15000,
+  );
 });
 
 describe('parseManifestFile', () => {
@@ -71,20 +79,26 @@ describe('escapeSingleQuotedPowerShellString', () => {
 });
 
 describe('powershellAdapter.readManifestFile with a single quote in the path', () => {
-  it("reads a real .psd1 whose containing directory name contains a literal single quote (e.g. O'Brien)", async () => {
-    // Regression test for the pwsh command-injection/parse-break bug: readManifestViaPwsh used to
-    // interpolate manifestPath into a PowerShell single-quoted string literal unescaped, so a path
-    // containing a single quote (a real possibility on Windows, e.g. C:\Users\O'Brien\...) would
-    // break out of the string literal. This test proves the fix works against a real directory
-    // with a real embedded quote, not just the escaping helper in isolation.
-    const dir = await mkdtemp(path.join(tmpdir(), "ps-manifest-o'brien-"));
-    await writeFile(path.join(dir, 'Module.psd1'), SAMPLE_MANIFEST);
+  it(
+    "reads a real .psd1 whose containing directory name contains a literal single quote (e.g. O'Brien)",
+    async () => {
+      // Regression test for the pwsh command-injection/parse-break bug: readManifestViaPwsh used to
+      // interpolate manifestPath into a PowerShell single-quoted string literal unescaped, so a path
+      // containing a single quote (a real possibility on Windows, e.g. C:\Users\O'Brien\...) would
+      // break out of the string literal. This test proves the fix works against a real directory
+      // with a real embedded quote, not just the escaping helper in isolation.
+      const dir = await mkdtemp(path.join(tmpdir(), "ps-manifest-o'brien-"));
+      await writeFile(path.join(dir, 'Module.psd1'), SAMPLE_MANIFEST);
 
-    const manifestFile = (await powershellAdapter.readManifestFile(dir)) as PowershellManifestFile;
+      const manifestFile = (await powershellAdapter.readManifestFile(dir)) as PowershellManifestFile;
 
-    expect(manifestFile.version).toBe('0.1.0');
-    expect(manifestFile.requiredModules).toEqual(['PSFramework', 'Pester', 'Microsoft.PowerShell.PSResourceGet']);
-  });
+      expect(manifestFile.version).toBe('0.1.0');
+      expect(manifestFile.requiredModules).toEqual(['PSFramework', 'Pester', 'Microsoft.PowerShell.PSResourceGet']);
+    },
+    // See the timeout comment on the first pwsh-invoking test above — real subprocess cold-start
+    // latency on shared CI runners can exceed vitest's default 5000ms.
+    15000,
+  );
 });
 
 describe('powershellAdapter.extractCoreFields', () => {
