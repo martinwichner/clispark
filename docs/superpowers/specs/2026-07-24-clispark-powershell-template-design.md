@@ -8,7 +8,7 @@ Auslöser dieser Session: eine echte Community-Anfrage (#82, @atze187), zunächs
 
 ## Scope
 
-**Ziel:** `powershellPack: LanguagePack` — ein PowerShell-**Modul** mit Cmdlets als drittes Sprach-Template, mit vollem Logging/Error-Handling ohne Opt-out, `clispark add`-Unterstützung und `clispark update`-Unterstützung, analog zu Node/.NET.
+**Ziel:** `powershellPack: LanguagePack` — ein PowerShell-**Modul** mit Cmdlets als drittes Sprach-Template, mit vollem Logging/Error-Handling ohne Opt-out, `clispark add`-Unterstützung und `clispark update`-Unterstützung, analog zu Node/.NET. **Zielversion: PowerShell 7.4+** (real recherchiert, siehe "Offene Punkte" unten — deckt beide aktuell unterstützten .NET-LTS-Linien 7.4/.NET 8 und 7.6/.NET 10 ab, vermeidet gezielt das Non-LTS-Release 7.5/.NET 9).
 
 **Explizit nicht Teil dieser Session:**
 - Windows PowerShell 5.1 — bewusst komplett aus dem Scope gestrichen (siehe Community-Feedback oben)
@@ -133,13 +133,13 @@ PSFramework (etablierte Community-Library, analog zu pino/Serilog) für struktur
 
 ## Offene Punkte für den Implementierungsplan
 
-Diese Punkte sind bewusst nicht in dieser Spec final entschieden — sie brauchen entweder echte Verifikation (die diese Sandbox nicht leisten kann) oder eine kurze Bestätigung, bevor der Plan sie als gegeben voraussetzt:
+Drei der ursprünglich fünf Punkte wurden noch während dieser Spec-Session real recherchiert (echter Internetzugriff war verfügbar) und sind damit entschieden; zwei bleiben offen für den Plan bzw. brauchen ein noch nicht verfügbares echtes PS7+-Environment:
 
-1. **Echte Verifikation des Function-Proxy-Wrapper-Mechanismus gegen PowerShell 7+/Core** (siehe oben — hier nur gegen Windows PowerShell 5.1 Desktop verifiziert).
-2. **Konkrete PowerShell-7.x-Mindestversion** (aktuelle .NET-LTS-Linie) — echt recherchieren, nicht raten.
-3. **`.psd1`-Lese-/Schreib-Strategie**: Shell-out zu `pwsh` (Empfehlung) vs. Regex-Bearbeitung — Bestätigung vor dem Plan.
-4. **`[switch]` vs. `[bool]` für Boolean-Command-Parameter** — Empfehlung `[switch]`, siehe oben.
-5. **PowerShellGet vs. PSResourceGet** für Registry-Interaktion (PSResourceGet ist der modernere Nachfolger — welcher Stand ist bei der Umsetzung tatsächlich Standard, real prüfen statt anzunehmen).
+1. **Echte Verifikation des Function-Proxy-Wrapper-Mechanismus gegen PowerShell 7+/Core** — weiterhin offen, siehe oben (hier nur gegen Windows PowerShell 5.1 Desktop verifiziert, kein `pwsh` in dieser Sandbox verfügbar).
+2. ~~Konkrete PowerShell-7.x-Mindestversion~~ **Entschieden (real recherchiert, 24.07.2026 via Microsofts offizieller Support-Lifecycle-Seite):** aktuelle LTS-Version ist PowerShell 7.6.4 (.NET 10.0, Support bis 14.11.2028); die vorherige LTS-Version 7.4.18 (.NET 8.0) ist ebenfalls noch unterstützt (bis 10.11.2026). PowerShell 7.5 (.NET 9.0) ist explizit **kein** LTS-Release ("Stable" only) — genau das, was @atze187 mit "do not propose features of non-LTS .NET versions" meinte. **Mindestversion: PowerShell 7.4+** (nicht 7.6+) — deckt beide aktuell unterstützten LTS-Linien ab, vermeidet aber jede 7.5-exklusive (.NET-9-only) Funktion.
+3. ~~`.psd1`-Lese-/Schreib-Strategie~~ **Entschieden:** Hybrid — **Lesen** via `pwsh`-Shell-out (`Import-PowerShellDataFile` + `ConvertTo-Json`, robuste echte Auswertung der PowerShell-Data-Language-Syntax), **Schreiben** via gezielter Regex-Ersetzung direkt in Node (analog zum `.csproj`-Ansatz — sicher, weil wir das Manifest-Format selbst kontrollieren und nur bekannte Einzelfelder ersetzen, kein Aufruf einer PowerShell-Serialisierung nötig).
+4. **`[switch]` vs. `[bool]` für Boolean-Command-Parameter** — Empfehlung `[switch]`, siehe oben, weiterhin zur Bestätigung im Plan (keine echte Recherche nötig, reine Konventionsentscheidung).
+5. ~~PowerShellGet vs. PSResourceGet~~ **Entschieden (real geprüft, 24.07.2026):** `Microsoft.PowerShell.PSResourceGet` ist der aktuelle, aktiv gepflegte Nachfolger (stabile v1.0.0 auf der Gallery bestätigt) mit den passenden Cmdlets (`Find-PSResource`, `Register-PSResourceRepository`, `Publish-PSResource`, ...). Es ist **nicht** garantiert in PowerShell 7.4+/7.6 vorinstalliert — muss daher genau wie `PSFramework`/`Pester` über den `scaffoldCommands`-Installationsschritt mitinstalliert werden (`Install-Module -Name PSFramework,Pester,Microsoft.PowerShell.PSResourceGet ...`).
 
 ## Ergebnis
 
