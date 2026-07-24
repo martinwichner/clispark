@@ -1,6 +1,7 @@
 // src/hooks.ts
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import envPaths from 'env-paths';
 import type { PostScaffoldHookContext } from './index';
 
@@ -38,12 +39,7 @@ export async function runPostScaffoldHook(
   }
 
   try {
-    // Construct file URL consistently across platforms by normalizing separators
-    const normalizedPath = hookPath.split(path.sep).join('/');
-    const fileUrl = normalizedPath.startsWith('/')
-      ? 'file://' + normalizedPath
-      : 'file:///' + normalizedPath;
-    const mod = await deps.importHookModule(fileUrl);
+    const mod = await deps.importHookModule(pathToFileURL(hookPath).href);
     if (typeof mod.default !== 'function') {
       throw new Error('post-scaffold.mjs must have a default export that is a function');
     }
