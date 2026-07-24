@@ -28,6 +28,14 @@ function arrayEquals(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((v, i) => v === b[i]);
 }
 
+/** PowerShell's escaping rule for a literal single quote inside a single-quoted string literal
+ *  is to double it (`''`) — without this, a `manifestPath` containing a single quote (e.g. a
+ *  real Windows path like `C:\Users\O'Brien\project\Module.psd1`) would break out of the
+ *  `-Path '...'` string literal built below. */
+export function escapeSingleQuotedPowerShellString(value: string): string {
+  return value.replace(/'/g, "''");
+}
+
 /** Reads a real .psd1 via a `pwsh` subprocess — parsing PowerShell's data-language syntax
  *  ourselves in Node would mean re-implementing a real parser for a real language; shelling
  *  out to the one interpreter that already parses it correctly is the safer choice (see spec). */
@@ -38,7 +46,7 @@ function readManifestViaPwsh(manifestPath: string): Promise<{ ModuleVersion: str
       [
         '-NoProfile',
         '-Command',
-        `(Import-PowerShellDataFile -Path '${manifestPath}') | ConvertTo-Json -Depth 5 -Compress`,
+        `(Import-PowerShellDataFile -Path '${escapeSingleQuotedPowerShellString(manifestPath)}') | ConvertTo-Json -Depth 5 -Compress`,
       ],
       { stdio: ['ignore', 'pipe', 'pipe'] },
     );

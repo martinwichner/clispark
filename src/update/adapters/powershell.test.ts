@@ -3,7 +3,7 @@ import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { powershellAdapter, type PowershellManifestFile } from './powershell';
+import { powershellAdapter, parseManifestFile, escapeSingleQuotedPowerShellString, type PowershellManifestFile } from './powershell';
 import type { Manifest } from '../manifest';
 
 const SAMPLE_MANIFEST = `@{
@@ -19,6 +19,65 @@ const SAMPLE_MANIFEST = `@{
 describe('powershellAdapter.readManifestFile / parseManifestFile', () => {
   it('reads real ModuleVersion and RequiredModules from a real .psd1 via pwsh', async () => {
     const dir = await mkdtemp(path.join(tmpdir(), 'ps-manifest-'));
+    await writeFile(path.join(dir, 'Module.psd1'), SAMPLE_MANIFEST);
+
+    const manifestFile = (await powershellAdapter.readManifestFile(dir)) as PowershellManifestFile;
+
+    expect(manifestFile.version).toBe('0.1.0');
+    expect(manifestFile.requiredModules).toEqual(['PSFramework', 'Pester', 'Microsoft.PowerShell.PSResourceGet']);
+  });
+});
+
+describe('parseManifestFile', () => {
+  it('extracts version and requiredModules from a raw .psd1 string', () => {
+    const manifestFile = parseManifestFile(SAMPLE_MANIFEST);
+
+    expect(manifestFile.raw).toBe(SAMPLE_MANIFEST);
+    expect(manifestFile.version).toBe('0.1.0');
+    expect(manifestFile.requiredModules).toEqual(['PSFramework', 'Pester', 'Microsoft.PowerShell.PSResourceGet']);
+  });
+
+  it('returns an empty requiredModules array when RequiredModules is absent', () => {
+    const noModules = SAMPLE_MANIFEST.replace(
+      "    RequiredModules   = @('PSFramework', 'Pester', 'Microsoft.PowerShell.PSResourceGet')\n",
+      '',
+    );
+
+    const manifestFile = parseManifestFile(noModules);
+
+    expect(manifestFile.version).toBe('0.1.0');
+    expect(manifestFile.requiredModules).toEqual([]);
+  });
+
+  it('throws when ModuleVersion is missing', () => {
+    const noVersion = SAMPLE_MANIFEST.replace("ModuleVersion     = '0.1.0'\n", '');
+
+    expect(() => parseManifestFile(noVersion)).toThrow('Module.psd1 is missing a ModuleVersion field');
+  });
+});
+
+describe('escapeSingleQuotedPowerShellString', () => {
+  it('doubles a single embedded single quote', () => {
+    expect(escapeSingleQuotedPowerShellString("O'Brien")).toBe("O''Brien");
+  });
+
+  it('leaves strings with no single quotes unchanged', () => {
+    expect(escapeSingleQuotedPowerShellString('plain-path')).toBe('plain-path');
+  });
+
+  it('doubles every single quote when there are several', () => {
+    expect(escapeSingleQuotedPowerShellString("it's O'Brien's")).toBe("it''s O''Brien''s");
+  });
+});
+
+describe('powershellAdapter.readManifestFile with a single quote in the path', () => {
+  it("reads a real .psd1 whose containing directory name contains a literal single quote (e.g. O'Brien)", async () => {
+    // Regression test for the pwsh command-injection/parse-break bug: readManifestViaPwsh used to
+    // interpolate manifestPath into a PowerShell single-quoted string literal unescaped, so a path
+    // containing a single quote (a real possibility on Windows, e.g. C:\Users\O'Brien\...) would
+    // break out of the string literal. This test proves the fix works against a real directory
+    // with a real embedded quote, not just the escaping helper in isolation.
+    const dir = await mkdtemp(path.join(tmpdir(), "ps-manifest-o'brien-"));
     await writeFile(path.join(dir, 'Module.psd1'), SAMPLE_MANIFEST);
 
     const manifestFile = (await powershellAdapter.readManifestFile(dir)) as PowershellManifestFile;
