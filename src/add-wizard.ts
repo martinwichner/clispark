@@ -162,17 +162,22 @@ export async function runAddWizard(targetDir: string, deps: AddWizardDeps): Prom
   const pathSegments = await selectPath(existing);
   const existingPaths = new Set(flattenPaths(existing));
 
-  const nameValue = await text({
-    message: 'Command name',
-    validate: (value) => {
-      if (!/^[a-z][a-zA-Z0-9]*$/.test(value)) return 'Use a single word starting with a lowercase letter.';
-      const fullPath = [...pathSegments, value].join(' ');
-      if (existingPaths.has(fullPath)) return `"${fullPath}" already exists.`;
-      return undefined;
-    },
-  });
-  exitIfCancelled(nameValue);
-  const fullPathSegments = [...pathSegments, nameValue as string];
+  let fullPathSegments: string[];
+  if (deps.commandGenerator.promptCommandIdentity) {
+    fullPathSegments = await deps.commandGenerator.promptCommandIdentity(pathSegments, existingPaths);
+  } else {
+    const nameValue = await text({
+      message: 'Command name',
+      validate: (value) => {
+        if (!/^[a-z][a-zA-Z0-9]*$/.test(value)) return 'Use a single word starting with a lowercase letter.';
+        const fullPath = [...pathSegments, value].join(' ');
+        if (existingPaths.has(fullPath)) return `"${fullPath}" already exists.`;
+        return undefined;
+      },
+    });
+    exitIfCancelled(nameValue);
+    fullPathSegments = [...pathSegments, nameValue as string];
+  }
 
   const parameters = await collectParameters();
 
