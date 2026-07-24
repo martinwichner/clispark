@@ -63,6 +63,50 @@ npx clispark releasenotes
 
 shows what changed between the clispark version your project last updated to and the latest one available, pulled straight from the project's GitHub releases.
 
+## Post-scaffold hooks
+
+Right after a new project finishes scaffolding, clispark checks for a single, globally-configured hook file and runs it automatically if present — useful for anything you always want to happen after a fresh project, without answering a wizard question every time (auto-creating a GitHub repo, copying in a company-standard CI config, registering the project in an internal catalog, and so on).
+
+```bash
+npx clispark hook
+```
+
+prints the exact file location for your OS and whether one is currently configured. The location is fixed and not configurable:
+
+| OS | Location |
+|---|---|
+| Linux | `~/.config/clispark/hooks/post-scaffold.mjs` (or `$XDG_CONFIG_HOME/clispark/hooks/post-scaffold.mjs`) |
+| macOS | `~/Library/Preferences/clispark/hooks/post-scaffold.mjs` |
+| Windows | `%APPDATA%\clispark\Config\hooks\post-scaffold.mjs` |
+
+If the file doesn't exist, nothing happens — most users will never have one. If it exists, it must be an ES module with a default-exported function (sync or async), which receives one argument:
+
+```js
+export default async function postScaffold({ projectName, targetDir, language, registryUrl, publishIntent }) {
+  // your code here
+}
+```
+
+If clispark has the `clispark` package installed as a dev dependency, the shape of that argument is available as a type: `import type { PostScaffoldHookContext } from 'clispark'`.
+
+A failing hook (throws, rejects, or doesn't export a function) prints a clear warning but never affects the outcome of the scaffold itself — your new project is already fully created by the time the hook runs. Pass `--no-hook` to skip it for a single run even if one is configured.
+
+**Example** — push the new project to a freshly created GitHub repo:
+
+```js
+// post-scaffold.mjs
+import { execFileSync } from 'node:child_process';
+
+export default function postScaffold({ projectName, targetDir }) {
+  execFileSync('gh', ['repo', 'create', projectName, '--private', '--source', targetDir, '--push'], {
+    cwd: targetDir,
+    stdio: 'inherit',
+  });
+}
+```
+
+Hooks only run after a fresh `clispark` scaffold — never after `clispark update` or `clispark add`.
+
 ## Tech stack
 
 **Generator itself (`clispark`):** TypeScript, [commander](https://github.com/tj/commander.js) (CLI structure), [@clack/prompts](https://github.com/bombshell-dev/clack) (interactive wizard), `cross-spawn` (cross-platform shelling out to git/npm), `pino` + `env-paths` (own logging), `tsup` + `vitest`.
