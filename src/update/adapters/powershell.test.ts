@@ -98,6 +98,16 @@ describe('powershellAdapter.extractCoreFields', () => {
     expect(extraction.coreDependencies).toEqual({ PSFramework: '*', Pester: '*' });
     expect(extraction.coreScripts).toEqual({});
   });
+
+  it('records the manifest own ModuleVersion in coreFields, so future updates can reconcile against it', () => {
+    const manifestFile: PowershellManifestFile = {
+      raw: SAMPLE_MANIFEST,
+      version: '0.1.0',
+      requiredModules: ['PSFramework', 'Pester'],
+    };
+    const extraction = powershellAdapter.extractCoreFields(manifestFile);
+    expect(extraction.coreFields).toMatchObject({ ModuleVersion: '0.1.0' });
+  });
 });
 
 describe('powershellAdapter.mergeManifestFile', () => {
@@ -156,6 +166,37 @@ describe('powershellAdapter.mergeManifestFile', () => {
     const result = powershellAdapter.mergeManifestFile(current, oldManifest, newTemplate);
 
     expect(result.changed).toBe(false);
+  });
+
+  it('reconciles ModuleVersion via oldManifest.coreFields, NOT the unrelated generatorVersion (regression test)', () => {
+    // Real bug, found via manual E2E testing of `clispark update`: mergeManifestFile used to
+    // compare current.version against oldManifest.generatorVersion (clispark's own npm package
+    // version, e.g. '1.17.0') instead of the module's own prior ModuleVersion. That category
+    // error caused a scaffolded module's ModuleVersion to get silently overwritten with clispark's
+    // generator version on update. generatorVersion below is deliberately set to a decoy value
+    // that must NOT leak into the result — only oldManifest.coreFields.ModuleVersion (the adapter's
+    // own previously-recorded snapshot) is the legitimate "old" value to reconcile against.
+    const current: PowershellManifestFile = {
+      raw: SAMPLE_MANIFEST,
+      version: '0.1.0',
+      requiredModules: ['PSFramework', 'Pester', 'Microsoft.PowerShell.PSResourceGet'],
+    };
+    const newTemplate: PowershellManifestFile = { ...current, version: '0.2.0' };
+    const oldManifest = {
+      generatorVersion: '1.17.0', // decoy — must not appear anywhere in the result
+      language: 'powershell',
+      coreDependencies: { PSFramework: '*', Pester: '*', 'Microsoft.PowerShell.PSResourceGet': '*' },
+      coreScripts: {},
+      coreFields: { ModuleVersion: '0.1.0' },
+      coreFileHashes: {},
+    } as unknown as Manifest;
+
+    const result = powershellAdapter.mergeManifestFile(current, oldManifest, newTemplate);
+
+    expect((result.updatedFile as PowershellManifestFile).raw).toContain("ModuleVersion     = '0.2.0'");
+    expect((result.updatedFile as PowershellManifestFile).raw).not.toContain("ModuleVersion     = '1.17.0'");
+    expect((result.updatedFile as PowershellManifestFile).raw).not.toContain("ModuleVersion     = '0.1.0'");
+    expect(result.coreFields).toMatchObject({ ModuleVersion: '0.2.0' });
   });
 });
 
