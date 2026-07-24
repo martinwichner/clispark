@@ -94,7 +94,11 @@ function setRequiredModules(content: string, modules: string[]): string {
 function extractCoreFields(manifestFile: PowershellManifestFile): CoreFieldsExtraction {
   const coreDependencies: Record<string, string> = {};
   for (const name of manifestFile.requiredModules) coreDependencies[name] = '*';
-  return { coreDependencies, coreScripts: {}, coreFields: { RequiredModulesCount: manifestFile.requiredModules.length } };
+  return {
+    coreDependencies,
+    coreScripts: {},
+    coreFields: { RequiredModulesCount: manifestFile.requiredModules.length, ModuleVersion: manifestFile.version },
+  };
 }
 
 function mergeManifestFile(
@@ -140,7 +144,15 @@ function mergeManifestFile(
     raw = setRequiredModules(raw, mergedModules);
   }
 
-  const versionResult = reconcileEntry(current.version, oldManifest.generatorVersion, newTemplate.version, (a, b) => a === b);
+  // The old value comes from this adapter's own previously-written coreFields.ModuleVersion
+  // snapshot (see extractCoreFields below), NOT from oldManifest.generatorVersion — that field
+  // tracks which version of the clispark generator itself last touched this project, an
+  // unrelated number (e.g. '1.17.0') that has nothing to do with this module's own ModuleVersion
+  // history. Comparing against it here used to be a category error that could stomp the
+  // scaffolded module's ModuleVersion with clispark's own npm package version. See dotnet.ts's
+  // structurally identical TargetFramework handling for the same pattern.
+  const oldCoreFields = oldManifest.coreFields as { ModuleVersion?: string };
+  const versionResult = reconcileEntry(current.version, oldCoreFields.ModuleVersion, newTemplate.version, (a, b) => a === b);
   if (versionResult.value !== current.version) {
     changed = true;
     raw = setModuleVersion(raw, versionResult.value);
@@ -154,7 +166,7 @@ function mergeManifestFile(
     fields: [],
     coreDependencies,
     coreScripts: {},
-    coreFields: { RequiredModulesCount: mergedModules.length },
+    coreFields: { RequiredModulesCount: mergedModules.length, ModuleVersion: versionResult.value },
   };
 }
 
