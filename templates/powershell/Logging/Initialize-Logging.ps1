@@ -9,7 +9,7 @@ if (-not (Test-Path $logDirectory)) {
     New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
 }
 
-Set-PSFLoggingProvider -Name 'logfile' -InstanceName 'default' -FilePath (Join-Path $logDirectory 'log-%date%.jsonl') -Enabled $true
+Set-PSFLoggingProvider -Name 'logfile' -InstanceName 'default' -FilePath (Join-Path $logDirectory 'log-%date%.csv') -Enabled $true
 
 if ($env:DEBUG) {
     Set-PSFLoggingProvider -Name 'console' -InstanceName 'default' -Enabled $true
@@ -19,7 +19,7 @@ if ($env:DEBUG) {
 # LOG_RETENTION_DAYS convention — same default, same "never block the command on a sweep failure").
 try {
     $cutoff = (Get-Date).AddDays(-14)
-    Get-ChildItem -Path $logDirectory -Filter 'log-*.jsonl' -ErrorAction SilentlyContinue |
+    Get-ChildItem -Path $logDirectory -Filter 'log-*.csv' -ErrorAction SilentlyContinue |
         Where-Object { $_.LastWriteTime -lt $cutoff } |
         Remove-Item -ErrorAction SilentlyContinue
 } catch {
