@@ -25,6 +25,7 @@
   "bin": {
     "clispark": "./dist/cli.js"
   },
+  "types": "./dist/index.d.ts",
   "files": [
     "dist",
     "templates",
