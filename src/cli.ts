@@ -13,6 +13,8 @@ import { UserError } from './errors';
 import { runAddWizard } from './add-wizard';
 import { getWhoamiOutput, type WhoamiMode } from './whoami';
 import { printConfetti } from './confetti';
+import { getPostScaffoldHookPath, runPostScaffoldHook } from './hooks';
+import { existsSync } from 'node:fs';
 
 const program = new Command();
 
@@ -20,6 +22,7 @@ program
   .name('clispark')
   .description('Interactive scaffolding tool for new CLI projects')
   .option('--no-confetti', 'Skip the confetti after a successful run')
+  .option('--no-hook', 'Skip the post-scaffold hook, even if one is configured')
   .configureHelp({ showGlobalOptions: true })
   .version(getGeneratorVersion());
 
@@ -31,7 +34,7 @@ function resolvePack(language: string): LanguagePack {
   return pack;
 }
 
-program.action((options: { confetti?: boolean }) =>
+program.action((options: { confetti?: boolean; hook?: boolean }) =>
   withLogging('scaffold', async (logger) => {
     const answers = await runWizard();
     const targetDir = path.join(process.cwd(), answers.projectName);
@@ -50,6 +53,17 @@ program.action((options: { confetti?: boolean }) =>
     logger.info({ projectName: answers.projectName }, 'scaffold completed');
 
     console.log(`\nDone! Your new CLI project is ready at ${targetDir}`);
+
+    if (options.hook !== false) {
+      await runPostScaffoldHook({
+        projectName: answers.projectName,
+        targetDir,
+        language: pack.id,
+        registryUrl: answers.registryUrl,
+        publishIntent: answers.publishIntent,
+      });
+    }
+
     if (options.confetti !== false) printConfetti();
   })(),
 );
@@ -120,6 +134,32 @@ program
       logger.info({ mode }, 'whoami started');
       console.log(await getWhoamiOutput(fetch, undefined, undefined, mode));
       logger.info({}, 'whoami completed');
+    })(),
+  );
+
+program
+  .command('hook')
+  .description('Show the post-scaffold hook file location and whether one is configured')
+  .action(() =>
+    withLogging('hook', async (logger) => {
+      const hookPath = getPostScaffoldHookPath();
+      const exists = existsSync(hookPath);
+      logger.info({ hookPath, exists }, 'hook status checked');
+
+      console.log('\nPost-scaffold hook\n');
+      console.log(`Location: ${hookPath}`);
+      if (exists) {
+        console.log('Status:   found — will run after the next scaffold');
+      } else {
+        console.log('Status:   not found — no hook will run after the next scaffold');
+        console.log(
+          '\nTo add one, create that file as an ES module exporting a default function:\n\n' +
+            '  export default async function postScaffold({ projectName, targetDir, language, registryUrl, publishIntent }) {\n' +
+            '    // your code here\n' +
+            '  }\n\n' +
+            'It runs once, right after a new project finishes scaffolding.',
+        );
+      }
     })(),
   );
 
