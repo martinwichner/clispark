@@ -1,6 +1,7 @@
 // src/hooks.test.ts
 import { describe, it, expect, vi } from 'vitest';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { getPostScaffoldHookPath, runPostScaffoldHook, type HooksDeps } from './hooks';
 import type { PostScaffoldHookContext } from './index';
 
@@ -47,7 +48,7 @@ describe('runPostScaffoldHook', () => {
 
     await runPostScaffoldHook(context, hookPath, deps);
 
-    expect(deps.importHookModule).toHaveBeenCalledWith('file:///fake/hooks/post-scaffold.mjs');
+    expect(deps.importHookModule).toHaveBeenCalledWith(pathToFileURL(hookPath).href);
     expect(defaultFn).toHaveBeenCalledWith(context);
     expect(warnCalls).toEqual([]);
   });
