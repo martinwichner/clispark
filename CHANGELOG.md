@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.19.0](https://github.com/martinwichner/clispark/compare/v1.18.0...v1.19.0) (2026-07-24)
+
+
+### Features
+
+* add optional CommandGenerator.promptCommandIdentity hook ([e2cd0d3](https://github.com/martinwichner/clispark/commit/e2cd0d379c571a0859625ecf419ed80ab6bd4c43))
+* add PowerShell Gallery registry checker ([5319d09](https://github.com/martinwichner/clispark/commit/5319d09b08fa308eb249c18ab4ee2557b0bcf178))
+* add PowerShell module manifest UpdateAdapter ([874b04c](https://github.com/martinwichner/clispark/commit/874b04c2516c8a6dbc3fa6451989ef2d949c2dcd))
+* add PowerShell module template content ([e86b9d3](https://github.com/martinwichner/clispark/commit/e86b9d3cb94aec44b98858a849ddf34680aa45a7))
+* add PowerShell Verb+Noun command generator ([9783182](https://github.com/martinwichner/clispark/commit/978318251e86f88d0062098c69d7bdd0e78a1d3f))
+* register the PowerShell LanguagePack ([0440aee](https://github.com/martinwichner/clispark/commit/0440aee755bde871231cda07a7d85eb51efe5ce8))
+
+
+### Bug Fixes
+
+* add parseManifestFile test coverage and escape single quotes in pwsh path ([00b10eb](https://github.com/martinwichner/clispark/commit/00b10eb4aab5d2ff51429afe6b95ded9bf413b11))
+* correct log file extension from .jsonl to .csv (PSFramework logfile provider writes CSV) ([07d8d9f](https://github.com/martinwichner/clispark/commit/07d8d9fe0c121d0e9eae8e36c5ca638c6d89076b))
+* raise timeout for real pwsh-invoking tests to survive CI cold-start ([c8fbc71](https://github.com/martinwichner/clispark/commit/c8fbc710c8620ed4f9d9b43f17b4b3903c022944))
+* reconcile PowerShell module ModuleVersion via coreFields, not the unrelated generatorVersion ([bef7833](https://github.com/martinwichner/clispark/commit/bef7833cc3a0f25b63bb537985c91265adf1f09a))
+* use wildcard FunctionsToExport so clispark-add cmdlets are actually exported ([9ce7602](https://github.com/martinwichner/clispark/commit/9ce7602dba65cdac234bcc5a6f5f2d4a9f48cd6d))
+
 ## [1.18.0](https://github.com/martinwichner/clispark/compare/v1.17.1...v1.18.0) (2026-07-24)
 
 
