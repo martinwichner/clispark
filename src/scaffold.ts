@@ -101,7 +101,7 @@ export async function scaffoldProject(
   await copyTemplate(options, pack);
 
   const { targetDir } = options;
-  const manifest = await buildManifest(targetDir, getGeneratorVersion(), pack.id, pack.updateAdapter);
+  const manifest = await buildManifest(targetDir, getGeneratorVersion(), pack.id, pack.updateAdapter, false);
   await writeManifest(targetDir, manifest);
 
   await deps.runCommand('git', ['init'], targetDir);

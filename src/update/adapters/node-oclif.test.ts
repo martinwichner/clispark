@@ -9,6 +9,7 @@ function baseManifest(overrides: Partial<Manifest> = {}): Manifest {
   return {
     generatorVersion: '1.0.0',
     language: 'node',
+    lintEnabled: false,
     coreFiles: {},
     coreDependencies: {},
     coreScripts: {},
@@ -29,23 +30,27 @@ describe('nodeOclifAdapter.templateSourcePath', () => {
 
 describe('nodeOclifAdapter.extractCoreFields', () => {
   it('merges dependencies and devDependencies into coreDependencies', () => {
-    const result = nodeOclifAdapter.extractCoreFields({
-      dependencies: { pino: '^9.0.0' },
-      devDependencies: { vitest: '^2.0.0' },
-    });
+    const result = nodeOclifAdapter.extractCoreFields(
+      {
+        dependencies: { pino: '^9.0.0' },
+        devDependencies: { vitest: '^2.0.0' },
+      },
+      { lintEnabled: false },
+    );
     expect(result.coreDependencies).toEqual({ pino: '^9.0.0', vitest: '^2.0.0' });
   });
 
   it('only includes known core script names', () => {
-    const result = nodeOclifAdapter.extractCoreFields({
-      scripts: { build: 'tsup', 'my-custom-script': 'do-thing' },
-    });
+    const result = nodeOclifAdapter.extractCoreFields(
+      { scripts: { build: 'tsup', 'my-custom-script': 'do-thing' } },
+      { lintEnabled: false },
+    );
     expect(result.coreScripts).toEqual({ build: 'tsup' });
     expect(result.coreScripts).not.toHaveProperty('my-custom-script');
   });
 
   it('defaults engines/oclif/dependencies/scripts to empty objects when missing', () => {
-    const result = nodeOclifAdapter.extractCoreFields({});
+    const result = nodeOclifAdapter.extractCoreFields({}, { lintEnabled: false });
     expect(result.coreFields).toEqual({ engines: {}, oclif: {} });
     expect(result.coreDependencies).toEqual({});
     expect(result.coreScripts).toEqual({});

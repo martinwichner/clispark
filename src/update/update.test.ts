@@ -199,7 +199,7 @@ describe('updateProject', () => {
     // package-manifest field merging at all (some ecosystems, e.g. a bare
     // PowerShell module, may not have a meaningful "dependencies" concept).
     const fakeAdapter: UpdateAdapter = {
-      coreFilePaths: ['tsconfig.json'],
+      coreFilePaths: () => ['tsconfig.json'],
       templateSourcePath: (relativePath) => relativePath,
       manifestFileName: 'package.json',
       readManifestFile: async (dir) => JSON.parse(await readFile(path.join(dir, 'package.json'), 'utf8')),
@@ -229,6 +229,7 @@ describe('updateProject', () => {
         {
           generatorVersion: '0.0.1',
           language: 'fake-language',
+          lintEnabled: false,
           coreFiles: { 'tsconfig.json': tsconfigHash },
           coreDependencies: {},
           coreScripts: {},

@@ -50,19 +50,63 @@ describe('hashCoreFiles / buildManifest', () => {
   });
 
   it('hashCoreFiles returns a hash per core file path', async () => {
-    const hashes = await hashCoreFiles(tmpRoot, nodeOclifAdapter);
+    const hashes = await hashCoreFiles(tmpRoot, nodeOclifAdapter, { lintEnabled: false });
     expect(Object.keys(hashes).sort()).toEqual([...CORE_FILE_PATHS].sort());
     expect(hashes['tsconfig.json']).toBe(hashContent('content of tsconfig.json'));
   });
 
   it('buildManifest assembles a full manifest from a target directory', async () => {
-    const manifest = await buildManifest(tmpRoot, '9.9.9', 'node', nodeOclifAdapter);
+    const manifest = await buildManifest(tmpRoot, '9.9.9', 'node', nodeOclifAdapter, false);
     expect(manifest.generatorVersion).toBe('9.9.9');
     expect(manifest.language).toBe('node');
     expect(manifest.coreFiles['tsconfig.json']).toBe(hashContent('content of tsconfig.json'));
     expect(manifest.coreDependencies).toEqual({ pino: '^9.0.0', vitest: '^2.0.0' });
     expect(manifest.coreScripts.build).toBe('build');
     expect(manifest.coreFields.engines).toEqual({ node: '>=18' });
+  });
+});
+
+describe('buildManifest lintEnabled', () => {
+  let tmpRoot: string;
+
+  beforeEach(async () => {
+    tmpRoot = await mkdtemp(path.join(tmpdir(), 'clispark-manifest-test-'));
+    for (const relativePath of CORE_FILE_PATHS) {
+      const filePath = path.join(tmpRoot, relativePath);
+      await mkdir(path.dirname(filePath), { recursive: true });
+      await writeFile(filePath, `content of ${relativePath}`);
+    }
+    await writeFile(
+      path.join(tmpRoot, 'package.json'),
+      JSON.stringify({
+        dependencies: { pino: '^9.0.0' },
+        devDependencies: { vitest: '^2.0.0' },
+        scripts: Object.fromEntries(CORE_SCRIPT_NAMES.map((name) => [name, name])),
+        engines: { node: '>=18' },
+        oclif: { bin: 'test-cli' },
+      }),
+    );
+  });
+
+  afterEach(async () => {
+    await rm(tmpRoot, { recursive: true, force: true });
+  });
+
+  it('records lintEnabled: true when passed', async () => {
+    const manifest = await buildManifest(tmpRoot, '1.0.0', 'node', nodeOclifAdapter, true);
+    expect(manifest.lintEnabled).toBe(true);
+  });
+
+  it('records lintEnabled: false when passed', async () => {
+    const manifest = await buildManifest(tmpRoot, '1.0.0', 'node', nodeOclifAdapter, false);
+    expect(manifest.lintEnabled).toBe(false);
+  });
+});
+
+describe('coreFilePaths is now manifest-aware', () => {
+  it('nodeOclifAdapter.coreFilePaths returns the same list regardless of lintEnabled (no conditional content until Task 3)', () => {
+    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: false })).toEqual(CORE_FILE_PATHS);
+    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: true })).toEqual(CORE_FILE_PATHS);
   });
 });
 
@@ -80,6 +124,7 @@ describe('writeManifest / readManifest / requireManifest', () => {
   const sampleManifest = {
     generatorVersion: '1.0.0',
     language: 'node',
+    lintEnabled: false,
     coreFiles: { 'tsconfig.json': 'abc' },
     coreDependencies: {},
     coreScripts: {},

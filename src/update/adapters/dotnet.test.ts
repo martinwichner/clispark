@@ -33,6 +33,7 @@ function baseManifest(overrides: Partial<Manifest> = {}): Manifest {
   return {
     generatorVersion: '1.0.0',
     language: 'dotnet',
+    lintEnabled: false,
     coreFiles: {},
     coreDependencies: {},
     coreScripts: {},
@@ -62,19 +63,19 @@ describe('dotnetAdapter.readProjectName', () => {
 describe('dotnetAdapter.extractCoreFields', () => {
   it('puts every PackageReference into coreDependencies', () => {
     const parsed = dotnetAdapter.parseManifestFile(SAMPLE_CSPROJ);
-    const result = dotnetAdapter.extractCoreFields(parsed);
+    const result = dotnetAdapter.extractCoreFields(parsed, { lintEnabled: false });
     expect(result.coreDependencies).toEqual({ 'System.CommandLine': '2.0.10', Serilog: '4.4.0' });
   });
 
   it('has no coreScripts (.NET has no script-map equivalent)', () => {
     const parsed = dotnetAdapter.parseManifestFile(SAMPLE_CSPROJ);
-    const result = dotnetAdapter.extractCoreFields(parsed);
+    const result = dotnetAdapter.extractCoreFields(parsed, { lintEnabled: false });
     expect(result.coreScripts).toEqual({});
   });
 
   it('puts only TargetFramework into coreFields, not PackageId/ToolCommandName', () => {
     const parsed = dotnetAdapter.parseManifestFile(SAMPLE_CSPROJ);
-    const result = dotnetAdapter.extractCoreFields(parsed);
+    const result = dotnetAdapter.extractCoreFields(parsed, { lintEnabled: false });
     expect(result.coreFields).toEqual({ TargetFramework: 'net10.0' });
   });
 });
@@ -189,10 +190,10 @@ describe('dotnetAdapter.readManifestFile / writeManifestFile', () => {
 
 describe('dotnetAdapter.coreFilePaths / templateSourcePath', () => {
   it('lists the .NET infrastructure files as core files', () => {
-    expect(dotnetAdapter.coreFilePaths).toContain('src/Program.cs');
-    expect(dotnetAdapter.coreFilePaths).toContain('src/CommandDiscovery.cs');
-    expect(dotnetAdapter.coreFilePaths).toContain('Cli.slnx');
-    expect(dotnetAdapter.coreFilePaths).not.toContain('src/Commands/HelloCommand.cs');
+    expect(dotnetAdapter.coreFilePaths({ lintEnabled: false })).toContain('src/Program.cs');
+    expect(dotnetAdapter.coreFilePaths({ lintEnabled: false })).toContain('src/CommandDiscovery.cs');
+    expect(dotnetAdapter.coreFilePaths({ lintEnabled: false })).toContain('Cli.slnx');
+    expect(dotnetAdapter.coreFilePaths({ lintEnabled: false })).not.toContain('src/Commands/HelloCommand.cs');
   });
 
   it('maps .gitignore to the un-dotted "gitignore" template file', () => {

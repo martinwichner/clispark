@@ -16,6 +16,10 @@ export interface ManifestFileMergeResult extends CoreFieldsExtraction {
   fields: FieldOutcome[];
 }
 
+export interface CoreFilePathsFlags {
+  lintEnabled: boolean;
+}
+
 /**
  * Isolates everything template/language-specific from the generic update
  * engine (manifest.ts, update.ts): which files are generator-managed, and
@@ -25,7 +29,7 @@ export interface ManifestFileMergeResult extends CoreFieldsExtraction {
  * generic engine.
  */
 export interface UpdateAdapter {
-  readonly coreFilePaths: readonly string[];
+  coreFilePaths(flags: CoreFilePathsFlags): readonly string[];
   templateSourcePath(relativePath: string): string;
 
   readonly manifestFileName: string;
@@ -33,6 +37,6 @@ export interface UpdateAdapter {
   writeManifestFile(dir: string, content: unknown): Promise<void>;
   parseManifestFile(rawContent: string): unknown;
   readProjectName(manifestFile: unknown): string;
-  extractCoreFields(manifestFile: unknown): CoreFieldsExtraction;
+  extractCoreFields(manifestFile: unknown, flags: CoreFilePathsFlags): CoreFieldsExtraction;
   mergeManifestFile(current: unknown, oldManifest: Manifest, newTemplate: unknown): ManifestFileMergeResult;
 }

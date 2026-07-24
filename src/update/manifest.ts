@@ -5,11 +5,12 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { UserError } from '../errors';
-import type { UpdateAdapter } from './adapter';
+import type { CoreFilePathsFlags, UpdateAdapter } from './adapter';
 
 export interface Manifest {
   generatorVersion: string;
   language: string;
+  lintEnabled: boolean;
   coreFiles: Record<string, string>;
   coreDependencies: Record<string, string>;
   coreScripts: Record<string, string>;
@@ -20,9 +21,13 @@ export function hashContent(content: string): string {
   return createHash('sha256').update(content).digest('hex');
 }
 
-export async function hashCoreFiles(dir: string, adapter: UpdateAdapter): Promise<Record<string, string>> {
+export async function hashCoreFiles(
+  dir: string,
+  adapter: UpdateAdapter,
+  flags: CoreFilePathsFlags,
+): Promise<Record<string, string>> {
   const entries = await Promise.all(
-    adapter.coreFilePaths.map(async (relativePath) => {
+    adapter.coreFilePaths(flags).map(async (relativePath) => {
       const content = await readFile(path.join(dir, relativePath), 'utf8');
       return [relativePath, hashContent(content)] as const;
     }),
@@ -35,11 +40,12 @@ export async function buildManifest(
   generatorVersion: string,
   language: string,
   adapter: UpdateAdapter,
+  lintEnabled: boolean,
 ): Promise<Manifest> {
-  const coreFiles = await hashCoreFiles(targetDir, adapter);
+  const coreFiles = await hashCoreFiles(targetDir, adapter, { lintEnabled });
   const manifestFile = await adapter.readManifestFile(targetDir);
-  const { coreDependencies, coreScripts, coreFields } = adapter.extractCoreFields(manifestFile);
-  return { generatorVersion, language, coreFiles, coreDependencies, coreScripts, coreFields };
+  const { coreDependencies, coreScripts, coreFields } = adapter.extractCoreFields(manifestFile, { lintEnabled });
+  return { generatorVersion, language, lintEnabled, coreFiles, coreDependencies, coreScripts, coreFields };
 }
 
 export const MANIFEST_RELATIVE_PATH = path.join('.clispark', 'manifest.json');

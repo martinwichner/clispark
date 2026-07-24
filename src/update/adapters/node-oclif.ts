@@ -157,7 +157,9 @@ function mergePackageJson(
 }
 
 export const nodeOclifAdapter: UpdateAdapter = {
-  coreFilePaths: CORE_FILE_PATHS,
+  coreFilePaths() {
+    return CORE_FILE_PATHS;
+  },
 
   templateSourcePath(relativePath) {
     return relativePath === '.gitignore' ? 'gitignore' : relativePath;

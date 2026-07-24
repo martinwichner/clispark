@@ -93,7 +93,7 @@ export async function updateProject(
   // Reads + hashes run in parallel; results are then applied in adapter.coreFilePaths
   // order below so files/fileWrites stay deterministic regardless of I/O timing.
   const perFileResults = await Promise.all(
-    adapter.coreFilePaths.map(async (relativePath) => {
+    adapter.coreFilePaths(oldManifest).map(async (relativePath) => {
       const newContent = applyPlaceholders(
         await readFile(path.join(templateDir, adapter.templateSourcePath(relativePath)), 'utf8'),
         projectName,
@@ -122,7 +122,7 @@ export async function updateProject(
   }
 
   for (const relativePath of Object.keys(oldManifest.coreFiles)) {
-    if (adapter.coreFilePaths.includes(relativePath)) continue;
+    if (adapter.coreFilePaths(oldManifest).includes(relativePath)) continue;
     try {
       await readFile(path.join(targetDir, relativePath), 'utf8');
       files.push({ path: relativePath, outcome: 'no-longer-core' });
@@ -162,6 +162,7 @@ export async function updateProject(
   const newManifest: Manifest = {
     generatorVersion: toVersion,
     language,
+    lintEnabled: oldManifest.lintEnabled,
     coreFiles: newCoreFiles,
     coreDependencies: fileMerge.coreDependencies,
     coreScripts: fileMerge.coreScripts,

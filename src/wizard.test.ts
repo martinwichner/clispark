@@ -17,7 +17,7 @@ import { text, select, log } from '@clack/prompts';
 import { runWizard } from './wizard';
 
 const fakeUpdateAdapter: LanguagePack['updateAdapter'] = {
-  coreFilePaths: [],
+  coreFilePaths: () => [],
   templateSourcePath: (p) => p,
   manifestFileName: 'package.json',
   readManifestFile: async () => ({}),
