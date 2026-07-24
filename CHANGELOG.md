@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.18.0](https://github.com/martinwichner/clispark/compare/v1.17.1...v1.18.0) (2026-07-24)
+
+
+### Features
+
+* add post-scaffold hook resolution and execution ([07bf85b](https://github.com/martinwichner/clispark/commit/07bf85b23b194390dbdb5f2cafd775de498d9514))
+* add type-only library entry point for hook authors ([48895d2](https://github.com/martinwichner/clispark/commit/48895d21e8d31e52a6aa8967dfb2f506056d8688))
+* wire post-scaffold hooks into the CLI (hook command, --no-hook flag) ([c466805](https://github.com/martinwichner/clispark/commit/c466805ca5968e711b8cc60ff60e0f0775541c19))
+
+
+### Bug Fixes
+
+* use pathToFileURL for hook import instead of hand-rolled URL construction ([12e1e72](https://github.com/martinwichner/clispark/commit/12e1e723659567cab7de604fb472085cd87d329f))
+
 ## [1.17.1](https://github.com/martinwichner/clispark/compare/v1.17.0...v1.17.1) (2026-07-23)
 
 
