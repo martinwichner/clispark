@@ -32,4 +32,5 @@ export const dotnetPack: LanguagePack = {
     applyRegistryUrl: nugetRegistryChecker.applyRegistryUrl,
   },
   commandGenerator: dotnetCommandGenerator,
+  stripLintTooling: async () => {},
 };

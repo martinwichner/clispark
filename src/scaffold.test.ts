@@ -6,6 +6,7 @@ import path from 'node:path';
 import { copyTemplate, scaffoldProject } from './scaffold';
 import { nodeOclifPack } from './languages/packs/node-oclif';
 import { NPM_DEFAULT_REGISTRY_URL } from './languages/registry-checkers/npm';
+import { readManifest } from './update/manifest';
 import { UserError } from './errors';
 
 describe('copyTemplate', () => {
@@ -202,5 +203,15 @@ describe('scaffoldProject', () => {
     expect(manifest.coreDependencies['@oclif/core']).toBe('^4.0.0');
     expect(manifest.coreScripts.build).toBe('tsup');
     expect(manifest.coreFields.engines).toEqual({ node: '>=24' });
+  });
+
+  it('defaults lintEnabled to false in the manifest when not specified', async () => {
+    const targetDir = path.join(tmpRoot, 'lint-default');
+    const runCommand = vi.fn(async () => {});
+
+    await scaffoldProject({ projectName: 'lint-default', targetDir }, nodeOclifPack, { runCommand });
+
+    const manifest = await readManifest(targetDir);
+    expect(manifest?.lintEnabled).toBe(false);
   });
 });

@@ -56,6 +56,7 @@ function fakePack(checkNameAvailability: (name: string, registryUrl: string) => 
       listExistingCommands: async () => [],
       generateCommand: async () => ({ commandFile: '', testFile: '' }),
     },
+    stripLintTooling: vi.fn(),
   };
 }
 
@@ -70,7 +71,11 @@ describe('runWizard', () => {
       .mockResolvedValueOnce('available');
     const pack = fakePack(checkNameAvailability);
 
-    vi.mocked(select).mockResolvedValueOnce('node').mockResolvedValueOnce('private').mockResolvedValueOnce(true);
+    vi.mocked(select)
+      .mockResolvedValueOnce('node')
+      .mockResolvedValueOnce('private')
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
     vi.mocked(text).mockResolvedValueOnce('my-cli');
 
     const result = await runWizard({ languagePacks: { node: pack } });
@@ -82,6 +87,7 @@ describe('runWizard', () => {
       registryUrl: 'https://registry.npmjs.org',
       publishIntent: true,
       nameAvailability: 'available',
+      lintEnabled: false,
     });
     expect(checkNameAvailability).toHaveBeenCalledTimes(1);
     // language is asked before name
@@ -95,15 +101,19 @@ describe('runWizard', () => {
       .mockResolvedValueOnce('available');
     const pack = fakePack(checkNameAvailability);
 
-    vi.mocked(select).mockResolvedValueOnce('node').mockResolvedValueOnce('private').mockResolvedValueOnce(true);
+    vi.mocked(select)
+      .mockResolvedValueOnce('node')
+      .mockResolvedValueOnce('private')
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
     vi.mocked(text).mockResolvedValueOnce('taken-name').mockResolvedValueOnce('free-name');
 
     const result = await runWizard({ languagePacks: { node: pack } });
 
     expect(result.projectName).toBe('free-name');
     expect(checkNameAvailability).toHaveBeenCalledTimes(2);
-    // language + profile + publish-intent, none re-asked during the name retry loop
-    expect(select).toHaveBeenCalledTimes(3);
+    // language + profile + publish-intent + lint-enabled, none re-asked during the name retry loop
+    expect(select).toHaveBeenCalledTimes(4);
     expect(log.warn).toHaveBeenCalledWith(expect.stringContaining('taken-name'));
   });
 
@@ -113,7 +123,11 @@ describe('runWizard', () => {
       .mockResolvedValueOnce('available');
     const pack = fakePack(checkNameAvailability);
 
-    vi.mocked(select).mockResolvedValueOnce('node').mockResolvedValueOnce('work').mockResolvedValueOnce(true);
+    vi.mocked(select)
+      .mockResolvedValueOnce('node')
+      .mockResolvedValueOnce('work')
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
     vi.mocked(text).mockResolvedValueOnce('my-cli').mockResolvedValueOnce('https://npm.mycompany.dev');
 
     const result = await runWizard({ languagePacks: { node: pack } });
@@ -128,7 +142,11 @@ describe('runWizard', () => {
       .mockResolvedValueOnce('unverified');
     const pack = fakePack(checkNameAvailability);
 
-    vi.mocked(select).mockResolvedValueOnce('node').mockResolvedValueOnce('private').mockResolvedValueOnce(true);
+    vi.mocked(select)
+      .mockResolvedValueOnce('node')
+      .mockResolvedValueOnce('private')
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
     vi.mocked(text).mockResolvedValueOnce('my-cli');
 
     const result = await runWizard({ languagePacks: { node: pack } });
@@ -141,7 +159,11 @@ describe('runWizard', () => {
     const checkNameAvailability = vi.fn<(name: string, registryUrl: string) => Promise<NameCheckResult>>();
     const pack = fakePack(checkNameAvailability);
 
-    vi.mocked(select).mockResolvedValueOnce('node').mockResolvedValueOnce('private').mockResolvedValueOnce(false);
+    vi.mocked(select)
+      .mockResolvedValueOnce('node')
+      .mockResolvedValueOnce('private')
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(false);
     vi.mocked(text).mockResolvedValueOnce('my-cli');
 
     const result = await runWizard({ languagePacks: { node: pack } });
@@ -149,5 +171,35 @@ describe('runWizard', () => {
     expect(result.publishIntent).toBe(false);
     expect(result.nameAvailability).toBe('skipped');
     expect(checkNameAvailability).not.toHaveBeenCalled();
+  });
+
+  it('asks whether to set up lint tooling, defaulting to No', async () => {
+    const pack = fakePack(async () => 'available');
+
+    vi.mocked(select)
+      .mockResolvedValueOnce('node')
+      .mockResolvedValueOnce('private')
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+    vi.mocked(text).mockResolvedValueOnce('my-cli');
+
+    const result = await runWizard({ languagePacks: { node: pack } });
+
+    expect(result.lintEnabled).toBe(false);
+  });
+
+  it('records lintEnabled: true when the user opts in', async () => {
+    const pack = fakePack(async () => 'available');
+
+    vi.mocked(select)
+      .mockResolvedValueOnce('node')
+      .mockResolvedValueOnce('private')
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(true);
+    vi.mocked(text).mockResolvedValueOnce('my-cli');
+
+    const result = await runWizard({ languagePacks: { node: pack } });
+
+    expect(result.lintEnabled).toBe(true);
   });
 });

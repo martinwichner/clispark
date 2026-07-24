@@ -32,4 +32,5 @@ export const nodeOclifPack: LanguagePack = {
     applyRegistryUrl: npmRegistryChecker.applyRegistryUrl,
   },
   commandGenerator: nodeOclifCommandGenerator,
+  stripLintTooling: async () => {},
 };

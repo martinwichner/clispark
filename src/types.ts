@@ -10,4 +10,5 @@ export interface WizardAnswers {
   registryUrl: string;
   publishIntent: boolean;
   nameAvailability: NameCheckResult;
+  lintEnabled: boolean;
 }

@@ -70,6 +70,17 @@ export async function runWizard(deps: WizardDeps = defaultDeps): Promise<WizardA
   exitIfCancelled(publishIntentValue);
   const publishIntent = publishIntentValue as boolean;
 
+  const lintEnabledValue = await select({
+    message: 'Set up lint tooling?',
+    options: [
+      { value: false, label: 'No' },
+      { value: true, label: 'Yes' },
+    ],
+    initialValue: false,
+  });
+  exitIfCancelled(lintEnabledValue);
+  const lintEnabled = lintEnabledValue as boolean;
+
   let nameAvailability: NameCheckResult = 'skipped';
 
   if (publishIntent) {
@@ -95,5 +106,5 @@ export async function runWizard(deps: WizardDeps = defaultDeps): Promise<WizardA
 
   outro(`Ready to scaffold "${projectName}".`);
 
-  return { language: pack.id, projectName, profile, registryUrl, publishIntent, nameAvailability };
+  return { language: pack.id, projectName, profile, registryUrl, publishIntent, nameAvailability, lintEnabled };
 }

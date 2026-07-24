@@ -47,6 +47,7 @@ program.action((options: { confetti?: boolean; hook?: boolean }) =>
         targetDir,
         registryUrl: answers.registryUrl,
         publishIntent: answers.publishIntent,
+        lintEnabled: answers.lintEnabled,
       },
       pack,
     );
