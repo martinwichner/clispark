@@ -320,6 +320,45 @@ describe('updateProject', () => {
     expect(manifestAfter).toHaveProperty('lintEnabled', false);
   });
 
+  it('a project that opted into autocomplete gets its plugin dependency version-bumped by update', async () => {
+    const targetDir = await scaffoldFixture(tmpRoot, 'autocomplete-project', { autocompleteEnabled: true });
+
+    const manifestPath = path.join(targetDir, '.clispark', 'manifest.json');
+    const oldManifest = JSON.parse(await readFile(manifestPath, 'utf8')) as Manifest;
+    const realCurrentVersion = oldManifest.coreDependencies['@oclif/plugin-autocomplete'];
+    oldManifest.generatorVersion = '0.0.1';
+    oldManifest.coreDependencies['@oclif/plugin-autocomplete'] = '^0.0.1-fake-old';
+
+    const pkgPath = path.join(targetDir, 'package.json');
+    const pkg = JSON.parse(await readFile(pkgPath, 'utf8'));
+    pkg.dependencies['@oclif/plugin-autocomplete'] = '^0.0.1-fake-old';
+    await writeFile(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+    await writeFile(manifestPath, JSON.stringify(oldManifest, null, 2) + '\n');
+
+    const result = await updateProject(targetDir, nodeOclifPack.updateAdapter, nodeOclifPack.templateDir, 'node', cleanGitDeps());
+
+    const outcome = result.dependencies.find((d) => d.key === '@oclif/plugin-autocomplete');
+    expect(outcome?.outcome).toBe('replaced');
+    const pkgAfter = JSON.parse(await readFile(pkgPath, 'utf8'));
+    expect(pkgAfter.dependencies['@oclif/plugin-autocomplete']).toBe(realCurrentVersion);
+  });
+
+  it('a project that declined autocomplete never gets the plugin dependency or oclif.plugins entry added by a later update', async () => {
+    const targetDir = await scaffoldFixture(tmpRoot, 'no-autocomplete-project', { autocompleteEnabled: false });
+
+    const manifestPath = path.join(targetDir, '.clispark', 'manifest.json');
+    const oldManifest = JSON.parse(await readFile(manifestPath, 'utf8')) as Manifest;
+    oldManifest.generatorVersion = '0.0.1';
+    await writeFile(manifestPath, JSON.stringify(oldManifest, null, 2) + '\n');
+
+    const result = await updateProject(targetDir, nodeOclifPack.updateAdapter, nodeOclifPack.templateDir, 'node', cleanGitDeps());
+
+    expect(result.dependencies.find((d) => d.key === '@oclif/plugin-autocomplete')).toBeUndefined();
+    const pkgAfter = JSON.parse(await readFile(path.join(targetDir, 'package.json'), 'utf8'));
+    expect(pkgAfter.dependencies).not.toHaveProperty('@oclif/plugin-autocomplete');
+    expect(pkgAfter.oclif.plugins).not.toContain('@oclif/plugin-autocomplete');
+  });
+
   it('heals a legacy manifest (pre-#89, no autocompleteEnabled field) to autocompleteEnabled: false on disk after update', async () => {
     const targetDir = await scaffoldFixture(tmpRoot, 'legacy-manifest-project-autocomplete');
 

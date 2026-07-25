@@ -106,6 +106,81 @@ describe('coreFilePaths with lintEnabled', () => {
   });
 });
 
+describe('mergeManifestFile with autocompleteEnabled', () => {
+  it('excludes the autocomplete dependency from reconciliation when declined, even if the template has it', () => {
+    const current: PackageJsonShape = { name: 'my-cli', version: '0.0.0', dependencies: {} };
+    const newTemplate: PackageJsonShape = {
+      name: '{{projectName}}',
+      version: '0.0.0',
+      dependencies: { '@oclif/plugin-autocomplete': '^3.2.53' },
+    };
+
+    const result = nodeOclifAdapter.mergeManifestFile(current, baseManifest({ autocompleteEnabled: false }), newTemplate);
+
+    expect(result.dependencies).toEqual([]);
+    expect((result.updatedFile as PackageJsonShape).dependencies).toEqual({});
+  });
+
+  it('reconciles the autocomplete dependency normally when opted in', () => {
+    const current: PackageJsonShape = { name: 'my-cli', version: '0.0.0', dependencies: {} };
+    const newTemplate: PackageJsonShape = {
+      name: '{{projectName}}',
+      version: '0.0.0',
+      dependencies: { '@oclif/plugin-autocomplete': '^3.2.53' },
+    };
+
+    const result = nodeOclifAdapter.mergeManifestFile(current, baseManifest({ autocompleteEnabled: true }), newTemplate);
+
+    expect(result.dependencies).toEqual([{ key: '@oclif/plugin-autocomplete', outcome: 'added' }]);
+    expect((result.updatedFile as PackageJsonShape).dependencies).toEqual({ '@oclif/plugin-autocomplete': '^3.2.53' });
+  });
+
+  it('reconciles oclif.plugins without the autocomplete entry when declined', () => {
+    const current: PackageJsonShape = {
+      name: 'my-cli',
+      version: '0.0.0',
+      oclif: { bin: 'my-cli', plugins: ['@oclif/plugin-help'] },
+    };
+    const newTemplate: PackageJsonShape = {
+      name: '{{projectName}}',
+      version: '0.0.0',
+      oclif: { bin: '{{projectName}}', plugins: ['@oclif/plugin-help', '@oclif/plugin-autocomplete'] },
+    };
+    const manifest = baseManifest({
+      autocompleteEnabled: false,
+      coreFields: { engines: {}, oclif: { bin: 'my-cli', plugins: ['@oclif/plugin-help'] } },
+    });
+
+    const result = nodeOclifAdapter.mergeManifestFile(current, manifest, newTemplate);
+
+    expect((result.updatedFile as PackageJsonShape).oclif).toEqual({ bin: '{{projectName}}', plugins: ['@oclif/plugin-help'] });
+  });
+
+  it('reconciles oclif.plugins with the autocomplete entry included when opted in', () => {
+    const current: PackageJsonShape = {
+      name: 'my-cli',
+      version: '0.0.0',
+      oclif: { bin: 'my-cli', plugins: ['@oclif/plugin-help', '@oclif/plugin-autocomplete'] },
+    };
+    const newTemplate: PackageJsonShape = {
+      name: '{{projectName}}',
+      version: '0.0.0',
+      oclif: { bin: '{{projectName}}', plugins: ['@oclif/plugin-help', '@oclif/plugin-autocomplete'] },
+    };
+    const manifest = baseManifest({
+      autocompleteEnabled: true,
+      coreFields: { engines: {}, oclif: { bin: 'my-cli', plugins: ['@oclif/plugin-help', '@oclif/plugin-autocomplete'] } },
+    });
+
+    const result = nodeOclifAdapter.mergeManifestFile(current, manifest, newTemplate);
+
+    expect((result.updatedFile as PackageJsonShape).oclif).toEqual({
+      bin: '{{projectName}}',
+      plugins: ['@oclif/plugin-help', '@oclif/plugin-autocomplete'],
+    });
+  });
+});
+
 describe('nodeOclifAdapter.mergeManifestFile', () => {
   it('adds a brand-new core dependency the project never had', () => {
     const current: PackageJsonShape = { name: 'my-cli', version: '0.0.0', dependencies: {} };

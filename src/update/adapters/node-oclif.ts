@@ -5,6 +5,7 @@ import type { Manifest } from '../manifest';
 import type { CoreFieldsExtraction, CoreFilePathsFlags, ManifestFileMergeResult, UpdateAdapter } from '../adapter';
 import { deepEquals, reconcileEntry, stringEquals, type FieldOutcome } from '../reconcile';
 import { LINT_SCRIPT_NAMES, LINT_DEPENDENCY_NAMES } from '../../languages/lint-support/node';
+import { AUTOCOMPLETE_DEPENDENCY_NAME, withoutAutocompletePlugin } from '../../languages/autocomplete-support/node';
 
 export const CORE_FILE_PATHS = [
   'bin/run.ts',
@@ -77,7 +78,9 @@ function mergePackageJson(
   const coreDependencies: Record<string, string> = {};
   const dependencyNames = new Set(
     [...Object.keys(newTemplatePkg.dependencies ?? {}), ...Object.keys(newTemplatePkg.devDependencies ?? {})].filter(
-      (name) => oldManifest.lintEnabled || !(LINT_DEPENDENCY_NAMES as readonly string[]).includes(name),
+      (name) =>
+        (oldManifest.lintEnabled || !(LINT_DEPENDENCY_NAMES as readonly string[]).includes(name)) &&
+        (oldManifest.autocompleteEnabled || name !== AUTOCOMPLETE_DEPENDENCY_NAME),
     ),
   );
 
@@ -142,7 +145,10 @@ function mergePackageJson(
   }
 
   if (newTemplatePkg.oclif !== undefined) {
-    const oclifResult = reconcileEntry(currentPkg.oclif, oldCoreFields.oclif, newTemplatePkg.oclif, deepEquals);
+    const effectiveTemplateOclif = oldManifest.autocompleteEnabled
+      ? newTemplatePkg.oclif
+      : (withoutAutocompletePlugin(newTemplatePkg.oclif) as Record<string, unknown>);
+    const oclifResult = reconcileEntry(currentPkg.oclif, oldCoreFields.oclif, effectiveTemplateOclif, deepEquals);
     fields.push({ key: 'oclif', outcome: oclifResult.outcome });
     oclifValue = oclifResult.value;
     if (oclifResult.outcome !== 'skipped' && !deepEquals(oclifResult.value, currentPkg.oclif)) {

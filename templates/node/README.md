@@ -24,6 +24,12 @@ Two example commands ship in `src/commands/` as copy-paste starting points:
   ```
   See `ARCHITECTURE.md`'s "Argument Types" section for the full set of argument types oclif supports, including a couple this example doesn't use.
 
+## Shell Autocompletion
+
+If you set up autocompletion during scaffolding, run `node bin/run.ts autocomplete bash` (or
+`zsh`/`powershell`) once to see the exact setup command for your shell. See
+`ARCHITECTURE.md`'s "Shell Autocompletion" section for details.
+
 ## Logging & debugging
 
 Every command run writes a structured JSON log file (one per invocation, in an OS-appropriate log directory — see `ARCHITECTURE.md`'s "Logging" section). By default the terminal only shows a clean `Error: <message>` on failure, or nothing on success.

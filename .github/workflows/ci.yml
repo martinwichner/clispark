@@ -99,6 +99,29 @@ jobs:
           cd "$(node -e "console.log(require('os').tmpdir())")/clispark-ci-smoke-lint/smoke-test-cli-lint"
           npm run lint
           npm run format -- --check
+      - name: Scaffold an autocomplete-enabled project and verify the plugin is wired up
+        run: |
+          cat > ci-smoke-verify-autocomplete.mjs << 'EOF'
+          import { scaffoldProject } from './src/scaffold';
+          import { nodeOclifPack } from './src/languages/packs/node-oclif';
+          import path from 'node:path';
+          import os from 'node:os';
+
+          const targetDir = path.join(os.tmpdir(), 'clispark-ci-smoke-autocomplete', 'smoke-test-cli-autocomplete');
+          await scaffoldProject({ projectName: 'smoke-test-cli-autocomplete', targetDir, autocompleteEnabled: true }, nodeOclifPack);
+          console.log('scaffold complete:', targetDir);
+          EOF
+          npx tsx ci-smoke-verify-autocomplete.mjs
+          rm ci-smoke-verify-autocomplete.mjs
+      - name: Run the opted-in scaffold's autocomplete command for real
+        run: |
+          cd "$(node -e "console.log(require('os').tmpdir())")/clispark-ci-smoke-autocomplete/smoke-test-cli-autocomplete"
+          output="$(node bin/run.ts autocomplete bash)"
+          echo "$output"
+          if [[ "$output" != *"Setup Instructions"* ]]; then
+            echo "autocomplete bash did not produce the expected setup instructions" >&2
+            exit 1
+          fi
 
   scaffold-smoke-dotnet:
     runs-on: ubuntu-latest
