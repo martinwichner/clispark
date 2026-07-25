@@ -94,3 +94,24 @@ There's no separate lint command — analyzer warnings surface as part of a norm
 If you answered "no", this `<PropertyGroup>` isn't present, and `dotnet build` runs with only the SDK's own defaults.
 
 Either way, this choice is permanent and core-managed: `npx clispark update` keeps this block current for a project that opted in, and will never add it to a project that declined. There's no retroactive "turn lint tooling on later" command — rerun `clispark` in a new directory if you want it.
+
+## Shell Completion
+
+`System.CommandLine` 2.0.10's `[suggest]` directive is already part of this project's parsing
+pipeline — no code in `Program.cs` or any command needs to change. To activate it in your shell:
+
+1. Install the registration tool once per machine: `dotnet tool install -g dotnet-suggest`
+2. Install this project as a global tool (see the README's "Building and running" section), then
+   register it once per installation:
+   ```bash
+   dotnet-suggest register --command-path "$(which {{projectName}})"
+   ```
+   (On Windows, use the `.exe` path `dotnet-suggest` prints after `dotnet tool install -g` instead
+   of `which`.)
+3. Add shell integration to your profile once per machine:
+   ```bash
+   dotnet-suggest script bash >> ~/.bashrc   # or: script powershell, script zsh
+   ```
+
+After that, `{{projectName}} <TAB><TAB>` completes command names automatically — the completion
+logic lives entirely in `dotnet-suggest`/`System.CommandLine`, not in this project's own code.
