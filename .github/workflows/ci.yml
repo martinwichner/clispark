@@ -80,6 +80,25 @@ jobs:
             echo "bin/run.ts did not produce the expected greeting" >&2
             exit 1
           fi
+      - name: Scaffold a lint-enabled project and verify it builds clean
+        run: |
+          cat > ci-smoke-verify-lint.mjs << 'EOF'
+          import { scaffoldProject } from './src/scaffold';
+          import { nodeOclifPack } from './src/languages/packs/node-oclif';
+          import path from 'node:path';
+          import os from 'node:os';
+
+          const targetDir = path.join(os.tmpdir(), 'clispark-ci-smoke-lint', 'smoke-test-cli-lint');
+          await scaffoldProject({ projectName: 'smoke-test-cli-lint', targetDir, lintEnabled: true }, nodeOclifPack);
+          console.log('scaffold complete:', targetDir);
+          EOF
+          npx tsx ci-smoke-verify-lint.mjs
+          rm ci-smoke-verify-lint.mjs
+      - name: Run the opted-in scaffold's own lint and format tooling
+        run: |
+          cd "$(node -e "console.log(require('os').tmpdir())")/clispark-ci-smoke-lint/smoke-test-cli-lint"
+          npm run lint
+          npm run format -- --check
 
   scaffold-smoke-dotnet:
     runs-on: ubuntu-latest
@@ -120,3 +139,21 @@ jobs:
             echo "Program.cs did not produce the expected greeting" >&2
             exit 1
           fi
+      - name: Scaffold a lint-enabled .NET project and verify it builds clean
+        run: |
+          cat > ci-smoke-verify-dotnet-lint.mjs << 'EOF'
+          import { scaffoldProject } from './src/scaffold';
+          import { dotnetPack } from './src/languages/packs/dotnet';
+          import path from 'node:path';
+          import os from 'node:os';
+
+          const targetDir = path.join(os.tmpdir(), 'clispark-ci-smoke-dotnet-lint', 'SmokeTestCliLint');
+          await scaffoldProject({ projectName: 'SmokeTestCliLint', targetDir, lintEnabled: true }, dotnetPack);
+          console.log('scaffold complete:', targetDir);
+          EOF
+          npx tsx ci-smoke-verify-dotnet-lint.mjs
+          rm ci-smoke-verify-dotnet-lint.mjs
+      - name: Build the opted-in .NET scaffold with warnings promoted to errors (0 analyzer warnings)
+        run: |
+          cd "$(node -e "console.log(require('os').tmpdir())")/clispark-ci-smoke-dotnet-lint/SmokeTestCliLint"
+          dotnet build --no-incremental -warnaserror

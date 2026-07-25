@@ -162,7 +162,7 @@ export async function updateProject(
   const newManifest: Manifest = {
     generatorVersion: toVersion,
     language,
-    lintEnabled: oldManifest.lintEnabled,
+    lintEnabled: oldManifest.lintEnabled ?? false,
     coreFiles: newCoreFiles,
     coreDependencies: fileMerge.coreDependencies,
     coreScripts: fileMerge.coreScripts,

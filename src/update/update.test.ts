@@ -297,6 +297,23 @@ describe('updateProject', () => {
     await expect(readFile(path.join(targetDir, 'eslint.config.js'), 'utf8')).rejects.toThrow();
     expect(result.dependencies.find((d) => d.key === 'eslint')).toBeUndefined();
   });
+
+  it('heals a legacy manifest (pre-#70, no lintEnabled field) to lintEnabled: false on disk after update', async () => {
+    const targetDir = await scaffoldFixture(tmpRoot, 'legacy-manifest-project');
+
+    const manifestPath = path.join(targetDir, '.clispark', 'manifest.json');
+    const oldManifest = JSON.parse(await readFile(manifestPath, 'utf8')) as Manifest;
+    oldManifest.generatorVersion = '0.0.1';
+    delete (oldManifest as Partial<Manifest>).lintEnabled;
+    await writeFile(manifestPath, JSON.stringify(oldManifest, null, 2) + '\n');
+    expect(JSON.parse(await readFile(manifestPath, 'utf8'))).not.toHaveProperty('lintEnabled');
+
+    const result = await updateProject(targetDir, nodeOclifPack.updateAdapter, nodeOclifPack.templateDir, 'node', cleanGitDeps());
+
+    expect(result.status).toBe('updated');
+    const manifestAfter = JSON.parse(await readFile(manifestPath, 'utf8'));
+    expect(manifestAfter).toHaveProperty('lintEnabled', false);
+  });
 });
 
 describe('formatUpdateSummary', () => {
