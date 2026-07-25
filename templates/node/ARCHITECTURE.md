@@ -99,3 +99,16 @@ A few things run automatically around every log call:
 ## Testing
 
 Tests use `@oclif/test`'s `runCommand()` helper and live next to the command they test (e.g. `src/commands/hello.test.ts`). Running `npm test` first runs a build (via the `pretest` script) — `runCommand()` reads compiled output from `dist/commands`, so a stale or missing build produces empty, unhelpful output instead of a clear error. Every command's `run()` must call `await this.parse(<CommandClass>)`, even with no flags/args, to avoid an oclif `UnparsedCommand` warning.
+
+## Lint tooling
+
+If you answered "yes" to "Set up lint tooling?" during scaffolding, this project includes `eslint.config.js` (flat config, `@eslint/js` + `typescript-eslint` recommended rulesets) and `.prettierrc`, plus `eslint-config-prettier` to keep ESLint out of Prettier's way on formatting-related rules. Run it with:
+
+```bash
+npm run lint    # eslint src bin
+npm run format  # prettier --write .
+```
+
+If you answered "no", none of this is present — no config files, no `lint`/`format` scripts, no eslint/prettier devDependencies.
+
+Either way, this choice is permanent and core-managed: `npx clispark update` keeps the lint config and its devDependency versions current for a project that opted in, and will never add any of it to a project that declined. There's no retroactive "turn lint tooling on later" command — rerun `clispark` in a new directory if you want it.
