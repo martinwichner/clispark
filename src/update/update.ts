@@ -163,6 +163,7 @@ export async function updateProject(
     generatorVersion: toVersion,
     language,
     lintEnabled: oldManifest.lintEnabled ?? false,
+    autocompleteEnabled: oldManifest.autocompleteEnabled ?? false,
     coreFiles: newCoreFiles,
     coreDependencies: fileMerge.coreDependencies,
     coreScripts: fileMerge.coreScripts,

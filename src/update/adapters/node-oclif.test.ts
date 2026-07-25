@@ -10,6 +10,7 @@ function baseManifest(overrides: Partial<Manifest> = {}): Manifest {
     generatorVersion: '1.0.0',
     language: 'node',
     lintEnabled: false,
+    autocompleteEnabled: false,
     coreFiles: {},
     coreDependencies: {},
     coreScripts: {},
@@ -35,7 +36,7 @@ describe('nodeOclifAdapter.extractCoreFields', () => {
         dependencies: { pino: '^9.0.0' },
         devDependencies: { vitest: '^2.0.0' },
       },
-      { lintEnabled: false },
+      { lintEnabled: false, autocompleteEnabled: false },
     );
     expect(result.coreDependencies).toEqual({ pino: '^9.0.0', vitest: '^2.0.0' });
   });
@@ -43,14 +44,14 @@ describe('nodeOclifAdapter.extractCoreFields', () => {
   it('only includes known core script names', () => {
     const result = nodeOclifAdapter.extractCoreFields(
       { scripts: { build: 'tsup', 'my-custom-script': 'do-thing' } },
-      { lintEnabled: false },
+      { lintEnabled: false, autocompleteEnabled: false },
     );
     expect(result.coreScripts).toEqual({ build: 'tsup' });
     expect(result.coreScripts).not.toHaveProperty('my-custom-script');
   });
 
   it('defaults engines/oclif/dependencies/scripts to empty objects when missing', () => {
-    const result = nodeOclifAdapter.extractCoreFields({}, { lintEnabled: false });
+    const result = nodeOclifAdapter.extractCoreFields({}, { lintEnabled: false, autocompleteEnabled: false });
     expect(result.coreFields).toEqual({ engines: {}, oclif: {} });
     expect(result.coreDependencies).toEqual({});
     expect(result.coreScripts).toEqual({});
@@ -90,10 +91,18 @@ describe('nodeOclifAdapter.readManifestFile / writeManifestFile', () => {
 
 describe('coreFilePaths with lintEnabled', () => {
   it('includes eslint.config.js, .prettierrc, and .prettierignore only when lintEnabled is true', () => {
-    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: false })).not.toContain('eslint.config.js');
-    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: true })).toContain('eslint.config.js');
-    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: true })).toContain('.prettierrc');
-    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: true })).toContain('.prettierignore');
+    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: false, autocompleteEnabled: false })).not.toContain(
+      'eslint.config.js',
+    );
+    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: true, autocompleteEnabled: false })).toContain(
+      'eslint.config.js',
+    );
+    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: true, autocompleteEnabled: false })).toContain(
+      '.prettierrc',
+    );
+    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: true, autocompleteEnabled: false })).toContain(
+      '.prettierignore',
+    );
   });
 });
 

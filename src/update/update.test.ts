@@ -10,10 +10,14 @@ import { nodeOclifPack } from '../languages/packs/node-oclif';
 import { UserError } from '../errors';
 import type { UpdateAdapter } from './adapter';
 
-async function scaffoldFixture(tmpRoot: string, name: string, options: { lintEnabled?: boolean } = {}): Promise<string> {
+async function scaffoldFixture(
+  tmpRoot: string,
+  name: string,
+  options: { lintEnabled?: boolean; autocompleteEnabled?: boolean } = {},
+): Promise<string> {
   const targetDir = path.join(tmpRoot, name);
   await scaffoldProject(
-    { projectName: name, targetDir, lintEnabled: options.lintEnabled },
+    { projectName: name, targetDir, lintEnabled: options.lintEnabled, autocompleteEnabled: options.autocompleteEnabled },
     nodeOclifPack,
     { runCommand: vi.fn(async () => {}) },
   );
@@ -234,6 +238,7 @@ describe('updateProject', () => {
           generatorVersion: '0.0.1',
           language: 'fake-language',
           lintEnabled: false,
+          autocompleteEnabled: false,
           coreFiles: { 'tsconfig.json': tsconfigHash },
           coreDependencies: {},
           coreScripts: {},

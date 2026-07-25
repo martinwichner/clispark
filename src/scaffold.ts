@@ -12,6 +12,7 @@ export interface ScaffoldOptions {
   registryUrl?: string;
   publishIntent?: boolean;
   lintEnabled?: boolean;
+  autocompleteEnabled?: boolean;
 }
 
 async function assertTargetDirIsUsable(targetDir: string): Promise<void> {
@@ -106,7 +107,7 @@ export async function scaffoldProject(
   if (!lintEnabled) {
     await pack.stripLintTooling(targetDir);
   }
-  const manifest = await buildManifest(targetDir, getGeneratorVersion(), pack.id, pack.updateAdapter, lintEnabled);
+  const manifest = await buildManifest(targetDir, getGeneratorVersion(), pack.id, pack.updateAdapter, lintEnabled, false);
   await writeManifest(targetDir, manifest);
 
   await deps.runCommand('git', ['init'], targetDir);
