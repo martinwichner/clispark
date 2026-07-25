@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.20.0](https://github.com/martinwichner/clispark/compare/v1.19.1...v1.20.0) (2026-07-25)
+
+
+### Features
+
+* opt-in lint tooling for generated projects ([#70](https://github.com/martinwichner/clispark/issues/70)) ([845345e](https://github.com/martinwichner/clispark/commit/845345e811b43d97abfa5803c846ff844b290e3b))
+
 ## [1.19.1](https://github.com/martinwichner/clispark/compare/v1.19.0...v1.19.1) (2026-07-25)
 
 
