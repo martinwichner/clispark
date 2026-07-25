@@ -214,4 +214,14 @@ describe('scaffoldProject', () => {
     const manifest = await readManifest(targetDir);
     expect(manifest?.lintEnabled).toBe(false);
   });
+
+  it('defaults autocompleteEnabled to false in the manifest when not specified', async () => {
+    const targetDir = path.join(tmpRoot, 'autocomplete-default');
+    const runCommand = vi.fn(async () => {});
+
+    await scaffoldProject({ projectName: 'autocomplete-default', targetDir }, nodeOclifPack, { runCommand });
+
+    const manifest = await readManifest(targetDir);
+    expect(manifest?.autocompleteEnabled).toBe(false);
+  });
 });

@@ -34,4 +34,6 @@ export const nodeOclifPack: LanguagePack = {
   },
   commandGenerator: nodeOclifCommandGenerator,
   stripLintTooling,
+  supportsAutocompleteOptIn: true,
+  stripAutocompleteSupport: async () => {},
 };

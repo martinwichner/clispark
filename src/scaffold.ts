@@ -107,7 +107,18 @@ export async function scaffoldProject(
   if (!lintEnabled) {
     await pack.stripLintTooling(targetDir);
   }
-  const manifest = await buildManifest(targetDir, getGeneratorVersion(), pack.id, pack.updateAdapter, lintEnabled, false);
+  const autocompleteEnabled = options.autocompleteEnabled ?? false;
+  if (!autocompleteEnabled) {
+    await pack.stripAutocompleteSupport(targetDir);
+  }
+  const manifest = await buildManifest(
+    targetDir,
+    getGeneratorVersion(),
+    pack.id,
+    pack.updateAdapter,
+    lintEnabled,
+    autocompleteEnabled,
+  );
   await writeManifest(targetDir, manifest);
 
   await deps.runCommand('git', ['init'], targetDir);
