@@ -319,6 +319,23 @@ describe('updateProject', () => {
     const manifestAfter = JSON.parse(await readFile(manifestPath, 'utf8'));
     expect(manifestAfter).toHaveProperty('lintEnabled', false);
   });
+
+  it('heals a legacy manifest (pre-#89, no autocompleteEnabled field) to autocompleteEnabled: false on disk after update', async () => {
+    const targetDir = await scaffoldFixture(tmpRoot, 'legacy-manifest-project-autocomplete');
+
+    const manifestPath = path.join(targetDir, '.clispark', 'manifest.json');
+    const oldManifest = JSON.parse(await readFile(manifestPath, 'utf8')) as Manifest;
+    oldManifest.generatorVersion = '0.0.1';
+    delete (oldManifest as Partial<Manifest>).autocompleteEnabled;
+    await writeFile(manifestPath, JSON.stringify(oldManifest, null, 2) + '\n');
+    expect(JSON.parse(await readFile(manifestPath, 'utf8'))).not.toHaveProperty('autocompleteEnabled');
+
+    const result = await updateProject(targetDir, nodeOclifPack.updateAdapter, nodeOclifPack.templateDir, 'node', cleanGitDeps());
+
+    expect(result.status).toBe('updated');
+    const manifestAfter = JSON.parse(await readFile(manifestPath, 'utf8'));
+    expect(manifestAfter).toHaveProperty('autocompleteEnabled', false);
+  });
 });
 
 describe('formatUpdateSummary', () => {
