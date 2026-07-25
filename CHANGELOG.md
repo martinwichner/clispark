@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.19.1](https://github.com/martinwichner/clispark/compare/v1.19.0...v1.19.1) (2026-07-25)
+
+
+### Bug Fixes
+
+* resolve high-severity npm audit findings ([bb34829](https://github.com/martinwichner/clispark/commit/bb34829dd6f1b83f4c2d432d7f98bf6848daa198))
+* resolve high-severity npm audit findings ([11ab613](https://github.com/martinwichner/clispark/commit/11ab61309816eccda5beb89f6caa07430fbf254c))
+
 ## [1.19.0](https://github.com/martinwichner/clispark/compare/v1.18.0...v1.19.0) (2026-07-24)
 
 
