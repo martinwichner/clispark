@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.22.0](https://github.com/martinwichner/clispark/compare/v1.21.0...v1.22.0) (2026-07-25)
+
+
+### Features
+
+* add conditional wizard question for opt-in shell autocompletion ([#89](https://github.com/martinwichner/clispark/issues/89)) ([a0fee25](https://github.com/martinwichner/clispark/commit/a0fee255173c7ca272ef54f6aa840307a5476b68))
+* Node opt-in shell autocompletion via @oclif/plugin-autocomplete ([#89](https://github.com/martinwichner/clispark/issues/89)) ([a1f6b9c](https://github.com/martinwichner/clispark/commit/a1f6b9cae9336ec63e174d67110987ee989a5ca0))
+* shell autocompletion for generated CLIs ([#89](https://github.com/martinwichner/clispark/issues/89)) ([dc3c2f7](https://github.com/martinwichner/clispark/commit/dc3c2f7f28bc8c2b2a775554583e53deb14eb015))
+
 ## [1.21.0](https://github.com/martinwichner/clispark/compare/v1.20.0...v1.21.0) (2026-07-25)
 
 
