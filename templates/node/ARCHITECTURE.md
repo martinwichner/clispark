@@ -100,9 +100,9 @@ A few things run automatically around every log call:
 
 Tests use `@oclif/test`'s `runCommand()` helper and live next to the command they test (e.g. `src/commands/hello.test.ts`). Running `npm test` first runs a build (via the `pretest` script) — `runCommand()` reads compiled output from `dist/commands`, so a stale or missing build produces empty, unhelpful output instead of a clear error. Every command's `run()` must call `await this.parse(<CommandClass>)`, even with no flags/args, to avoid an oclif `UnparsedCommand` warning.
 
-## Lint tooling
+## Lint Tooling
 
-If you answered "yes" to "Set up lint tooling?" during scaffolding, this project includes `eslint.config.js` (flat config, `@eslint/js` + `typescript-eslint` recommended rulesets) and `.prettierrc`, plus `eslint-config-prettier` to keep ESLint out of Prettier's way on formatting-related rules. Run it with:
+If you answered "yes" to "Set up lint tooling?" during scaffolding, this project includes `eslint.config.js` (flat config, `@eslint/js` + `typescript-eslint` recommended rulesets), `.prettierrc`, and `.prettierignore` (excludes `.clispark/`, the tool's own generated manifest, from Prettier's formatting checks), plus `eslint-config-prettier` to keep ESLint out of Prettier's way on formatting-related rules. Run it with:
 
 ```bash
 npm run lint    # eslint src bin

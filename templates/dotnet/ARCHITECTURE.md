@@ -76,7 +76,7 @@ A few things run automatically around every log call:
 
 Tests use `xunit` and live in `tests/Cli.Tests.csproj` (a separate project referencing `src/Cli.csproj`, not colocated with the commands they test — the conventional .NET layout, unlike vitest's colocated `*.test.ts` files). A test exercises a command directly via `new SomeCommand().Build()` then `.Parse(args).Invoke(...)` — no process spawning needed. Remember the `EnableDefaultExceptionHandler = false` detail from "Error Handling" above when asserting on thrown exceptions.
 
-## Lint tooling
+## Lint Tooling
 
 If you answered "yes" to "Set up lint tooling?" during scaffolding, `src/Cli.csproj` includes a `<PropertyGroup>` enabling the .NET SDK's built-in Roslyn analyzers — no new NuGet dependency:
 
