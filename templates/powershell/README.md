@@ -9,6 +9,13 @@ Import-Module ./Module.psd1
 Get-Hello -Name 'World'
 ```
 
+## Shell Completion
+
+Tab-completion works automatically once the module is imported — no setup needed. If you don't
+want to run `Import-Module ./Module.psd1` in every new session, add that line to your PowerShell
+`$PROFILE` (run `$PROFILE` to see its path; `New-Item -Path $PROFILE -ItemType File -Force` first
+if it doesn't exist yet).
+
 ## Adding a new cmdlet
 
 Run `clispark add` from this directory, or drop a new `.ps1` file into `Public/` following the
