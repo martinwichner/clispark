@@ -1,10 +1,13 @@
 // src/update/adapters/dotnet.test.ts
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, readFile, rm, writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { dotnetAdapter, type DotnetManifestFile } from './dotnet';
 import type { Manifest } from '../manifest';
+import { scaffoldProject } from '../../scaffold';
+import { updateProject } from '../update';
+import { dotnetPack } from '../../languages/packs/dotnet';
 
 const SAMPLE_CSPROJ = `<Project Sdk="Microsoft.NET.Sdk">
 
@@ -40,6 +43,24 @@ function baseManifest(overrides: Partial<Manifest> = {}): Manifest {
     coreFields: { TargetFramework: 'net10.0' },
     ...overrides,
   };
+}
+
+async function scaffoldFixture(
+  tmpRoot: string,
+  name: string,
+  options: { lintEnabled?: boolean } = {},
+): Promise<string> {
+  const targetDir = path.join(tmpRoot, name);
+  await scaffoldProject(
+    { projectName: name, targetDir, lintEnabled: options.lintEnabled },
+    dotnetPack,
+    { runCommand: vi.fn(async () => {}) },
+  );
+  return targetDir;
+}
+
+function cleanGitDeps() {
+  return { runCommand: vi.fn(async () => {}), captureCommand: vi.fn(async () => '') };
 }
 
 describe('dotnetAdapter.parseManifestFile', () => {
@@ -202,5 +223,59 @@ describe('dotnetAdapter.coreFilePaths / templateSourcePath', () => {
 
   it('leaves every other path unchanged', () => {
     expect(dotnetAdapter.templateSourcePath('src/Program.cs')).toBe('src/Program.cs');
+  });
+});
+
+describe('dotnetAdapter lint-tooling reconciliation (real scaffold + update)', () => {
+  let tmpRoot: string;
+
+  beforeEach(async () => {
+    tmpRoot = await mkdtemp(path.join(tmpdir(), 'clispark-dotnet-lint-update-test-'));
+  });
+
+  afterEach(async () => {
+    await rm(tmpRoot, { recursive: true, force: true });
+  });
+
+  it('a project that opted into lint tooling gets a locally-untouched AnalysisMode reconciled back to the template value by update', async () => {
+    const targetDir = await scaffoldFixture(tmpRoot, 'lint-dotnet-project', { lintEnabled: true });
+
+    const manifestPath = path.join(targetDir, '.clispark', 'manifest.json');
+    const oldManifest = JSON.parse(await readFile(manifestPath, 'utf8')) as Manifest;
+    const realCurrentAnalysisMode = (oldManifest.coreFields as { AnalysisMode?: string }).AnalysisMode;
+    expect(realCurrentAnalysisMode).toBe('Recommended');
+    oldManifest.generatorVersion = '0.0.1';
+    (oldManifest.coreFields as { AnalysisMode?: string }).AnalysisMode = 'AllEnabledByDefault'; // fabricate a stale recorded value
+
+    const csprojPath = path.join(targetDir, 'src', 'Cli.csproj');
+    const csproj = await readFile(csprojPath, 'utf8');
+    // local file matches the fabricated old manifest value -> "unmodified"
+    await writeFile(
+      csprojPath,
+      csproj.replace('<AnalysisMode>Recommended</AnalysisMode>', '<AnalysisMode>AllEnabledByDefault</AnalysisMode>'),
+    );
+    await writeFile(manifestPath, JSON.stringify(oldManifest, null, 2) + '\n');
+
+    const result = await updateProject(targetDir, dotnetPack.updateAdapter, dotnetPack.templateDir, 'dotnet', cleanGitDeps());
+
+    const analysisModeOutcome = result.fields.find((f) => f.key === 'AnalysisMode');
+    expect(analysisModeOutcome?.outcome).toBe('replaced');
+    const csprojAfter = await readFile(csprojPath, 'utf8');
+    expect(csprojAfter).toContain(`<AnalysisMode>${realCurrentAnalysisMode}</AnalysisMode>`);
+  });
+
+  it('a project that declined lint tooling never gains the analyzer PropertyGroup from a later update', async () => {
+    const targetDir = await scaffoldFixture(tmpRoot, 'no-lint-dotnet-project', { lintEnabled: false });
+
+    const manifestPath = path.join(targetDir, '.clispark', 'manifest.json');
+    const oldManifest = JSON.parse(await readFile(manifestPath, 'utf8')) as Manifest;
+    oldManifest.generatorVersion = '0.0.1';
+    await writeFile(manifestPath, JSON.stringify(oldManifest, null, 2) + '\n');
+
+    const result = await updateProject(targetDir, dotnetPack.updateAdapter, dotnetPack.templateDir, 'dotnet', cleanGitDeps());
+
+    expect(result.fields.find((f) => f.key === 'AnalysisMode')).toBeUndefined();
+    const csprojAfter = await readFile(path.join(targetDir, 'src', 'Cli.csproj'), 'utf8');
+    expect(csprojAfter).not.toContain('EnableNETAnalyzers');
   });
 });

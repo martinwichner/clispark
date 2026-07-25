@@ -2,7 +2,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { Manifest } from '../manifest';
-import type { CoreFieldsExtraction, ManifestFileMergeResult, UpdateAdapter } from '../adapter';
+import type { CoreFieldsExtraction, CoreFilePathsFlags, ManifestFileMergeResult, UpdateAdapter } from '../adapter';
 import { reconcileEntry, stringEquals, type FieldOutcome } from '../reconcile';
 
 export const CORE_FILE_PATHS = [
@@ -26,6 +26,7 @@ export interface DotnetManifestFile {
   packageId: string;
   toolCommandName: string;
   packageReferences: Record<string, string>;
+  analyzerProperties: Partial<Record<AnalyzerPropertyName, string>>;
 }
 
 function escapeRegExp(value: string): string {
@@ -37,6 +38,23 @@ function extractTag(content: string, tag: string): string {
   if (!match) throw new Error(`.csproj is missing a <${tag}> tag`);
   return match[1];
 }
+
+// Unlike extractTag, does not throw when the tag is missing: a project that declined
+// lint tooling has stripped the whole analyzer <PropertyGroup>, so these four tags
+// genuinely don't exist there -- that's a valid state, not a malformed .csproj.
+function extractOptionalTag(content: string, tag: string): string | undefined {
+  const match = content.match(new RegExp(`<${tag}>([^<]*)</${tag}>`));
+  return match?.[1];
+}
+
+export const ANALYZER_PROPERTY_NAMES = [
+  'EnableNETAnalyzers',
+  'AnalysisLevel',
+  'AnalysisMode',
+  'EnforceCodeStyleInBuild',
+] as const;
+
+export type AnalyzerPropertyName = (typeof ANALYZER_PROPERTY_NAMES)[number];
 
 function extractPackageReferences(content: string): Record<string, string> {
   const refs: Record<string, string> = {};
@@ -65,6 +83,15 @@ function addPackageReference(content: string, name: string, version: string): st
   return content.replace(re, (match, indent: string) => `${match}${indent}<PackageReference Include="${name}" Version="${version}" />\n`);
 }
 
+function extractAnalyzerProperties(content: string): Partial<Record<AnalyzerPropertyName, string>> {
+  const properties: Partial<Record<AnalyzerPropertyName, string>> = {};
+  for (const name of ANALYZER_PROPERTY_NAMES) {
+    const value = extractOptionalTag(content, name);
+    if (value !== undefined) properties[name] = value;
+  }
+  return properties;
+}
+
 function parseManifestFile(rawContent: string): DotnetManifestFile {
   return {
     raw: rawContent,
@@ -73,14 +100,22 @@ function parseManifestFile(rawContent: string): DotnetManifestFile {
     packageId: extractTag(rawContent, 'PackageId'),
     toolCommandName: extractTag(rawContent, 'ToolCommandName'),
     packageReferences: extractPackageReferences(rawContent),
+    analyzerProperties: extractAnalyzerProperties(rawContent),
   };
 }
 
-function extractCoreFields(manifestFile: DotnetManifestFile): CoreFieldsExtraction {
+function extractCoreFields(manifestFile: DotnetManifestFile, flags: CoreFilePathsFlags): CoreFieldsExtraction {
+  const coreFields: Record<string, unknown> = { TargetFramework: manifestFile.targetFramework };
+  if (flags.lintEnabled) {
+    for (const name of ANALYZER_PROPERTY_NAMES) {
+      const value = manifestFile.analyzerProperties[name];
+      if (value !== undefined) coreFields[name] = value;
+    }
+  }
   return {
     coreDependencies: manifestFile.packageReferences,
     coreScripts: {},
-    coreFields: { TargetFramework: manifestFile.targetFramework },
+    coreFields,
   };
 }
 
@@ -113,7 +148,9 @@ function mergeManifestFile(
     }
   }
 
-  const oldCoreFields = oldManifest.coreFields as { TargetFramework?: string };
+  const oldCoreFields = oldManifest.coreFields as { TargetFramework?: string } & Partial<
+    Record<AnalyzerPropertyName, string>
+  >;
   const fields: FieldOutcome[] = [];
 
   const targetFrameworkResult = reconcileEntry(
@@ -128,6 +165,29 @@ function mergeManifestFile(
     raw = setTag(raw, 'TargetFramework', targetFrameworkResult.value);
   }
 
+  const coreFields: Record<string, unknown> = { TargetFramework: targetFrameworkResult.value };
+
+  // Only reconcile the analyzer properties for a project that had them at scaffold time --
+  // a declined project's .csproj lacks the whole analyzer PropertyGroup, and must never have
+  // it reintroduced by an update (mirrors Task 3's lintEnabled gate on eslint/prettier).
+  if (oldManifest.lintEnabled) {
+    for (const name of ANALYZER_PROPERTY_NAMES) {
+      const newValue = newTemplate.analyzerProperties[name];
+      if (newValue === undefined) continue;
+      const currentValue = current.analyzerProperties[name];
+      const oldValue = oldCoreFields[name];
+
+      const result = reconcileEntry(currentValue, oldValue, newValue, stringEquals);
+      fields.push({ key: name, outcome: result.outcome });
+      coreFields[name] = result.value;
+
+      if (result.outcome !== 'skipped' && result.value !== currentValue && currentValue !== undefined) {
+        changed = true;
+        raw = setTag(raw, name, result.value);
+      }
+    }
+  }
+
   return {
     updatedFile: { ...current, raw },
     changed,
@@ -136,7 +196,7 @@ function mergeManifestFile(
     fields,
     coreDependencies,
     coreScripts: {},
-    coreFields: { TargetFramework: targetFrameworkResult.value },
+    coreFields,
   };
 }
 
@@ -166,8 +226,8 @@ export const dotnetAdapter: UpdateAdapter = {
     return (manifestFile as DotnetManifestFile).packageId;
   },
 
-  extractCoreFields(manifestFile) {
-    return extractCoreFields(manifestFile as DotnetManifestFile);
+  extractCoreFields(manifestFile, flags) {
+    return extractCoreFields(manifestFile as DotnetManifestFile, flags);
   },
 
   mergeManifestFile(current, oldManifest, newTemplate) {
