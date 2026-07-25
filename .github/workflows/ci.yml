@@ -157,3 +157,46 @@ jobs:
         run: |
           cd "$(node -e "console.log(require('os').tmpdir())")/clispark-ci-smoke-dotnet-lint/SmokeTestCliLint"
           dotnet build --no-incremental -warnaserror
+
+  scaffold-smoke-powershell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - name: Configure git identity for scaffolded project commit
+        run: |
+          git config --global user.email "ci@example.com"
+          git config --global user.name "CI"
+      - name: Scaffold a real PowerShell project (installs PSFramework/Pester/PSResourceGet for real)
+        run: |
+          cat > ci-smoke-verify-powershell.mjs << 'EOF'
+          import { scaffoldProject } from './src/scaffold';
+          import { powershellPack } from './src/languages/packs/powershell';
+          import path from 'node:path';
+          import os from 'node:os';
+
+          const targetDir = path.join(os.tmpdir(), 'clispark-ci-smoke-powershell', 'SmokeTestPs');
+          await scaffoldProject({ projectName: 'SmokeTestPs', targetDir }, powershellPack);
+          console.log('scaffold complete:', targetDir);
+          EOF
+          npx tsx ci-smoke-verify-powershell.mjs
+          rm ci-smoke-verify-powershell.mjs
+      - name: Run the generated project's own Pester test suite
+        shell: pwsh
+        run: |
+          Set-Location (Join-Path ([System.IO.Path]::GetTempPath()) 'clispark-ci-smoke-powershell' 'SmokeTestPs')
+          Import-Module ./Module.psd1 -Force
+          $result = Invoke-Pester ./tests -PassThru
+          if ($result.FailedCount -gt 0) {
+            throw "$($result.FailedCount) Pester test(s) failed"
+          }
+      - name: Run a generated cmdlet directly (verifies the auto-logging/error-handling proxy wrapper)
+        shell: pwsh
+        run: |
+          Set-Location (Join-Path ([System.IO.Path]::GetTempPath()) 'clispark-ci-smoke-powershell' 'SmokeTestPs')
+          Import-Module ./Module.psd1 -Force
+          $output = Get-Hello -Name 'World'
+          Write-Output $output
+          if ($output -ne 'Hello, World!') {
+            throw 'Get-Hello did not produce the expected greeting'
+          }
