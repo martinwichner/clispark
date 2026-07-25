@@ -3,7 +3,8 @@ import { Args } from '@oclif/core';
 import { BaseCommand } from '../base-command';
 
 export default class Task extends BaseCommand {
-  static description = 'Create a task (demonstrates a required string arg and an optional enum-constrained arg)';
+  static description =
+    'Create a task (demonstrates a required string arg and an optional enum-constrained arg)';
   static examples = [
     {
       command: '<%= config.bin %> task "Buy milk"',
@@ -11,7 +12,8 @@ export default class Task extends BaseCommand {
     },
     {
       command: '<%= config.bin %> task "Buy milk" high',
-      description: 'Creates a task with an optional priority (low, medium, or high)',
+      description:
+        'Creates a task with an optional priority (low, medium, or high)',
     },
   ];
   static args = {
@@ -26,6 +28,8 @@ export default class Task extends BaseCommand {
 
   async run(): Promise<void> {
     const { args } = await this.parse(Task);
-    this.log(`Created task: "${args.title}"${args.priority ? ` (priority: ${args.priority})` : ''}`);
+    this.log(
+      `Created task: "${args.title}"${args.priority ? ` (priority: ${args.priority})` : ''}`,
+    );
   }
 }

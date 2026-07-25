@@ -1,6 +1,12 @@
 // templates/base/src/logger.ts
 import { randomBytes } from 'node:crypto';
-import { mkdirSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  readdirSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import path from 'node:path';
 import envPaths from 'env-paths';
 import pino, { type Logger } from 'pino';
@@ -57,7 +63,8 @@ function sweepOldLogs(logDir: string): void {
     const markerPath = path.join(logDir, SWEEP_MARKER_FILE);
     let shouldSweep = true;
     try {
-      shouldSweep = Date.now() - statSync(markerPath).mtimeMs >= SWEEP_THROTTLE_MS;
+      shouldSweep =
+        Date.now() - statSync(markerPath).mtimeMs >= SWEEP_THROTTLE_MS;
     } catch {
       // no marker yet (first run in this directory) - sweep now
     }
@@ -75,16 +82,29 @@ function sweepOldLogs(logDir: string): void {
   });
 }
 
-export function createLogger(commandName: string, logDir: string = paths.log): LoggerHandle {
+export function createLogger(
+  commandName: string,
+  logDir: string = paths.log,
+): LoggerHandle {
   mkdirSync(logDir, { recursive: true });
   sweepOldLogs(logDir);
 
   const logFilePath = path.join(logDir, buildLogFileName(commandName));
-  const fileDestination = pino.destination({ dest: logFilePath, sync: true, mode: 0o600 });
+  const fileDestination = pino.destination({
+    dest: logFilePath,
+    sync: true,
+    mode: 0o600,
+  });
   const destination = process.env.DEBUG
-    ? pino.multistream([{ stream: fileDestination }, { stream: process.stdout }])
+    ? pino.multistream([
+        { stream: fileDestination },
+        { stream: process.stdout },
+      ])
     : fileDestination;
-  const logger = pino({ redact: buildRedactPaths(SENSITIVE_LOG_KEYS) }, destination);
+  const logger = pino(
+    { redact: buildRedactPaths(SENSITIVE_LOG_KEYS) },
+    destination,
+  );
 
   return { logger, logFilePath };
 }

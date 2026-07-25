@@ -88,6 +88,15 @@ describe('nodeOclifAdapter.readManifestFile / writeManifestFile', () => {
   });
 });
 
+describe('coreFilePaths with lintEnabled', () => {
+  it('includes eslint.config.js, .prettierrc, and .prettierignore only when lintEnabled is true', () => {
+    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: false })).not.toContain('eslint.config.js');
+    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: true })).toContain('eslint.config.js');
+    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: true })).toContain('.prettierrc');
+    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: true })).toContain('.prettierignore');
+  });
+});
+
 describe('nodeOclifAdapter.mergeManifestFile', () => {
   it('adds a brand-new core dependency the project never had', () => {
     const current: PackageJsonShape = { name: 'my-cli', version: '0.0.0', dependencies: {} };

@@ -15,7 +15,9 @@ describe('task list', () => {
 
   it('combines a filter with the --done flag', async () => {
     const { stdout } = await runCommand('task list groceries --done');
-    expect(stdout).toContain('Listing tasks matching "groceries" (completed only: true)');
+    expect(stdout).toContain(
+      'Listing tasks matching "groceries" (completed only: true)',
+    );
   });
 
   it('omits the completed-only note when --done is not passed', async () => {

@@ -3,7 +3,8 @@ import { Args } from '@oclif/core';
 import { BaseCommand } from '../../base-command';
 
 export default class TaskComplete extends BaseCommand {
-  static description = 'Complete a task (demonstrates a subcommand with a required integer argument)';
+  static description =
+    'Complete a task (demonstrates a subcommand with a required integer argument)';
   static examples = [
     {
       command: '<%= config.bin %> task complete 1',

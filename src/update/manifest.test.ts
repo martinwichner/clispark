@@ -76,6 +76,10 @@ describe('buildManifest lintEnabled', () => {
       await mkdir(path.dirname(filePath), { recursive: true });
       await writeFile(filePath, `content of ${relativePath}`);
     }
+    // Also present so buildManifest(..., true) can hash them via the now-conditional coreFilePaths.
+    await writeFile(path.join(tmpRoot, 'eslint.config.js'), 'content of eslint.config.js');
+    await writeFile(path.join(tmpRoot, '.prettierrc'), 'content of .prettierrc');
+    await writeFile(path.join(tmpRoot, '.prettierignore'), 'content of .prettierignore');
     await writeFile(
       path.join(tmpRoot, 'package.json'),
       JSON.stringify({
@@ -104,9 +108,14 @@ describe('buildManifest lintEnabled', () => {
 });
 
 describe('coreFilePaths is now manifest-aware', () => {
-  it('nodeOclifAdapter.coreFilePaths returns the same list regardless of lintEnabled (no conditional content until Task 3)', () => {
+  it('nodeOclifAdapter.coreFilePaths includes the lint files only when lintEnabled is true', () => {
     expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: false })).toEqual(CORE_FILE_PATHS);
-    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: true })).toEqual(CORE_FILE_PATHS);
+    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: true })).toEqual([
+      ...CORE_FILE_PATHS,
+      'eslint.config.js',
+      '.prettierrc',
+      '.prettierignore',
+    ]);
   });
 });
 
