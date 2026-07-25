@@ -81,6 +81,20 @@ export async function runWizard(deps: WizardDeps = defaultDeps): Promise<WizardA
   exitIfCancelled(lintEnabledValue);
   const lintEnabled = lintEnabledValue as boolean;
 
+  let autocompleteEnabled = false;
+  if (pack.supportsAutocompleteOptIn) {
+    const autocompleteEnabledValue = await select({
+      message: 'Set up shell autocompletion?',
+      options: [
+        { value: false, label: 'No' },
+        { value: true, label: 'Yes' },
+      ],
+      initialValue: false,
+    });
+    exitIfCancelled(autocompleteEnabledValue);
+    autocompleteEnabled = autocompleteEnabledValue as boolean;
+  }
+
   let nameAvailability: NameCheckResult = 'skipped';
 
   if (publishIntent) {
@@ -106,5 +120,14 @@ export async function runWizard(deps: WizardDeps = defaultDeps): Promise<WizardA
 
   outro(`Ready to scaffold "${projectName}".`);
 
-  return { language: pack.id, projectName, profile, registryUrl, publishIntent, nameAvailability, lintEnabled };
+  return {
+    language: pack.id,
+    projectName,
+    profile,
+    registryUrl,
+    publishIntent,
+    nameAvailability,
+    lintEnabled,
+    autocompleteEnabled,
+  };
 }

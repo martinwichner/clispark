@@ -11,4 +11,5 @@ export interface WizardAnswers {
   publishIntent: boolean;
   nameAvailability: NameCheckResult;
   lintEnabled: boolean;
+  autocompleteEnabled: boolean;
 }

@@ -37,6 +37,11 @@ Four example commands ship in `src/Commands/` as copy-paste starting points:
   ```
   See `ARCHITECTURE.md`'s "Argument Types" section for details.
 
+## Shell Completion
+
+Tab-completion works out of the box via `System.CommandLine`'s built-in `[suggest]` support — see
+`ARCHITECTURE.md`'s "Shell Completion" section for the one-time `dotnet-suggest` setup.
+
 ## Logging & debugging
 
 Every command run writes a structured log file (one per invocation, in an OS-appropriate log directory — see `ARCHITECTURE.md`'s "Logging" section). By default the terminal only shows a clean `Error: <message>` on failure, or nothing on success.

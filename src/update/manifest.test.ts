@@ -50,13 +50,13 @@ describe('hashCoreFiles / buildManifest', () => {
   });
 
   it('hashCoreFiles returns a hash per core file path', async () => {
-    const hashes = await hashCoreFiles(tmpRoot, nodeOclifAdapter, { lintEnabled: false });
+    const hashes = await hashCoreFiles(tmpRoot, nodeOclifAdapter, { lintEnabled: false, autocompleteEnabled: false });
     expect(Object.keys(hashes).sort()).toEqual([...CORE_FILE_PATHS].sort());
     expect(hashes['tsconfig.json']).toBe(hashContent('content of tsconfig.json'));
   });
 
   it('buildManifest assembles a full manifest from a target directory', async () => {
-    const manifest = await buildManifest(tmpRoot, '9.9.9', 'node', nodeOclifAdapter, false);
+    const manifest = await buildManifest(tmpRoot, '9.9.9', 'node', nodeOclifAdapter, false, false);
     expect(manifest.generatorVersion).toBe('9.9.9');
     expect(manifest.language).toBe('node');
     expect(manifest.coreFiles['tsconfig.json']).toBe(hashContent('content of tsconfig.json'));
@@ -97,20 +97,59 @@ describe('buildManifest lintEnabled', () => {
   });
 
   it('records lintEnabled: true when passed', async () => {
-    const manifest = await buildManifest(tmpRoot, '1.0.0', 'node', nodeOclifAdapter, true);
+    const manifest = await buildManifest(tmpRoot, '1.0.0', 'node', nodeOclifAdapter, true, false);
     expect(manifest.lintEnabled).toBe(true);
   });
 
   it('records lintEnabled: false when passed', async () => {
-    const manifest = await buildManifest(tmpRoot, '1.0.0', 'node', nodeOclifAdapter, false);
+    const manifest = await buildManifest(tmpRoot, '1.0.0', 'node', nodeOclifAdapter, false, false);
     expect(manifest.lintEnabled).toBe(false);
+  });
+});
+
+describe('buildManifest autocompleteEnabled', () => {
+  let tmpRoot: string;
+
+  beforeEach(async () => {
+    tmpRoot = await mkdtemp(path.join(tmpdir(), 'clispark-manifest-test-'));
+    for (const relativePath of CORE_FILE_PATHS) {
+      const filePath = path.join(tmpRoot, relativePath);
+      await mkdir(path.dirname(filePath), { recursive: true });
+      await writeFile(filePath, `content of ${relativePath}`);
+    }
+    await writeFile(
+      path.join(tmpRoot, 'package.json'),
+      JSON.stringify({
+        dependencies: { pino: '^9.0.0' },
+        devDependencies: { vitest: '^2.0.0' },
+        scripts: Object.fromEntries(CORE_SCRIPT_NAMES.map((name) => [name, name])),
+        engines: { node: '>=18' },
+        oclif: { bin: 'test-cli' },
+      }),
+    );
+  });
+
+  afterEach(async () => {
+    await rm(tmpRoot, { recursive: true, force: true });
+  });
+
+  it('records autocompleteEnabled: true when passed', async () => {
+    const manifest = await buildManifest(tmpRoot, '1.0.0', 'node', nodeOclifAdapter, false, true);
+    expect(manifest.autocompleteEnabled).toBe(true);
+  });
+
+  it('records autocompleteEnabled: false when passed', async () => {
+    const manifest = await buildManifest(tmpRoot, '1.0.0', 'node', nodeOclifAdapter, false, false);
+    expect(manifest.autocompleteEnabled).toBe(false);
   });
 });
 
 describe('coreFilePaths is now manifest-aware', () => {
   it('nodeOclifAdapter.coreFilePaths includes the lint files only when lintEnabled is true', () => {
-    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: false })).toEqual(CORE_FILE_PATHS);
-    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: true })).toEqual([
+    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: false, autocompleteEnabled: false })).toEqual(
+      CORE_FILE_PATHS,
+    );
+    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: true, autocompleteEnabled: false })).toEqual([
       ...CORE_FILE_PATHS,
       'eslint.config.js',
       '.prettierrc',
@@ -134,6 +173,7 @@ describe('writeManifest / readManifest / requireManifest', () => {
     generatorVersion: '1.0.0',
     language: 'node',
     lintEnabled: false,
+    autocompleteEnabled: false,
     coreFiles: { 'tsconfig.json': 'abc' },
     coreDependencies: {},
     coreScripts: {},

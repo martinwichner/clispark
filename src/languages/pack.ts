@@ -36,4 +36,6 @@ export interface LanguagePack {
   readonly registry: LanguageRegistry;
   readonly commandGenerator: CommandGenerator;
   readonly stripLintTooling: (targetDir: string) => Promise<void>;
+  readonly supportsAutocompleteOptIn: boolean;
+  readonly stripAutocompleteSupport: (targetDir: string) => Promise<void>;
 }

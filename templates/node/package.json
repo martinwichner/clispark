@@ -19,7 +19,8 @@
     "commands": "./dist/commands",
     "topicSeparator": " ",
     "plugins": [
-      "@oclif/plugin-help"
+      "@oclif/plugin-help",
+      "@oclif/plugin-autocomplete"
     ]
   },
   "scripts": {
@@ -33,6 +34,7 @@
   },
   "dependencies": {
     "@oclif/core": "^4.0.0",
+    "@oclif/plugin-autocomplete": "^3.2.53",
     "@oclif/plugin-help": "^6.0.0",
     "env-paths": "^3.0.0",
     "pino": "^9.6.0"

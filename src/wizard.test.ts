@@ -37,7 +37,10 @@ const fakeUpdateAdapter: LanguagePack['updateAdapter'] = {
   }),
 };
 
-function fakePack(checkNameAvailability: (name: string, registryUrl: string) => Promise<NameCheckResult>): LanguagePack {
+function fakePack(
+  checkNameAvailability: (name: string, registryUrl: string) => Promise<NameCheckResult>,
+  options: { supportsAutocompleteOptIn?: boolean } = {},
+): LanguagePack {
   return {
     id: 'node',
     displayName: 'Node.js / TypeScript (oclif)',
@@ -57,6 +60,8 @@ function fakePack(checkNameAvailability: (name: string, registryUrl: string) => 
       generateCommand: async () => ({ commandFile: '', testFile: '' }),
     },
     stripLintTooling: vi.fn(),
+    supportsAutocompleteOptIn: options.supportsAutocompleteOptIn ?? true,
+    stripAutocompleteSupport: vi.fn(),
   };
 }
 
@@ -75,6 +80,7 @@ describe('runWizard', () => {
       .mockResolvedValueOnce('node')
       .mockResolvedValueOnce('private')
       .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false)
       .mockResolvedValueOnce(false);
     vi.mocked(text).mockResolvedValueOnce('my-cli');
 
@@ -88,6 +94,7 @@ describe('runWizard', () => {
       publishIntent: true,
       nameAvailability: 'available',
       lintEnabled: false,
+      autocompleteEnabled: false,
     });
     expect(checkNameAvailability).toHaveBeenCalledTimes(1);
     // language is asked before name
@@ -105,6 +112,7 @@ describe('runWizard', () => {
       .mockResolvedValueOnce('node')
       .mockResolvedValueOnce('private')
       .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false)
       .mockResolvedValueOnce(false);
     vi.mocked(text).mockResolvedValueOnce('taken-name').mockResolvedValueOnce('free-name');
 
@@ -112,8 +120,8 @@ describe('runWizard', () => {
 
     expect(result.projectName).toBe('free-name');
     expect(checkNameAvailability).toHaveBeenCalledTimes(2);
-    // language + profile + publish-intent + lint-enabled, none re-asked during the name retry loop
-    expect(select).toHaveBeenCalledTimes(4);
+    // language + profile + publish-intent + lint-enabled + autocomplete-enabled, none re-asked during the name retry loop
+    expect(select).toHaveBeenCalledTimes(5);
     expect(log.warn).toHaveBeenCalledWith(expect.stringContaining('taken-name'));
   });
 
@@ -127,6 +135,7 @@ describe('runWizard', () => {
       .mockResolvedValueOnce('node')
       .mockResolvedValueOnce('work')
       .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false)
       .mockResolvedValueOnce(false);
     vi.mocked(text).mockResolvedValueOnce('my-cli').mockResolvedValueOnce('https://npm.mycompany.dev');
 
@@ -146,6 +155,7 @@ describe('runWizard', () => {
       .mockResolvedValueOnce('node')
       .mockResolvedValueOnce('private')
       .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false)
       .mockResolvedValueOnce(false);
     vi.mocked(text).mockResolvedValueOnce('my-cli');
 
@@ -162,6 +172,7 @@ describe('runWizard', () => {
     vi.mocked(select)
       .mockResolvedValueOnce('node')
       .mockResolvedValueOnce('private')
+      .mockResolvedValueOnce(false)
       .mockResolvedValueOnce(false)
       .mockResolvedValueOnce(false);
     vi.mocked(text).mockResolvedValueOnce('my-cli');
@@ -180,6 +191,7 @@ describe('runWizard', () => {
       .mockResolvedValueOnce('node')
       .mockResolvedValueOnce('private')
       .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false)
       .mockResolvedValueOnce(false);
     vi.mocked(text).mockResolvedValueOnce('my-cli');
 
@@ -195,11 +207,65 @@ describe('runWizard', () => {
       .mockResolvedValueOnce('node')
       .mockResolvedValueOnce('private')
       .mockResolvedValueOnce(true)
-      .mockResolvedValueOnce(true);
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
     vi.mocked(text).mockResolvedValueOnce('my-cli');
 
     const result = await runWizard({ languagePacks: { node: pack } });
 
     expect(result.lintEnabled).toBe(true);
+  });
+
+  it('asks whether to set up shell autocompletion, defaulting to No', async () => {
+    const pack = fakePack(async () => 'available');
+
+    vi.mocked(select)
+      .mockResolvedValueOnce('node')
+      .mockResolvedValueOnce('private')
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(false);
+    vi.mocked(text).mockResolvedValueOnce('my-cli');
+
+    const result = await runWizard({ languagePacks: { node: pack } });
+
+    expect(result.autocompleteEnabled).toBe(false);
+  });
+
+  it('records autocompleteEnabled: true when the user opts in', async () => {
+    const pack = fakePack(async () => 'available');
+
+    vi.mocked(select)
+      .mockResolvedValueOnce('node')
+      .mockResolvedValueOnce('private')
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
+    vi.mocked(text).mockResolvedValueOnce('my-cli');
+
+    const result = await runWizard({ languagePacks: { node: pack } });
+
+    expect(result.autocompleteEnabled).toBe(true);
+  });
+
+  it('skips the autocomplete question entirely when the pack does not support it, defaulting autocompleteEnabled to false', async () => {
+    const pack = fakePack(async () => 'available', { supportsAutocompleteOptIn: false });
+
+    vi.mocked(select)
+      .mockResolvedValueOnce('node')
+      .mockResolvedValueOnce('private')
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+    // Note: only 4 select() mocks -- no 5th one queued. If the guard were broken and a 5th
+    // select() call happened anyway, the mocked select() would return undefined (not a crash --
+    // isCancel() is mocked to always return false), which would fail both assertions below:
+    // autocompleteEnabled would be undefined (not false), and select would have been called 5
+    // times, not 4.
+    vi.mocked(text).mockResolvedValueOnce('my-cli');
+
+    const result = await runWizard({ languagePacks: { node: pack } });
+
+    expect(result.autocompleteEnabled).toBe(false);
+    expect(select).toHaveBeenCalledTimes(4);
   });
 });

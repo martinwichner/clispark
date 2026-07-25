@@ -10,6 +10,7 @@ function baseManifest(generatorVersion: string): Manifest {
     generatorVersion,
     language: 'node',
     lintEnabled: false,
+    autocompleteEnabled: false,
     coreFiles: {},
     coreDependencies: {},
     coreScripts: {},

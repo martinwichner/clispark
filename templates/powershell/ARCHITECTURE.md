@@ -24,3 +24,11 @@ exactly. Cmdlet authors never write their own try/catch or logging calls.
 ## Logging
 
 [PSFramework](https://psframework.org/) — see `Logging/Initialize-Logging.ps1`.
+
+## Shell Completion
+
+Cmdlet-name completion (`Get-H<TAB>` → `Get-Hello`) and parameter-value completion for any
+`[ValidateSet(...)]`-constrained parameter are native PowerShell shell features for every
+imported module — nothing in this project enables them, and nothing could disable them. As soon
+as `Import-Module ./Module.psd1` has run in a session, both kinds of completion work immediately
+for every `Public/` cmdlet.

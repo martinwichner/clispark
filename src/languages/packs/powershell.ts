@@ -35,4 +35,6 @@ export const powershellPack: LanguagePack = {
   },
   commandGenerator: powershellCommandGenerator,
   stripLintTooling: async () => {},
+  supportsAutocompleteOptIn: false,
+  stripAutocompleteSupport: async () => {},
 };

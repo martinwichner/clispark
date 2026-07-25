@@ -48,6 +48,7 @@ program.action((options: { confetti?: boolean; hook?: boolean }) =>
         registryUrl: answers.registryUrl,
         publishIntent: answers.publishIntent,
         lintEnabled: answers.lintEnabled,
+        autocompleteEnabled: answers.autocompleteEnabled,
       },
       pack,
     );

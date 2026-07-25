@@ -112,3 +112,25 @@ npm run format  # prettier --write .
 If you answered "no", none of this is present — no config files, no `lint`/`format` scripts, no eslint/prettier devDependencies.
 
 Either way, this choice is permanent and core-managed: `npx clispark update` keeps the lint config and its devDependency versions current for a project that opted in, and will never add any of it to a project that declined. There's no retroactive "turn lint tooling on later" command — rerun `clispark` in a new directory if you want it.
+
+## Shell Autocompletion
+
+If you answered "yes" to "Set up shell autocompletion?" during scaffolding, this project includes
+[`@oclif/plugin-autocomplete`](https://github.com/oclif/plugin-autocomplete) as a runtime
+dependency, registered in `package.json`'s `oclif.plugins` array. Set it up once per shell:
+
+```bash
+<cli> autocomplete bash   # or zsh, powershell
+```
+
+This prints the exact command to append to your shell config (e.g. `~/.bashrc`) and source it.
+After that, `<cli> <TAB><TAB>` completes command names, and `<cli> <command> --<TAB><TAB>`
+completes flag names.
+
+If you answered "no", none of this is present — no `@oclif/plugin-autocomplete` dependency, no
+entry in `oclif.plugins`, and the `autocomplete` command itself doesn't exist.
+
+Either way, this choice is permanent and core-managed: `npx clispark update` keeps the plugin
+dependency version current for a project that opted in, and will never add it to a project that
+declined. There's no retroactive "turn autocompletion on later" command — rerun `clispark` in a
+new directory if you want it.
