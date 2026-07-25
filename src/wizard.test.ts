@@ -256,10 +256,11 @@ describe('runWizard', () => {
       .mockResolvedValueOnce('private')
       .mockResolvedValueOnce(true)
       .mockResolvedValueOnce(false);
-    // Note: only 4 select() mocks -- no 5th one queued, proving the question was never asked
-    // (an un-consumed extra mock wouldn't catch a bug here; a MISSING one that gets consumed
-    // anyway would make vi.mocked(select) return undefined and the wizard would crash instead --
-    // that crash is the actual assertion this test relies on).
+    // Note: only 4 select() mocks -- no 5th one queued. If the guard were broken and a 5th
+    // select() call happened anyway, the mocked select() would return undefined (not a crash --
+    // isCancel() is mocked to always return false), which would fail both assertions below:
+    // autocompleteEnabled would be undefined (not false), and select would have been called 5
+    // times, not 4.
     vi.mocked(text).mockResolvedValueOnce('my-cli');
 
     const result = await runWizard({ languagePacks: { node: pack } });
