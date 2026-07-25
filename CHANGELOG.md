@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.21.0](https://github.com/martinwichner/clispark/compare/v1.20.0...v1.21.0) (2026-07-25)
+
+
+### Features
+
+* add task example cmdlets to PowerShell template ([5842585](https://github.com/martinwichner/clispark/commit/5842585a38f881c570e72dbb11f79c99d9f32f59))
+* add task example cmdlets to PowerShell template ([7cd0d18](https://github.com/martinwichner/clispark/commit/7cd0d186fb683919e4565696ff8a1721e42f94b6))
+
 ## [1.20.0](https://github.com/martinwichner/clispark/compare/v1.19.1...v1.20.0) (2026-07-25)
 
 
