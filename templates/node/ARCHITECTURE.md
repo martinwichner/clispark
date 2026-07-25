@@ -29,39 +29,40 @@ Every entry in a command's `static args` is built from `@oclif/core`'s `Args` he
 
 - **`Args.string()`** — plain text, no parsing/validation. The default choice.
   ```ts
-  title: Args.string({ description: 'Task title' })
+  title: Args.string({ description: 'Task title' });
   ```
 - **`Args.integer({ min?, max? })`** — parses digits into a real `number`, rejects non-numeric input, optional bounds.
   ```ts
-  id: Args.integer({ description: 'Task ID' })
+  id: Args.integer({ description: 'Task ID' });
   // `task complete abc` → "Expected an integer but received: abc"
   ```
 - **`Args.boolean()`** — parses into a real `boolean`. Any input is `true` except (case-insensitive) `0`, `false`, `n`, `no`, which parse to `false`.
   ```ts
-  done: Args.boolean({ description: 'Only completed tasks' })
+  done: Args.boolean({ description: 'Only completed tasks' });
   // `task list true` → done === true; `task list no` → done === false
   ```
 - **`Args.file({ exists? })`** / **`Args.directory({ exists? })`** — plain string path by default; with `exists: true`, verifies the path actually exists on disk (as a file/directory respectively) and throws otherwise.
   ```ts
-  config: Args.file({ exists: true, description: 'Path to a config file' })
+  config: Args.file({ exists: true, description: 'Path to a config file' });
   // missing file → "No file found at <path>"
   ```
 - **`Args.url()`** — parses into a real `URL` object, throws if the input isn't a valid URL.
   ```ts
-  endpoint: Args.url({ description: 'API endpoint' })
+  endpoint: Args.url({ description: 'API endpoint' });
   ```
 - **`Args.custom<T, Opts>({ parse })`** — build your own type when none of the above fit.
   ```ts
   const semver = Args.custom<string>({
     parse: async (input) => {
-      if (!/^\d+\.\d+\.\d+$/.test(input)) throw new Error(`Not a valid semver: ${input}`);
+      if (!/^\d+\.\d+\.\d+$/.test(input))
+        throw new Error(`Not a valid semver: ${input}`);
       return input;
     },
   });
   ```
 - **`options: [...]`** — a cross-cutting constraint any arg type can add (not a type itself): restricts input to a fixed list of values.
   ```ts
-  priority: Args.string({ options: ['low', 'medium', 'high'] })
+  priority: Args.string({ options: ['low', 'medium', 'high'] });
   // `task <title> urgent` → "Expected urgent to be one of: low, medium, high"
   ```
 
@@ -73,7 +74,7 @@ Flags (`--name`/`-n`) are `@oclif/core`'s other input mechanism, declared in `st
 
 - **`Flags.boolean()`** — presence-based: passing the flag sets it to `true`, omitting it leaves it `undefined`.
   ```ts
-  done: Flags.boolean({ description: 'Only show completed tasks' })
+  done: Flags.boolean({ description: 'Only show completed tasks' });
   // `task list --done` → done === true; omitted → done === undefined
   ```
 - Flags otherwise mirror the `Args` catalogue above (`Flags.string()`, `Flags.integer()`, `options: [...]`, etc.) — the choice between an arg and a flag is about calling convention (positional vs. named), not available types.
@@ -98,3 +99,16 @@ A few things run automatically around every log call:
 ## Testing
 
 Tests use `@oclif/test`'s `runCommand()` helper and live next to the command they test (e.g. `src/commands/hello.test.ts`). Running `npm test` first runs a build (via the `pretest` script) — `runCommand()` reads compiled output from `dist/commands`, so a stale or missing build produces empty, unhelpful output instead of a clear error. Every command's `run()` must call `await this.parse(<CommandClass>)`, even with no flags/args, to avoid an oclif `UnparsedCommand` warning.
+
+## Lint Tooling
+
+If you answered "yes" to "Set up lint tooling?" during scaffolding, this project includes `eslint.config.js` (flat config, `@eslint/js` + `typescript-eslint` recommended rulesets), `.prettierrc`, and `.prettierignore` (excludes `.clispark/`, the tool's own generated manifest, from Prettier's formatting checks), plus `eslint-config-prettier` to keep ESLint out of Prettier's way on formatting-related rules. Run it with:
+
+```bash
+npm run lint    # eslint src bin
+npm run format  # prettier --write .
+```
+
+If you answered "no", none of this is present — no config files, no `lint`/`format` scripts, no eslint/prettier devDependencies.
+
+Either way, this choice is permanent and core-managed: `npx clispark update` keeps the lint config and its devDependency versions current for a project that opted in, and will never add any of it to a project that declined. There's no retroactive "turn lint tooling on later" command — rerun `clispark` in a new directory if you want it.

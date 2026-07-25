@@ -10,7 +10,9 @@ describe('createLogger', () => {
   let tmpRoot: string;
 
   beforeEach(async () => {
-    tmpRoot = await mkdtemp(path.join(tmpdir(), 'clispark-template-logger-test-'));
+    tmpRoot = await mkdtemp(
+      path.join(tmpdir(), 'clispark-template-logger-test-'),
+    );
   });
 
   afterEach(async () => {
@@ -151,7 +153,9 @@ describe('createLogger', () => {
   });
 
   it('streams log lines to stdout when DEBUG is set', async () => {
-    const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    const writeSpy = vi
+      .spyOn(process.stdout, 'write')
+      .mockImplementation(() => true);
     process.env.DEBUG = '1';
 
     try {
@@ -168,7 +172,9 @@ describe('createLogger', () => {
   });
 
   it('does not stream to stdout when DEBUG is unset', async () => {
-    const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    const writeSpy = vi
+      .spyOn(process.stdout, 'write')
+      .mockImplementation(() => true);
     delete process.env.DEBUG;
 
     const { logger } = createLogger('hello', tmpRoot);

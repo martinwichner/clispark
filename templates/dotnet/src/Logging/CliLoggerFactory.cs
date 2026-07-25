@@ -1,3 +1,4 @@
+using System.Globalization;
 using Serilog;
 using Serilog.Core;
 using Xdg.Directories;
@@ -17,17 +18,17 @@ public static class CliLoggerFactory
         Directory.CreateDirectory(logDir);
         SweepOldLogs(logDir);
 
-        var timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH-mm-ss-fffZ");
+        var timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH-mm-ss-fffZ", CultureInfo.InvariantCulture);
         var suffix = Guid.NewGuid().ToString("N")[..6];
         var logFilePath = Path.Combine(logDir, $"{commandName}-{timestamp}-{suffix}.log");
 
         var config = new LoggerConfiguration()
             .Enrich.With(new SensitivePropertyEnricher(SensitiveKeys))
-            .WriteTo.File(logFilePath);
+            .WriteTo.File(logFilePath, formatProvider: CultureInfo.InvariantCulture);
 
         if (Environment.GetEnvironmentVariable("DEBUG") is not null)
         {
-            config = config.WriteTo.Console();
+            config = config.WriteTo.Console(formatProvider: CultureInfo.InvariantCulture);
         }
 
         var logger = config.CreateLogger();

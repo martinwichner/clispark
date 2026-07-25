@@ -25,6 +25,8 @@
   "scripts": {
     "build": "tsup",
     "postbuild": "shx chmod +x bin/run.ts",
+    "format": "prettier --write .",
+    "lint": "eslint src bin",
     "pretest": "npm run build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
@@ -36,11 +38,16 @@
     "pino": "^9.6.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@oclif/test": "^4.0.0",
     "@types/node": "^24.0.0",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.9.6",
     "shx": "^0.3.4",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
+    "typescript-eslint": "^8.65.0",
     "vitest": "^4.1.10"
   }
 }

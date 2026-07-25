@@ -171,7 +171,9 @@ function mergeManifestFile(
 }
 
 export const powershellAdapter: UpdateAdapter = {
-  coreFilePaths: CORE_FILE_PATHS,
+  coreFilePaths() {
+    return CORE_FILE_PATHS;
+  },
 
   templateSourcePath(relativePath) {
     return relativePath === '.gitignore' ? 'gitignore' : relativePath;

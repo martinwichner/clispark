@@ -10,9 +10,13 @@ import { nodeOclifPack } from '../languages/packs/node-oclif';
 import { UserError } from '../errors';
 import type { UpdateAdapter } from './adapter';
 
-async function scaffoldFixture(tmpRoot: string, name: string): Promise<string> {
+async function scaffoldFixture(tmpRoot: string, name: string, options: { lintEnabled?: boolean } = {}): Promise<string> {
   const targetDir = path.join(tmpRoot, name);
-  await scaffoldProject({ projectName: name, targetDir }, nodeOclifPack, { runCommand: vi.fn(async () => {}) });
+  await scaffoldProject(
+    { projectName: name, targetDir, lintEnabled: options.lintEnabled },
+    nodeOclifPack,
+    { runCommand: vi.fn(async () => {}) },
+  );
   return targetDir;
 }
 
@@ -199,7 +203,7 @@ describe('updateProject', () => {
     // package-manifest field merging at all (some ecosystems, e.g. a bare
     // PowerShell module, may not have a meaningful "dependencies" concept).
     const fakeAdapter: UpdateAdapter = {
-      coreFilePaths: ['tsconfig.json'],
+      coreFilePaths: () => ['tsconfig.json'],
       templateSourcePath: (relativePath) => relativePath,
       manifestFileName: 'package.json',
       readManifestFile: async (dir) => JSON.parse(await readFile(path.join(dir, 'package.json'), 'utf8')),
@@ -229,6 +233,7 @@ describe('updateProject', () => {
         {
           generatorVersion: '0.0.1',
           language: 'fake-language',
+          lintEnabled: false,
           coreFiles: { 'tsconfig.json': tsconfigHash },
           coreDependencies: {},
           coreScripts: {},
@@ -253,6 +258,61 @@ describe('updateProject', () => {
     expect(newManifest?.coreDependencies).toEqual({});
     expect(newManifest?.coreScripts).toEqual({});
     expect(newManifest?.coreFields).toEqual({});
+  });
+
+  it('a project that opted into lint tooling gets its eslint devDependency version-bumped by update', async () => {
+    const targetDir = await scaffoldFixture(tmpRoot, 'lint-project', { lintEnabled: true });
+
+    const manifestPath = path.join(targetDir, '.clispark', 'manifest.json');
+    const oldManifest = JSON.parse(await readFile(manifestPath, 'utf8')) as Manifest;
+    const realCurrentEslintVersion = oldManifest.coreDependencies.eslint;
+    oldManifest.generatorVersion = '0.0.1';
+    oldManifest.coreDependencies.eslint = '^0.0.1-fake-old'; // fabricate a stale recorded version
+
+    const pkgPath = path.join(targetDir, 'package.json');
+    const pkg = JSON.parse(await readFile(pkgPath, 'utf8'));
+    pkg.devDependencies.eslint = '^0.0.1-fake-old'; // local file matches the fabricated old manifest -> "unmodified"
+    await writeFile(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+    await writeFile(manifestPath, JSON.stringify(oldManifest, null, 2) + '\n');
+
+    const result = await updateProject(targetDir, nodeOclifPack.updateAdapter, nodeOclifPack.templateDir, 'node', cleanGitDeps());
+
+    const eslintOutcome = result.dependencies.find((d) => d.key === 'eslint');
+    expect(eslintOutcome?.outcome).toBe('replaced');
+    const pkgAfter = JSON.parse(await readFile(pkgPath, 'utf8'));
+    expect(pkgAfter.devDependencies.eslint).toBe(realCurrentEslintVersion);
+  });
+
+  it('a project that declined lint tooling never gets eslint.config.js or eslint added by a later update', async () => {
+    const targetDir = await scaffoldFixture(tmpRoot, 'no-lint-project', { lintEnabled: false });
+
+    const manifestPath = path.join(targetDir, '.clispark', 'manifest.json');
+    const oldManifest = JSON.parse(await readFile(manifestPath, 'utf8')) as Manifest;
+    oldManifest.generatorVersion = '0.0.1';
+    await writeFile(manifestPath, JSON.stringify(oldManifest, null, 2) + '\n');
+
+    const result = await updateProject(targetDir, nodeOclifPack.updateAdapter, nodeOclifPack.templateDir, 'node', cleanGitDeps());
+
+    expect(result.files.find((f) => f.path === 'eslint.config.js')).toBeUndefined();
+    await expect(readFile(path.join(targetDir, 'eslint.config.js'), 'utf8')).rejects.toThrow();
+    expect(result.dependencies.find((d) => d.key === 'eslint')).toBeUndefined();
+  });
+
+  it('heals a legacy manifest (pre-#70, no lintEnabled field) to lintEnabled: false on disk after update', async () => {
+    const targetDir = await scaffoldFixture(tmpRoot, 'legacy-manifest-project');
+
+    const manifestPath = path.join(targetDir, '.clispark', 'manifest.json');
+    const oldManifest = JSON.parse(await readFile(manifestPath, 'utf8')) as Manifest;
+    oldManifest.generatorVersion = '0.0.1';
+    delete (oldManifest as Partial<Manifest>).lintEnabled;
+    await writeFile(manifestPath, JSON.stringify(oldManifest, null, 2) + '\n');
+    expect(JSON.parse(await readFile(manifestPath, 'utf8'))).not.toHaveProperty('lintEnabled');
+
+    const result = await updateProject(targetDir, nodeOclifPack.updateAdapter, nodeOclifPack.templateDir, 'node', cleanGitDeps());
+
+    expect(result.status).toBe('updated');
+    const manifestAfter = JSON.parse(await readFile(manifestPath, 'utf8'));
+    expect(manifestAfter).toHaveProperty('lintEnabled', false);
   });
 });
 

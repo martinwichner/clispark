@@ -16,7 +16,9 @@ describe('task', () => {
 
   it('rejects a priority outside the allowed values', async () => {
     const { error } = await runCommand('task "Buy milk" urgent');
-    expect(error?.message).toContain('Expected urgent to be one of: low, medium, high');
+    expect(error?.message).toContain(
+      'Expected urgent to be one of: low, medium, high',
+    );
   });
 
   it('requires a title', async () => {

@@ -75,3 +75,22 @@ A few things run automatically around every log call:
 ## Testing
 
 Tests use `xunit` and live in `tests/Cli.Tests.csproj` (a separate project referencing `src/Cli.csproj`, not colocated with the commands they test — the conventional .NET layout, unlike vitest's colocated `*.test.ts` files). A test exercises a command directly via `new SomeCommand().Build()` then `.Parse(args).Invoke(...)` — no process spawning needed. Remember the `EnableDefaultExceptionHandler = false` detail from "Error Handling" above when asserting on thrown exceptions.
+
+## Lint Tooling
+
+If you answered "yes" to "Set up lint tooling?" during scaffolding, `src/Cli.csproj` includes a `<PropertyGroup>` enabling the .NET SDK's built-in Roslyn analyzers — no new NuGet dependency:
+
+```xml
+<PropertyGroup>
+  <EnableNETAnalyzers>true</EnableNETAnalyzers>
+  <AnalysisLevel>latest</AnalysisLevel>
+  <AnalysisMode>Recommended</AnalysisMode>
+  <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+</PropertyGroup>
+```
+
+There's no separate lint command — analyzer warnings surface as part of a normal `dotnet build`. `AnalysisMode=Recommended` (over the SDK default `Default`) and `EnforceCodeStyleInBuild=true` (over the SDK default `false`, which otherwise confines code-style rules to the IDE) are what actually change build output; `EnableNETAnalyzers`/`AnalysisLevel` are already the `net10.0` SDK's own defaults and are listed here for explicitness.
+
+If you answered "no", this `<PropertyGroup>` isn't present, and `dotnet build` runs with only the SDK's own defaults.
+
+Either way, this choice is permanent and core-managed: `npx clispark update` keeps this block current for a project that opted in, and will never add it to a project that declined. There's no retroactive "turn lint tooling on later" command — rerun `clispark` in a new directory if you want it.

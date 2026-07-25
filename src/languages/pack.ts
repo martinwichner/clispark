@@ -35,4 +35,5 @@ export interface LanguagePack {
   readonly updateAdapter: UpdateAdapter;
   readonly registry: LanguageRegistry;
   readonly commandGenerator: CommandGenerator;
+  readonly stripLintTooling: (targetDir: string) => Promise<void>;
 }

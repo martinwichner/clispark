@@ -3,7 +3,8 @@ import { Args, Flags } from '@oclif/core';
 import { BaseCommand } from '../../base-command';
 
 export default class TaskList extends BaseCommand {
-  static description = 'List tasks (demonstrates an optional argument combined with a boolean flag)';
+  static description =
+    'List tasks (demonstrates an optional argument combined with a boolean flag)';
   static examples = [
     {
       command: '<%= config.bin %> task list',
@@ -19,7 +20,10 @@ export default class TaskList extends BaseCommand {
     },
   ];
   static args = {
-    filter: Args.string({ required: false, description: 'Optional filter term' }),
+    filter: Args.string({
+      required: false,
+      description: 'Optional filter term',
+    }),
   };
   static flags = {
     done: Flags.boolean({ description: 'Only show completed tasks' }),
@@ -27,7 +31,9 @@ export default class TaskList extends BaseCommand {
 
   async run(): Promise<void> {
     const { args, flags } = await this.parse(TaskList);
-    const base = args.filter ? `Listing tasks matching "${args.filter}"` : 'Listing all tasks';
+    const base = args.filter
+      ? `Listing tasks matching "${args.filter}"`
+      : 'Listing all tasks';
     this.log(flags.done ? `${base} (completed only: true)` : base);
   }
 }

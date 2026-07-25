@@ -34,4 +34,5 @@ export const powershellPack: LanguagePack = {
     applyRegistryUrl: powershellGalleryRegistryChecker.applyRegistryUrl,
   },
   commandGenerator: powershellCommandGenerator,
+  stripLintTooling: async () => {},
 };

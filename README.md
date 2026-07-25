@@ -12,7 +12,7 @@ Interactive scaffolding tool for new CLI projects. Run `npx clispark` to generat
 npx clispark
 ```
 
-Answer four prompts — project name, work/private profile, an optional private registry URL (for "work"), and whether you plan to publish to npm — and clispark scaffolds a new directory, running `git init`, `npm install`, and `npm run build` for you. Thirty seconds later:
+Answer five prompts — project name, work/private profile, an optional private registry URL (for "work"), whether you plan to publish to npm, and whether to set up lint tooling — and clispark scaffolds a new directory, running `git init`, `npm install`, and `npm run build` for you. Thirty seconds later:
 
 ```bash
 cd my-cli
@@ -44,6 +44,7 @@ The wizard asks:
 2. **Profile** — `work` or `private`. `work` unlocks an optional registry URL prompt.
 3. **Registry URL** (work profile only) — leave empty for the public npm registry, or point at a private/company registry. If set, an `.npmrc` is generated so every future `npm install` in the project uses it automatically.
 4. **Publish to npm?** (default: No) — if yes, the project name is checked for availability against the target npm registry, and a taken name prompts you to try another instead of blocking hard. If no, the check is skipped entirely and the generated `package.json` is marked `"private": true`, so an accidental `npm publish` refuses to run.
+5. **Set up lint tooling?** (default: No) — if yes, the generated project gets a working ESLint + Prettier setup (Node) or the .NET SDK's built-in Roslyn analyzers enabled via `.csproj` properties (.NET), and `npx clispark update` keeps it current afterwards. If no, none of it is scaffolded, and `update` never adds it later.
 
 Scaffolding then happens automatically: files are copied, `git init` plus an initial commit run, and `npm install && npm run build` leave you with a directly runnable project.
 

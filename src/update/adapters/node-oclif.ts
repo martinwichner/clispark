@@ -2,8 +2,9 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { Manifest } from '../manifest';
-import type { CoreFieldsExtraction, ManifestFileMergeResult, UpdateAdapter } from '../adapter';
+import type { CoreFieldsExtraction, CoreFilePathsFlags, ManifestFileMergeResult, UpdateAdapter } from '../adapter';
 import { deepEquals, reconcileEntry, stringEquals, type FieldOutcome } from '../reconcile';
+import { LINT_SCRIPT_NAMES, LINT_DEPENDENCY_NAMES } from '../../languages/lint-support/node';
 
 export const CORE_FILE_PATHS = [
   'bin/run.ts',
@@ -41,11 +42,15 @@ function currentDependencyValue(
   return undefined;
 }
 
-function extractCoreFields(pkg: PackageJsonShape): CoreFieldsExtraction {
+function extractCoreFields(pkg: PackageJsonShape, flags: CoreFilePathsFlags): CoreFieldsExtraction {
+  // coreDependencies stays exactly as-is: it's derived from whatever's actually present in pkg,
+  // which stripLintTooling already made conditional at scaffold time -- no extra gating needed
+  // here specifically (see spec review point 3 for why the *reconciliation* side, below, does).
   const coreDependencies = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
 
+  const scriptNames = flags.lintEnabled ? [...CORE_SCRIPT_NAMES, ...LINT_SCRIPT_NAMES] : CORE_SCRIPT_NAMES;
   const coreScripts: Record<string, string> = {};
-  for (const name of CORE_SCRIPT_NAMES) {
+  for (const name of scriptNames) {
     const value = pkg.scripts?.[name];
     if (value !== undefined) coreScripts[name] = value;
   }
@@ -70,10 +75,11 @@ function mergePackageJson(
 
   const dependencies: FieldOutcome[] = [];
   const coreDependencies: Record<string, string> = {};
-  const dependencyNames = new Set([
-    ...Object.keys(newTemplatePkg.dependencies ?? {}),
-    ...Object.keys(newTemplatePkg.devDependencies ?? {}),
-  ]);
+  const dependencyNames = new Set(
+    [...Object.keys(newTemplatePkg.dependencies ?? {}), ...Object.keys(newTemplatePkg.devDependencies ?? {})].filter(
+      (name) => oldManifest.lintEnabled || !(LINT_DEPENDENCY_NAMES as readonly string[]).includes(name),
+    ),
+  );
 
   for (const name of dependencyNames) {
     const inNewDependencies = newTemplatePkg.dependencies?.[name] !== undefined;
@@ -95,7 +101,8 @@ function mergePackageJson(
   const scripts: FieldOutcome[] = [];
   const coreScripts: Record<string, string> = {};
 
-  for (const name of CORE_SCRIPT_NAMES) {
+  const scriptNames = oldManifest.lintEnabled ? [...CORE_SCRIPT_NAMES, ...LINT_SCRIPT_NAMES] : CORE_SCRIPT_NAMES;
+  for (const name of scriptNames) {
     const newValue = newTemplatePkg.scripts?.[name];
     if (newValue === undefined) continue;
     const currentValue = currentPkg.scripts?.[name];
@@ -157,7 +164,11 @@ function mergePackageJson(
 }
 
 export const nodeOclifAdapter: UpdateAdapter = {
-  coreFilePaths: CORE_FILE_PATHS,
+  coreFilePaths(flags) {
+    return flags.lintEnabled
+      ? [...CORE_FILE_PATHS, 'eslint.config.js', '.prettierrc', '.prettierignore']
+      : CORE_FILE_PATHS;
+  },
 
   templateSourcePath(relativePath) {
     return relativePath === '.gitignore' ? 'gitignore' : relativePath;
@@ -182,8 +193,8 @@ export const nodeOclifAdapter: UpdateAdapter = {
     return (manifestFile as PackageJsonShape).name;
   },
 
-  extractCoreFields(manifestFile) {
-    return extractCoreFields(manifestFile as PackageJsonShape);
+  extractCoreFields(manifestFile, flags) {
+    return extractCoreFields(manifestFile as PackageJsonShape, flags);
   },
 
   mergeManifestFile(current, oldManifest, newTemplate) {
