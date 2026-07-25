@@ -175,13 +175,25 @@ function mergeManifestFile(
       const newValue = newTemplate.analyzerProperties[name];
       if (newValue === undefined) continue;
       const currentValue = current.analyzerProperties[name];
-      const oldValue = oldCoreFields[name];
 
+      // A hand-edited/partially-reverted .csproj can be missing one (or all) of the four
+      // analyzer tags even though the project is opted in (oldManifest.lintEnabled). Unlike
+      // PackageReference, this adapter has no insertion path for a missing analyzer tag, so
+      // reconcileEntry's `currentValue === undefined` -> 'added' branch would be a lie here:
+      // nothing gets written to the file. Treat it as a no-op instead -- report 'skipped' (which
+      // formatUpdateSummary already omits from the printed summary) and leave coreFields alone
+      // so the manifest only ever records values that actually exist on disk.
+      if (currentValue === undefined) {
+        fields.push({ key: name, outcome: 'skipped' });
+        continue;
+      }
+
+      const oldValue = oldCoreFields[name];
       const result = reconcileEntry(currentValue, oldValue, newValue, stringEquals);
       fields.push({ key: name, outcome: result.outcome });
       coreFields[name] = result.value;
 
-      if (result.outcome !== 'skipped' && result.value !== currentValue && currentValue !== undefined) {
+      if (result.outcome !== 'skipped' && result.value !== currentValue) {
         changed = true;
         raw = setTag(raw, name, result.value);
       }

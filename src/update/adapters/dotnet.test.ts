@@ -264,6 +264,40 @@ describe('dotnetAdapter lint-tooling reconciliation (real scaffold + update)', (
     expect(csprojAfter).toContain(`<AnalysisMode>${realCurrentAnalysisMode}</AnalysisMode>`);
   });
 
+  it('an opted-in project whose .csproj is missing an analyzer tag entirely reports a no-op instead of a phantom write', async () => {
+    const targetDir = await scaffoldFixture(tmpRoot, 'lint-dotnet-missing-tag-project', { lintEnabled: true });
+
+    const manifestPath = path.join(targetDir, '.clispark', 'manifest.json');
+    const oldManifest = JSON.parse(await readFile(manifestPath, 'utf8')) as Manifest;
+    oldManifest.generatorVersion = '0.0.1';
+    await writeFile(manifestPath, JSON.stringify(oldManifest, null, 2) + '\n');
+
+    const csprojPath = path.join(targetDir, 'src', 'Cli.csproj');
+    const csproj = await readFile(csprojPath, 'utf8');
+    // Simulate a hand-edit/partial-revert that dropped just the <AnalysisMode> tag while
+    // leaving the other three analyzer tags -- and the manifest's lintEnabled: true -- intact.
+    const tampered = csproj.replace(/[ \t]*<AnalysisMode>[^<]*<\/AnalysisMode>\r?\n/, '');
+    expect(tampered).not.toContain('<AnalysisMode>');
+    await writeFile(csprojPath, tampered);
+
+    const result = await updateProject(targetDir, dotnetPack.updateAdapter, dotnetPack.templateDir, 'dotnet', cleanGitDeps());
+
+    // Must not claim a write happened: reconcileEntry's "currentValue === undefined" branch
+    // reports 'added', but this adapter has no insertion path for a missing analyzer tag.
+    const analysisModeOutcome = result.fields.find((f) => f.key === 'AnalysisMode');
+    expect(analysisModeOutcome?.outcome).toBe('skipped');
+
+    // The file itself must be left untouched -- no phantom tag written back in.
+    const csprojAfter = await readFile(csprojPath, 'utf8');
+    expect(csprojAfter).not.toContain('<AnalysisMode>');
+
+    // The manifest must not record a value for a tag that doesn't actually exist on disk.
+    const manifestAfter = JSON.parse(await readFile(manifestPath, 'utf8')) as Manifest;
+    expect((manifestAfter.coreFields as Record<string, unknown>).AnalysisMode).toBeUndefined();
+    // The other, untouched analyzer properties should still reconcile normally.
+    expect((manifestAfter.coreFields as Record<string, unknown>).EnableNETAnalyzers).toBeDefined();
+  });
+
   it('a project that declined lint tooling never gains the analyzer PropertyGroup from a later update', async () => {
     const targetDir = await scaffoldFixture(tmpRoot, 'no-lint-dotnet-project', { lintEnabled: false });
 
