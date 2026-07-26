@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.23.1](https://github.com/martinwichner/clispark/compare/v1.23.0...v1.23.1) (2026-07-26)
+
+
+### Bug Fixes
+
+* upgrade @clack/prompts to fix TTY crash in Git Bash on Windows ([#118](https://github.com/martinwichner/clispark/issues/118)) ([e1375da](https://github.com/martinwichner/clispark/commit/e1375dafe7adfb13e745ac8f8affa9d3487342ae))
+
 ## [1.23.0](https://github.com/martinwichner/clispark/compare/v1.22.0...v1.23.0) (2026-07-26)
 
 
