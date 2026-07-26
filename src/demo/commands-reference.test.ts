@@ -30,12 +30,20 @@ describe('runCommandsReference', () => {
     const { note } = await import('@clack/prompts');
     const { runCommandsReference } = await import('./commands-reference');
     const program = new Command();
-    program.command('whoami').description('A little something extra');
+    program.command('whoami').description('A little something extra').option('--joke', 'Always show a joke');
 
     await runCommandsReference(program);
 
-    const titles = vi.mocked(note).mock.calls.map(([, title]) => title);
+    const calls = vi.mocked(note).mock.calls;
+    const titles = calls.map(([, title]) => title);
     expect(titles).toContain('clispark (default action)');
     expect(titles).toContain('clispark whoami');
+
+    // Verify the flag actually appears in the rendered content for whoami
+    const whoamiCall = calls.find(([, title]) => title === 'clispark whoami');
+    expect(whoamiCall).toBeDefined();
+    const whoamiContent = whoamiCall?.[0];
+    expect(whoamiContent).toContain('--joke');
+    expect(whoamiContent).toContain('Always show a joke');
   });
 });
