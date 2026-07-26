@@ -7,7 +7,7 @@ import { nugetRegistryChecker, NUGET_DEFAULT_REGISTRY_URL } from '../registry-ch
 import { dotnetCommandGenerator } from '../command-generators/dotnet';
 import { stripLintTooling } from '../lint-support/dotnet';
 
-function validateProjectName(value: string): string | undefined {
+function validateProjectName(value: string | undefined): string | undefined {
   if (!value || value.trim().length === 0) return 'Project name is required.';
   if (!/^[A-Z][A-Za-z0-9]*$/.test(value)) {
     return 'Use PascalCase, starting with an uppercase letter (e.g. MyTool).';

@@ -6,7 +6,7 @@ import { powershellAdapter } from '../../update/adapters/powershell';
 import { powershellGalleryRegistryChecker, POWERSHELL_GALLERY_DEFAULT_URL } from '../registry-checkers/powershell-gallery';
 import { powershellCommandGenerator } from '../command-generators/powershell';
 
-function validateProjectName(value: string): string | undefined {
+function validateProjectName(value: string | undefined): string | undefined {
   if (!value || value.trim().length === 0) return 'Project name is required.';
   if (!/^[A-Z][A-Za-z0-9]*$/.test(value)) {
     return 'Use PascalCase, starting with an uppercase letter (e.g. MyTool).';

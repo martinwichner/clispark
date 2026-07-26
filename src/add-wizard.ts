@@ -90,7 +90,7 @@ async function collectParameters(): Promise<ParameterSpec[]> {
     const nameValue = await text({
       message: 'Parameter name',
       validate: (value) => {
-        if (!/^[a-z][a-zA-Z0-9]*$/.test(value)) return 'Use a single word starting with a lowercase letter.';
+        if (!value || !/^[a-z][a-zA-Z0-9]*$/.test(value)) return 'Use a single word starting with a lowercase letter.';
         if (parameters.some((p) => p.name === value)) return 'A parameter with this name already exists.';
         return undefined;
       },
@@ -129,7 +129,7 @@ async function collectParameters(): Promise<ParameterSpec[]> {
       const valuesInput = await text({
         message: 'Allowed values (comma-separated)',
         validate: (value) => {
-          const values = value
+          const values = (value ?? '')
             .split(',')
             .map((v) => v.trim())
             .filter(Boolean);
@@ -169,7 +169,7 @@ export async function runAddWizard(targetDir: string, deps: AddWizardDeps): Prom
     const nameValue = await text({
       message: 'Command name',
       validate: (value) => {
-        if (!/^[a-z][a-zA-Z0-9]*$/.test(value)) return 'Use a single word starting with a lowercase letter.';
+        if (!value || !/^[a-z][a-zA-Z0-9]*$/.test(value)) return 'Use a single word starting with a lowercase letter.';
         const fullPath = [...pathSegments, value].join(' ');
         if (existingPaths.has(fullPath)) return `"${fullPath}" already exists.`;
         return undefined;
