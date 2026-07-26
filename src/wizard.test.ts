@@ -14,7 +14,7 @@ vi.mock('@clack/prompts', () => ({
 }));
 
 import { text, select, log } from '@clack/prompts';
-import { runWizard } from './wizard';
+import { runWizard, WIZARD_QUESTION_CATALOG } from './wizard';
 
 const fakeUpdateAdapter: LanguagePack['updateAdapter'] = {
   coreFilePaths: () => [],
@@ -267,5 +267,32 @@ describe('runWizard', () => {
 
     expect(result.autocompleteEnabled).toBe(false);
     expect(select).toHaveBeenCalledTimes(4);
+  });
+});
+
+describe('WIZARD_QUESTION_CATALOG regression guard', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('matches the number of real prompts a maximal-branch wizard run actually makes', async () => {
+    const checkNameAvailability = vi.fn<(name: string, registryUrl: string) => Promise<NameCheckResult>>();
+    const pack = fakePack(checkNameAvailability, { supportsAutocompleteOptIn: true });
+
+    vi.mocked(select)
+      .mockResolvedValueOnce('node') // language
+      .mockResolvedValueOnce('work') // profile
+      .mockResolvedValueOnce(false) // publishIntent -- false deliberately avoids the name-retry loop, which isn't a distinct catalog question
+      .mockResolvedValueOnce(true) // lintEnabled
+      .mockResolvedValueOnce(true); // autocompleteEnabled
+    vi.mocked(text)
+      .mockResolvedValueOnce('my-cli') // projectName
+      .mockResolvedValueOnce('https://registry.example.com'); // registryUrl, only asked because profile is 'work'
+
+    await runWizard({ languagePacks: { node: pack } });
+
+    const totalPromptCalls = vi.mocked(select).mock.calls.length + vi.mocked(text).mock.calls.length;
+    expect(totalPromptCalls).toBe(WIZARD_QUESTION_CATALOG.length);
+    expect(checkNameAvailability).not.toHaveBeenCalled();
   });
 });

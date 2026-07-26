@@ -131,3 +131,57 @@ export async function runWizard(deps: WizardDeps = defaultDeps): Promise<WizardA
     autocompleteEnabled,
   };
 }
+
+export interface WizardQuestionCatalogEntry {
+  id: string;
+  prompt: string;
+  why: string;
+}
+
+// Read by `clispark demo`'s wizard-flags reference mode (src/demo/wizard-flags-reference.ts).
+// This is a deliberate, colocated-but-manually-maintained list, not automatic introspection --
+// wizard.ts's control flow is sequential and conditionally branching, not a declarative array.
+// When you add a new wizard question here, add its entry below too -- src/wizard.test.ts has a
+// regression test that runs the real wizard and checks the prompt count against this array's
+// length, so a forgotten entry (or a removed question left behind here) fails that test.
+//
+// When clispark issue #80 (command-convention enforcement) ships, it adds a new
+// `commandConventionEnabled` wizard question (only asked when `lintEnabled` is true) --
+// add its entry here too if this feature (#120) shipped first.
+export const WIZARD_QUESTION_CATALOG: WizardQuestionCatalogEntry[] = [
+  {
+    id: 'language',
+    prompt: 'Which language?',
+    why: 'Picks which LanguagePack scaffolds the project — Node/oclif, .NET/System.CommandLine, or PowerShell. Everything downstream (registry, lint tooling, autocompletion) adapts to this choice.',
+  },
+  {
+    id: 'projectName',
+    prompt: 'Project name',
+    why: 'Becomes the package/tool name and the directory clispark scaffolds into. Validated per-language (lowercase-hyphenated for Node, PascalCase for .NET).',
+  },
+  {
+    id: 'profile',
+    prompt: 'Is this a work or private project?',
+    why: '"work" unlocks a custom registry URL question next, for projects that need to publish to a private company registry instead of the public one.',
+  },
+  {
+    id: 'registryUrl',
+    prompt: 'Custom registry URL (e.g. "Custom npm registry URL (leave empty for npmjs.org)")',
+    why: 'Only asked if you chose a work project. Defaults to the public registry (npmjs.org / nuget.org) if left empty.',
+  },
+  {
+    id: 'publishIntent',
+    prompt: 'Do you plan to publish this?',
+    why: 'If yes, clispark checks your chosen project name is actually available on the registry before scaffolding, and lets you pick a different name if it is taken.',
+  },
+  {
+    id: 'lintEnabled',
+    prompt: 'Set up lint tooling?',
+    why: 'Opt-in ESLint + Prettier (Node) or broadened Roslyn analyzers (.NET), tracked as core-managed so `clispark update` keeps it current. Declined by default so a minimal scaffold stays minimal.',
+  },
+  {
+    id: 'autocompleteEnabled',
+    prompt: 'Set up shell autocompletion?',
+    why: 'Only asked for languages that need it (Node) — .NET and PowerShell already have working tab-completion built in with nothing to configure. Wires up @oclif/plugin-autocomplete when accepted.',
+  },
+];
