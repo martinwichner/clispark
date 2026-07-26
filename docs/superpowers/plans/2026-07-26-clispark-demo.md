@@ -14,7 +14,7 @@
 - `@clack/prompts@0.9.1` (installed) exports `note`, `log`, `spinner` — none of which this codebase uses yet (only `intro`/`outro`/`select`/`text`/`log`/`isCancel`/`cancel` are used today) — confirmed via `Object.keys()` on the installed package.
 - `wizard.ts`'s real question order (confirmed by reading the file): language (select) → projectName (text) → profile (select) → registryUrl (text, only if `profile === 'work'`) → publishIntent (select) → lintEnabled (select) → autocompleteEnabled (select, only if `pack.supportsAutocompleteOptIn`). With `publishIntent: false`, `checkNameAvailability` is never called (no retry loop).
 
-**New finding, resolved in this plan (not covered by the spec):** wiring `.command('demo')` inside `createProgram()` needs a reference to the `program` instance being built, for the commands-reference mode — but `demo/index.ts` (which needs `Command` for that mode) must not import `createProgram` from `program.ts`, or `program.ts` importing `runDemo` from `demo/index.ts` would create a circular import. **Resolution:** `program.ts` passes its own in-progress `program` variable into the demo action via closure (`.action(() => withLogging('demo', (logger) => runDemo(logger, program))())`) — by the time the action actually runs (during `.parseAsync()`, always after `createProgram()` has fully returned), `program.commands` is completely populated, including `demo` itself. `demo/index.ts` and `commands-reference.ts` only ever accept a `Command` parameter; neither imports `program.ts`.
+**New finding, resolved in this plan (not covered by the spec):** wiring `.command('demo')` inside `createProgram()` needs a reference to the `program` instance being built, for the commands-reference mode — but `demo/index.ts` (which needs `Command` for that mode) must not import `createProgram` from `program.ts`, or `program.ts` importing `runDemo` from `demo/index.ts` would create a circular import. **Resolution:** `program.ts` passes its own in-progress `program` variable into the demo action via closure (`.action(() => withLogging('demo', () => runDemo(program))())`) — by the time the action actually runs (during `.parseAsync()`, always after `createProgram()` has fully returned), `program.commands` is completely populated, including `demo` itself. `demo/index.ts` and `commands-reference.ts` only ever accept a `Command` parameter; neither imports `program.ts`. (`runDemo` doesn't need clispark's `Logger` at all — unlike `whoami`/`hook`, it has nothing of its own to log — so it isn't threaded through, which also sidesteps this repo's `@typescript-eslint/no-unused-vars` rule flagging an unused parameter; verified empirically against this repo's `eslint.config.ts`, which has no `argsIgnorePattern` for underscore-prefixed names.)
 
 ## Global Constraints
 
@@ -796,7 +796,7 @@ git commit -m "feat: add real, narrated Node scaffold walkthrough for clispark d
 
 **Interfaces:**
 - Consumes: `runFullWalkthrough` (Task 5), `runCommandsReference` (Task 3), `runWizardFlagsReference` (Task 4).
-- Produces: `runDemo(logger: Logger, program: Command): Promise<void>`.
+- Produces: `runDemo(program: Command): Promise<void>`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -805,7 +805,6 @@ git commit -m "feat: add real, narrated Node scaffold walkthrough for clispark d
 ```ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Command } from 'commander';
-import type { Logger } from 'pino';
 
 vi.mock('@clack/prompts', () => ({
   intro: vi.fn(),
@@ -817,8 +816,6 @@ vi.mock('@clack/prompts', () => ({
 vi.mock('./full-walkthrough', () => ({ runFullWalkthrough: vi.fn() }));
 vi.mock('./commands-reference', () => ({ runCommandsReference: vi.fn() }));
 vi.mock('./wizard-flags-reference', () => ({ runWizardFlagsReference: vi.fn() }));
-
-const fakeLogger = {} as Logger;
 
 describe('runDemo', () => {
   beforeEach(() => {
@@ -833,7 +830,7 @@ describe('runDemo', () => {
     const { runDemo } = await import('./index');
     vi.mocked(select).mockResolvedValueOnce('full');
 
-    await runDemo(fakeLogger, new Command());
+    await runDemo(new Command());
 
     expect(runFullWalkthrough).toHaveBeenCalledOnce();
     expect(runCommandsReference).not.toHaveBeenCalled();
@@ -847,7 +844,7 @@ describe('runDemo', () => {
     const program = new Command();
     vi.mocked(select).mockResolvedValueOnce('commands');
 
-    await runDemo(fakeLogger, program);
+    await runDemo(program);
 
     expect(runCommandsReference).toHaveBeenCalledWith(program);
   });
@@ -858,7 +855,7 @@ describe('runDemo', () => {
     const { runDemo } = await import('./index');
     vi.mocked(select).mockResolvedValueOnce('flags');
 
-    await runDemo(fakeLogger, new Command());
+    await runDemo(new Command());
 
     expect(runWizardFlagsReference).toHaveBeenCalledOnce();
   });
@@ -875,7 +872,6 @@ Expected: FAIL — `./index` doesn't exist yet.
 ```ts
 // src/demo/index.ts
 import type { Command } from 'commander';
-import type { Logger } from 'pino';
 import { intro, outro, select, isCancel, cancel } from '@clack/prompts';
 import { runFullWalkthrough } from './full-walkthrough';
 import { runCommandsReference } from './commands-reference';
@@ -888,7 +884,7 @@ function exitIfCancelled(value: unknown): void {
   }
 }
 
-export async function runDemo(_logger: Logger, program: Command): Promise<void> {
+export async function runDemo(program: Command): Promise<void> {
   intro('clispark demo');
 
   const mode = await select({
@@ -925,7 +921,7 @@ import { runDemo } from './demo';
   program
     .command('demo')
     .description('Interactive walkthrough of clispark: commands, wizard flags, and a live example scaffold')
-    .action(() => withLogging('demo', (logger) => runDemo(logger, program))());
+    .action(() => withLogging('demo', () => runDemo(program))());
 
   return program;
 ```
