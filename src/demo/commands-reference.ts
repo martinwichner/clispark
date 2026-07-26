@@ -17,7 +17,7 @@ const ROOT_ACTION_DESCRIPTION =
   'The default action — no subcommand needed. Runs the interactive wizard, then scaffolds a new project ' +
   'in a directory named after your answers.';
 
-const ROOT_GLOBAL_FLAGS: CommandFlagInfo[] = [
+export const ROOT_GLOBAL_FLAGS: CommandFlagInfo[] = [
   { flags: '--no-confetti', description: 'Skip the confetti after a successful run' },
   { flags: '--no-hook', description: 'Skip the post-scaffold hook, even if one is configured' },
 ];

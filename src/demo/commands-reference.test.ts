@@ -1,5 +1,18 @@
 import { describe, it, expect, vi } from 'vitest';
 import { Command } from 'commander';
+import { createProgram } from '../program';
+
+describe('ROOT_GLOBAL_FLAGS', () => {
+  it('stays in sync with the real root-level options', async () => {
+    const { ROOT_GLOBAL_FLAGS } = await import('./commands-reference');
+    const program = createProgram();
+    const realRootFlags = program.options
+      .map((opt) => opt.flags)
+      .filter((flags) => flags !== '-V, --version');
+    const documentedFlags = ROOT_GLOBAL_FLAGS.map((f) => f.flags);
+    expect(documentedFlags).toEqual(realRootFlags);
+  });
+});
 
 describe('collectCommandInfo', () => {
   it('reads name, description, and options off each registered subcommand', async () => {
