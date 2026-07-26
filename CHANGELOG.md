@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.23.0](https://github.com/martinwichner/clispark/compare/v1.22.0...v1.23.0) (2026-07-26)
+
+
+### Features
+
+* add clispark demo menu, wire into the CLI, document in README ([d8df445](https://github.com/martinwichner/clispark/commit/d8df445f8a64b69b6da5134c17e2ba29e9bc701d))
+* add live-introspected commands reference for clispark demo ([ae67095](https://github.com/martinwichner/clispark/commit/ae67095feab4aaa9309f4f63cda6bb89b979d32d))
+* add real, narrated Node scaffold walkthrough for clispark demo ([ef45102](https://github.com/martinwichner/clispark/commit/ef45102123ec907a3aeb38c6549d6b0eadda158f))
+* add wizard flags reference for clispark demo ([62cfbe7](https://github.com/martinwichner/clispark/commit/62cfbe775230cb547cc8c58c8f7a88a8e3cb1b2e))
+* add WIZARD_QUESTION_CATALOG with a drift-detection regression test ([8bdf5b9](https://github.com/martinwichner/clispark/commit/8bdf5b92d56afeab16a61051ea5461bd574ba964))
+
+
+### Bug Fixes
+
+* address final-review findings for clispark demo (root-flags drift guard, header comments, test rigor) ([277cf81](https://github.com/martinwichner/clispark/commit/277cf81f41e2a90a8f64626ac4312f6795239140))
+
 ## [1.22.0](https://github.com/martinwichner/clispark/compare/v1.21.0...v1.22.0) (2026-07-25)
 
 
