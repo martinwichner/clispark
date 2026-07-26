@@ -46,6 +46,8 @@ describe('runDemo', () => {
 
   it('dispatches to the wizard flags reference when chosen', async () => {
     const { select } = await import('@clack/prompts');
+    const { runFullWalkthrough } = await import('./full-walkthrough');
+    const { runCommandsReference } = await import('./commands-reference');
     const { runWizardFlagsReference } = await import('./wizard-flags-reference');
     const { runDemo } = await import('./index');
     vi.mocked(select).mockResolvedValueOnce('flags');
@@ -53,5 +55,7 @@ describe('runDemo', () => {
     await runDemo(new Command());
 
     expect(runWizardFlagsReference).toHaveBeenCalledOnce();
+    expect(runFullWalkthrough).not.toHaveBeenCalled();
+    expect(runCommandsReference).not.toHaveBeenCalled();
   });
 });

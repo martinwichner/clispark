@@ -1,3 +1,4 @@
+// src/cli.ts
 import { createProgram } from './program';
 
 createProgram()

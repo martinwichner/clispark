@@ -1,3 +1,4 @@
+// src/demo/index.ts
 import type { Command } from 'commander';
 import { intro, outro, select, isCancel, cancel } from '@clack/prompts';
 import { runFullWalkthrough } from './full-walkthrough';

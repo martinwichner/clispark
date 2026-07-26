@@ -33,7 +33,7 @@ describe('runFullWalkthrough', () => {
 
   it('falls back to a static description and still cleans up when the real scaffold throws', async () => {
     const scaffoldModule = await import('../scaffold');
-    const { log } = await import('@clack/prompts');
+    const { log, note } = await import('@clack/prompts');
     vi.spyOn(scaffoldModule, 'scaffoldProject').mockRejectedValueOnce(new Error('disk full'));
     const { runFullWalkthrough } = await import('./full-walkthrough');
     const before = listDemoTempDirs();
@@ -41,6 +41,8 @@ describe('runFullWalkthrough', () => {
     await expect(runFullWalkthrough()).resolves.toBeUndefined();
 
     expect(vi.mocked(log.warn)).toHaveBeenCalledOnce();
+    const titles = vi.mocked(note).mock.calls.map(([, title]) => title);
+    expect(titles).toContain('What would happen');
     expect(listDemoTempDirs()).toEqual(before);
   });
 });
