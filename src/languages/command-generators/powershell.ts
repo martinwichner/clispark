@@ -129,7 +129,7 @@ async function promptCommandIdentity(_pathSegments: string[], existingPaths: Set
   const nounValue = await text({
     message: 'Noun',
     validate: (value) => {
-      if (!/^[A-Z][A-Za-z0-9]*$/.test(value)) return 'Use PascalCase, starting with an uppercase letter (e.g. TaskList).';
+      if (!value || !/^[A-Z][A-Za-z0-9]*$/.test(value)) return 'Use PascalCase, starting with an uppercase letter (e.g. TaskList).';
       const fullName = `${verbValue as string}-${value}`;
       if (existingPaths.has(fullName)) return `"${fullName}" already exists.`;
       return undefined;

@@ -31,7 +31,7 @@ export interface LanguagePack {
   readonly displayName: string;
   readonly templateDir: string;
   readonly scaffoldCommands: readonly ScaffoldCommand[];
-  validateProjectName(value: string): string | undefined;
+  validateProjectName(value: string | undefined): string | undefined;
   readonly updateAdapter: UpdateAdapter;
   readonly registry: LanguageRegistry;
   readonly commandGenerator: CommandGenerator;

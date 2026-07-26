@@ -212,7 +212,9 @@ describe('runAddWizard', () => {
       .mocked(text)
       .mock.calls.find((call) => call[0]?.message === 'Allowed values (comma-separated)');
     expect(allowedValuesCall).toBeDefined();
-    const validate = allowedValuesCall![0].validate!;
+    // clispark always passes a plain validate function (never a Standard Schema object), so this
+    // narrows the union clack's Validate<T> type now allows since v1.
+    const validate = allowedValuesCall![0].validate as (value: string | undefined) => string | undefined;
 
     // Unsafe: contains a single quote.
     expect(validate("fast, sl'ow")).toEqual(expect.stringContaining('sl\'ow'));

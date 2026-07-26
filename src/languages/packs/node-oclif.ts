@@ -8,7 +8,7 @@ import { nodeOclifCommandGenerator } from '../command-generators/node-oclif';
 import { stripLintTooling } from '../lint-support/node';
 import { stripAutocompleteSupport } from '../autocomplete-support/node';
 
-function validateProjectName(value: string): string | undefined {
+function validateProjectName(value: string | undefined): string | undefined {
   if (!value || value.trim().length === 0) return 'Project name is required.';
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(value)) {
     return 'Use lowercase letters and numbers, with single hyphens between words (no leading, trailing, or repeated hyphens).';
