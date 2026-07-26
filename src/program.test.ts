@@ -5,7 +5,7 @@ describe('createProgram', () => {
   it('registers all expected subcommands with non-empty descriptions', () => {
     const program = createProgram();
     const names = program.commands.map((cmd) => cmd.name());
-    expect(names).toEqual(['update', 'releasenotes', 'add', 'whoami', 'hook']);
+    expect(names).toEqual(['update', 'releasenotes', 'add', 'whoami', 'hook', 'demo']);
     for (const cmd of program.commands) {
       expect(cmd.description().length).toBeGreaterThan(0);
     }

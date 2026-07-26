@@ -21,6 +21,9 @@ node bin/run.ts hello
 
 ...prints a greeting from your first working command, with structured logging and clean error handling already wired up.
 
+Want a guided tour first? Run `npx clispark demo` for an interactive walkthrough covering the typical
+workflow, every top-level command, and every wizard question — no project gets created.
+
 ## What you get
 
 Every generated project includes:

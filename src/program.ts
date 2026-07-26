@@ -15,6 +15,7 @@ import { runAddWizard } from './add-wizard';
 import { getWhoamiOutput, type WhoamiMode } from './whoami';
 import { printConfetti } from './confetti';
 import { getPostScaffoldHookPath, runPostScaffoldHook } from './hooks';
+import { runDemo } from './demo';
 
 function resolvePack(language: string): LanguagePack {
   const pack = LANGUAGE_PACKS[language];
@@ -165,6 +166,11 @@ export function createProgram(): Command {
         }
       })(),
     );
+
+  program
+    .command('demo')
+    .description('Interactive walkthrough of clispark: commands, wizard flags, and a live example scaffold')
+    .action(() => withLogging('demo', () => runDemo(program))());
 
   return program;
 }
