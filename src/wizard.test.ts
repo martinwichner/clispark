@@ -7,13 +7,14 @@ vi.mock('@clack/prompts', () => ({
   intro: vi.fn(),
   outro: vi.fn(),
   text: vi.fn(),
-  select: vi.fn(),
   log: { warn: vi.fn(), info: vi.fn() },
   isCancel: vi.fn(() => false),
   cancel: vi.fn(),
 }));
+vi.mock('./prompt-utils', () => ({ select: vi.fn() }));
 
-import { text, select, log } from '@clack/prompts';
+import { text, log } from '@clack/prompts';
+import { select } from './prompt-utils';
 import { runWizard, WIZARD_QUESTION_CATALOG } from './wizard';
 
 const fakeUpdateAdapter: LanguagePack['updateAdapter'] = {

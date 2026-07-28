@@ -1,5 +1,6 @@
 // src/wizard.ts
-import { intro, outro, text, select, log, isCancel, cancel } from '@clack/prompts';
+import { intro, outro, text, log, isCancel, cancel } from '@clack/prompts';
+import { select } from './prompt-utils';
 import { LANGUAGE_PACKS } from './languages';
 import type { LanguagePack } from './languages/pack';
 import type { NameCheckResult } from './languages/registry-checker';

@@ -4,10 +4,10 @@ import { Command } from 'commander';
 vi.mock('@clack/prompts', () => ({
   intro: vi.fn(),
   outro: vi.fn(),
-  select: vi.fn(),
   isCancel: vi.fn(() => false),
   cancel: vi.fn(),
 }));
+vi.mock('../prompt-utils', () => ({ select: vi.fn() }));
 vi.mock('./full-walkthrough', () => ({ runFullWalkthrough: vi.fn() }));
 vi.mock('./commands-reference', () => ({ runCommandsReference: vi.fn() }));
 vi.mock('./wizard-flags-reference', () => ({ runWizardFlagsReference: vi.fn() }));
@@ -18,7 +18,7 @@ describe('runDemo', () => {
   });
 
   it('dispatches to the full walkthrough when chosen', async () => {
-    const { select } = await import('@clack/prompts');
+    const { select } = await import('../prompt-utils');
     const { runFullWalkthrough } = await import('./full-walkthrough');
     const { runCommandsReference } = await import('./commands-reference');
     const { runWizardFlagsReference } = await import('./wizard-flags-reference');
@@ -33,7 +33,7 @@ describe('runDemo', () => {
   });
 
   it('dispatches to the commands reference, passing the program, when chosen', async () => {
-    const { select } = await import('@clack/prompts');
+    const { select } = await import('../prompt-utils');
     const { runCommandsReference } = await import('./commands-reference');
     const { runDemo } = await import('./index');
     const program = new Command();
@@ -45,7 +45,7 @@ describe('runDemo', () => {
   });
 
   it('dispatches to the wizard flags reference when chosen', async () => {
-    const { select } = await import('@clack/prompts');
+    const { select } = await import('../prompt-utils');
     const { runFullWalkthrough } = await import('./full-walkthrough');
     const { runCommandsReference } = await import('./commands-reference');
     const { runWizardFlagsReference } = await import('./wizard-flags-reference');

@@ -1,7 +1,8 @@
 // src/languages/command-generators/powershell.ts
 import { mkdir, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { select, text, isCancel, cancel } from '@clack/prompts';
+import { text, isCancel, cancel } from '@clack/prompts';
+import { select } from '../../prompt-utils';
 import type { CommandGenerator, CommandSpec, ExistingCommandNode, GeneratedFiles, ParameterSpec } from '../command-generator';
 import { buildCommandTree } from '../command-generator';
 

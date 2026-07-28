@@ -1,5 +1,6 @@
 // src/add-wizard.ts
-import { intro, outro, select, text, confirm, isCancel, cancel, log } from '@clack/prompts';
+import { intro, outro, text, confirm, isCancel, cancel, log } from '@clack/prompts';
+import { select } from './prompt-utils';
 import type {
   CommandGenerator,
   CommandSpec,
