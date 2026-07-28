@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.23.2](https://github.com/martinwichner/clispark/compare/v1.23.1...v1.23.2) (2026-07-28)
+
+
+### Bug Fixes
+
+* fall back to a numbered text prompt for select() when raw mode is unavailable ([f6276af](https://github.com/martinwichner/clispark/commit/f6276af211d73b5f4d4cf45b5b37d7cd4be402b5)), closes [#128](https://github.com/martinwichner/clispark/issues/128)
+
 ## [1.23.1](https://github.com/martinwichner/clispark/compare/v1.23.0...v1.23.1) (2026-07-26)
 
 
