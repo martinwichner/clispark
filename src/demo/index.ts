@@ -1,6 +1,7 @@
 // src/demo/index.ts
 import type { Command } from 'commander';
-import { intro, outro, select, isCancel, cancel } from '@clack/prompts';
+import { intro, outro, isCancel, cancel } from '@clack/prompts';
+import { select } from '../prompt-utils';
 import { runFullWalkthrough } from './full-walkthrough';
 import { runCommandsReference } from './commands-reference';
 import { runWizardFlagsReference } from './wizard-flags-reference';
