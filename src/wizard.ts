@@ -82,6 +82,20 @@ export async function runWizard(deps: WizardDeps = defaultDeps): Promise<WizardA
   exitIfCancelled(lintEnabledValue);
   const lintEnabled = lintEnabledValue as boolean;
 
+  let commandConventionEnabled = false;
+  if (lintEnabled) {
+    const commandConventionEnabledValue = await select({
+      message: 'Enforce command convention rule (BaseCommand / [CommandPath])?',
+      options: [
+        { value: false, label: 'No' },
+        { value: true, label: 'Yes' },
+      ],
+      initialValue: false,
+    });
+    exitIfCancelled(commandConventionEnabledValue);
+    commandConventionEnabled = commandConventionEnabledValue as boolean;
+  }
+
   let autocompleteEnabled = false;
   if (pack.supportsAutocompleteOptIn) {
     const autocompleteEnabledValue = await select({
@@ -130,6 +144,7 @@ export async function runWizard(deps: WizardDeps = defaultDeps): Promise<WizardA
     nameAvailability,
     lintEnabled,
     autocompleteEnabled,
+    commandConventionEnabled,
   };
 }
 
@@ -145,10 +160,6 @@ export interface WizardQuestionCatalogEntry {
 // When you add a new wizard question here, add its entry below too -- src/wizard.test.ts has a
 // regression test that runs the real wizard and checks the prompt count against this array's
 // length, so a forgotten entry (or a removed question left behind here) fails that test.
-//
-// When clispark issue #80 (command-convention enforcement) ships, it adds a new
-// `commandConventionEnabled` wizard question (only asked when `lintEnabled` is true) --
-// add its entry here too if this feature (#120) shipped first.
 export const WIZARD_QUESTION_CATALOG: WizardQuestionCatalogEntry[] = [
   {
     id: 'language',
@@ -179,6 +190,11 @@ export const WIZARD_QUESTION_CATALOG: WizardQuestionCatalogEntry[] = [
     id: 'lintEnabled',
     prompt: 'Set up lint tooling?',
     why: 'Opt-in ESLint + Prettier (Node) or broadened Roslyn analyzers (.NET), tracked as core-managed so `clispark update` keeps it current. Declined by default so a minimal scaffold stays minimal.',
+  },
+  {
+    id: 'commandConventionEnabled',
+    prompt: 'Enforce command convention rule (BaseCommand / [CommandPath])?',
+    why: 'Only asked when lint tooling is set up. Opt-in lint rule (Node ESLint) or Roslyn analyzer (.NET) that fails the build when a command class skips the shared base-command/attribute convention, catching commands that bypass shared logging/error-handling.',
   },
   {
     id: 'autocompleteEnabled',

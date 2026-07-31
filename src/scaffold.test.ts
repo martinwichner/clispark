@@ -224,4 +224,28 @@ describe('scaffoldProject', () => {
     const manifest = await readManifest(targetDir);
     expect(manifest?.autocompleteEnabled).toBe(false);
   });
+
+  it('defaults commandConventionEnabled to false in the manifest when not specified', async () => {
+    const targetDir = path.join(tmpRoot, 'command-convention-default');
+    const runCommand = vi.fn(async () => {});
+
+    await scaffoldProject({ projectName: 'command-convention-default', targetDir }, nodeOclifPack, { runCommand });
+
+    const manifest = await readManifest(targetDir);
+    expect(manifest?.commandConventionEnabled).toBe(false);
+  });
+
+  it('records commandConventionEnabled: true in the manifest when specified', async () => {
+    const targetDir = path.join(tmpRoot, 'command-convention-enabled');
+    const runCommand = vi.fn(async () => {});
+
+    await scaffoldProject(
+      { projectName: 'command-convention-enabled', targetDir, lintEnabled: true, commandConventionEnabled: true },
+      nodeOclifPack,
+      { runCommand },
+    );
+
+    const manifest = await readManifest(targetDir);
+    expect(manifest?.commandConventionEnabled).toBe(true);
+  });
 });

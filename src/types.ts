@@ -12,4 +12,5 @@ export interface WizardAnswers {
   nameAvailability: NameCheckResult;
   lintEnabled: boolean;
   autocompleteEnabled: boolean;
+  commandConventionEnabled: boolean;
 }

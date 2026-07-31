@@ -60,6 +60,7 @@ export function createProgram(): Command {
           publishIntent: answers.publishIntent,
           lintEnabled: answers.lintEnabled,
           autocompleteEnabled: answers.autocompleteEnabled,
+          commandConventionEnabled: answers.commandConventionEnabled,
         },
         pack,
       );

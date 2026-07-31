@@ -63,6 +63,7 @@ function fakePack(
     stripLintTooling: vi.fn(),
     supportsAutocompleteOptIn: options.supportsAutocompleteOptIn ?? true,
     stripAutocompleteSupport: vi.fn(),
+    stripCommandConvention: vi.fn(),
   };
 }
 
@@ -96,6 +97,7 @@ describe('runWizard', () => {
       nameAvailability: 'available',
       lintEnabled: false,
       autocompleteEnabled: false,
+      commandConventionEnabled: false,
     });
     expect(checkNameAvailability).toHaveBeenCalledTimes(1);
     // language is asked before name
@@ -217,6 +219,41 @@ describe('runWizard', () => {
     expect(result.lintEnabled).toBe(true);
   });
 
+  it('skips the command-convention question when lint tooling was declined, defaulting commandConventionEnabled to false', async () => {
+    const pack = fakePack(async () => 'available');
+
+    vi.mocked(select)
+      .mockResolvedValueOnce('node') // language
+      .mockResolvedValueOnce('private') // profile
+      .mockResolvedValueOnce(true) // publishIntent
+      .mockResolvedValueOnce(false) // lintEnabled
+      .mockResolvedValueOnce(false); // autocompleteEnabled -- commandConvention question skipped
+    vi.mocked(text).mockResolvedValueOnce('my-cli');
+
+    const result = await runWizard({ languagePacks: { node: pack } });
+
+    expect(result.commandConventionEnabled).toBe(false);
+    expect(select).toHaveBeenCalledTimes(5);
+  });
+
+  it('asks and records commandConventionEnabled: true when lint tooling is accepted and the user opts in', async () => {
+    const pack = fakePack(async () => 'available');
+
+    vi.mocked(select)
+      .mockResolvedValueOnce('node') // language
+      .mockResolvedValueOnce('private') // profile
+      .mockResolvedValueOnce(true) // publishIntent
+      .mockResolvedValueOnce(true) // lintEnabled
+      .mockResolvedValueOnce(true) // commandConventionEnabled
+      .mockResolvedValueOnce(false); // autocompleteEnabled
+    vi.mocked(text).mockResolvedValueOnce('my-cli');
+
+    const result = await runWizard({ languagePacks: { node: pack } });
+
+    expect(result.commandConventionEnabled).toBe(true);
+    expect(select).toHaveBeenCalledTimes(6);
+  });
+
   it('asks whether to set up shell autocompletion, defaulting to No', async () => {
     const pack = fakePack(async () => 'available');
 
@@ -285,6 +322,7 @@ describe('WIZARD_QUESTION_CATALOG regression guard', () => {
       .mockResolvedValueOnce('work') // profile
       .mockResolvedValueOnce(false) // publishIntent -- false deliberately avoids the name-retry loop, which isn't a distinct catalog question
       .mockResolvedValueOnce(true) // lintEnabled
+      .mockResolvedValueOnce(true) // commandConventionEnabled
       .mockResolvedValueOnce(true); // autocompleteEnabled
     vi.mocked(text)
       .mockResolvedValueOnce('my-cli') // projectName

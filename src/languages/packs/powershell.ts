@@ -37,4 +37,6 @@ export const powershellPack: LanguagePack = {
   stripLintTooling: async () => {},
   supportsAutocompleteOptIn: false,
   stripAutocompleteSupport: async () => {},
+  // PowerShell is out of scope for #80 (see plan's Global Constraints); permanent no-op.
+  stripCommandConvention: async () => {},
 };

@@ -37,4 +37,6 @@ export const nodeOclifPack: LanguagePack = {
   stripLintTooling,
   supportsAutocompleteOptIn: true,
   stripAutocompleteSupport,
+  // Temporary no-op -- real implementation lands in #80 Task 3.
+  stripCommandConvention: async () => {},
 };

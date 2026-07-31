@@ -38,4 +38,5 @@ export interface LanguagePack {
   readonly stripLintTooling: (targetDir: string) => Promise<void>;
   readonly supportsAutocompleteOptIn: boolean;
   readonly stripAutocompleteSupport: (targetDir: string) => Promise<void>;
+  readonly stripCommandConvention: (targetDir: string) => Promise<void>;
 }
