@@ -26,9 +26,10 @@ Two example commands ship in `src/commands/` as copy-paste starting points:
 
 ## Shell Autocompletion
 
-If you set up autocompletion during scaffolding, run `node bin/run.ts autocomplete bash` (or
-`zsh`/`powershell`) once to see the exact setup command for your shell. See
-`ARCHITECTURE.md`'s "Shell Autocompletion" section for details.
+If you set up autocompletion during scaffolding, first put the CLI on your `PATH` with `npm link`
+(or `npm install -g .`) — autocompletion needs a real global binary name, `node bin/run.ts` won't
+do. Then run `{{projectName}} autocomplete bash` (or `zsh`/`powershell`) once to see the exact
+setup command for your shell. See `ARCHITECTURE.md`'s "Shell Autocompletion" section for details.
 
 ## Logging & debugging
 
