@@ -163,6 +163,13 @@ describe('buildManifest commandConventionEnabled', () => {
     await writeFile(path.join(tmpRoot, 'eslint.config.js'), 'content of eslint.config.js');
     await writeFile(path.join(tmpRoot, '.prettierrc'), 'content of .prettierrc');
     await writeFile(path.join(tmpRoot, '.prettierignore'), 'content of .prettierignore');
+    // Also present so buildManifest(..., true, false, true) can hash it via the
+    // commandConventionEnabled-conditional coreFilePaths.
+    await mkdir(path.join(tmpRoot, 'eslint-rules'), { recursive: true });
+    await writeFile(
+      path.join(tmpRoot, 'eslint-rules', 'require-base-command.js'),
+      'content of eslint-rules/require-base-command.js',
+    );
     await writeFile(
       path.join(tmpRoot, 'package.json'),
       JSON.stringify({

@@ -107,6 +107,26 @@ describe('coreFilePaths with lintEnabled', () => {
   });
 });
 
+describe('coreFilePaths commandConventionEnabled gating', () => {
+  it('excludes the rule file when commandConventionEnabled is false', () => {
+    const paths = nodeOclifAdapter.coreFilePaths({
+      lintEnabled: true,
+      autocompleteEnabled: false,
+      commandConventionEnabled: false,
+    });
+    expect(paths).not.toContain('eslint-rules/require-base-command.js');
+  });
+
+  it('includes the rule file when commandConventionEnabled is true', () => {
+    const paths = nodeOclifAdapter.coreFilePaths({
+      lintEnabled: true,
+      autocompleteEnabled: false,
+      commandConventionEnabled: true,
+    });
+    expect(paths).toContain('eslint-rules/require-base-command.js');
+  });
+});
+
 describe('mergeManifestFile with autocompleteEnabled', () => {
   it('excludes the autocomplete dependency from reconciliation when declined, even if the template has it', () => {
     const current: PackageJsonShape = { name: 'my-cli', version: '0.0.0', dependencies: {} };
@@ -179,6 +199,42 @@ describe('mergeManifestFile with autocompleteEnabled', () => {
       bin: '{{projectName}}',
       plugins: ['@oclif/plugin-help', '@oclif/plugin-autocomplete'],
     });
+  });
+});
+
+describe('mergeManifestFile with commandConventionEnabled', () => {
+  it('excludes the @typescript-eslint/utils dependency from reconciliation when declined, even if present in the template', () => {
+    const current: PackageJsonShape = { name: 'my-cli', version: '1.0.0', devDependencies: {} };
+    const newTemplate: PackageJsonShape = {
+      name: '{{projectName}}',
+      version: '0.0.0',
+      devDependencies: { '@typescript-eslint/utils': '^8.65.0' },
+    };
+
+    const result = nodeOclifAdapter.mergeManifestFile(
+      current,
+      baseManifest({ lintEnabled: true, commandConventionEnabled: false }),
+      newTemplate,
+    );
+
+    expect(result.dependencies).not.toContainEqual(expect.objectContaining({ key: '@typescript-eslint/utils' }));
+  });
+
+  it('reconciles the @typescript-eslint/utils dependency normally when opted in', () => {
+    const current: PackageJsonShape = { name: 'my-cli', version: '1.0.0', devDependencies: {} };
+    const newTemplate: PackageJsonShape = {
+      name: '{{projectName}}',
+      version: '0.0.0',
+      devDependencies: { '@typescript-eslint/utils': '^8.65.0' },
+    };
+
+    const result = nodeOclifAdapter.mergeManifestFile(
+      current,
+      baseManifest({ lintEnabled: true, commandConventionEnabled: true }),
+      newTemplate,
+    );
+
+    expect(result.dependencies).toContainEqual({ key: '@typescript-eslint/utils', outcome: 'added' });
   });
 });
 

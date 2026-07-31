@@ -6,6 +6,7 @@ import type { CoreFieldsExtraction, CoreFilePathsFlags, ManifestFileMergeResult,
 import { deepEquals, reconcileEntry, stringEquals, type FieldOutcome } from '../reconcile';
 import { LINT_SCRIPT_NAMES, LINT_DEPENDENCY_NAMES } from '../../languages/lint-support/node';
 import { AUTOCOMPLETE_DEPENDENCY_NAME, withoutAutocompletePlugin } from '../../languages/autocomplete-support/node';
+import { COMMAND_CONVENTION_DEPENDENCY_NAME } from '../../languages/command-convention/node';
 
 export const CORE_FILE_PATHS = [
   'bin/run.ts',
@@ -80,7 +81,8 @@ function mergePackageJson(
     [...Object.keys(newTemplatePkg.dependencies ?? {}), ...Object.keys(newTemplatePkg.devDependencies ?? {})].filter(
       (name) =>
         (oldManifest.lintEnabled || !(LINT_DEPENDENCY_NAMES as readonly string[]).includes(name)) &&
-        (oldManifest.autocompleteEnabled || name !== AUTOCOMPLETE_DEPENDENCY_NAME),
+        (oldManifest.autocompleteEnabled || name !== AUTOCOMPLETE_DEPENDENCY_NAME) &&
+        (oldManifest.commandConventionEnabled || name !== COMMAND_CONVENTION_DEPENDENCY_NAME),
     ),
   );
 
@@ -171,9 +173,10 @@ function mergePackageJson(
 
 export const nodeOclifAdapter: UpdateAdapter = {
   coreFilePaths(flags) {
-    return flags.lintEnabled
+    const base = flags.lintEnabled
       ? [...CORE_FILE_PATHS, 'eslint.config.js', '.prettierrc', '.prettierignore']
       : CORE_FILE_PATHS;
+    return flags.commandConventionEnabled ? [...base, 'eslint-rules/require-base-command.js'] : base;
   },
 
   templateSourcePath(relativePath) {

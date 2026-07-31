@@ -13,11 +13,17 @@ import type { UpdateAdapter } from './adapter';
 async function scaffoldFixture(
   tmpRoot: string,
   name: string,
-  options: { lintEnabled?: boolean; autocompleteEnabled?: boolean } = {},
+  options: { lintEnabled?: boolean; autocompleteEnabled?: boolean; commandConventionEnabled?: boolean } = {},
 ): Promise<string> {
   const targetDir = path.join(tmpRoot, name);
   await scaffoldProject(
-    { projectName: name, targetDir, lintEnabled: options.lintEnabled, autocompleteEnabled: options.autocompleteEnabled },
+    {
+      projectName: name,
+      targetDir,
+      lintEnabled: options.lintEnabled,
+      autocompleteEnabled: options.autocompleteEnabled,
+      commandConventionEnabled: options.commandConventionEnabled,
+    },
     nodeOclifPack,
     { runCommand: vi.fn(async () => {}) },
   );
@@ -374,6 +380,24 @@ describe('updateProject', () => {
     expect(result.status).toBe('updated');
     const manifestAfter = JSON.parse(await readFile(manifestPath, 'utf8'));
     expect(manifestAfter).toHaveProperty('autocompleteEnabled', false);
+  });
+
+  it('never re-adds the command-convention rule file to a project that declined it', async () => {
+    const targetDir = await scaffoldFixture(tmpRoot, 'no-command-convention-project', {
+      lintEnabled: true,
+      commandConventionEnabled: false,
+    });
+
+    const manifestPath = path.join(targetDir, '.clispark', 'manifest.json');
+    const oldManifest = JSON.parse(await readFile(manifestPath, 'utf8')) as Manifest;
+    oldManifest.generatorVersion = '0.0.1';
+    await writeFile(manifestPath, JSON.stringify(oldManifest, null, 2) + '\n');
+
+    const result = await updateProject(targetDir, nodeOclifPack.updateAdapter, nodeOclifPack.templateDir, 'node', cleanGitDeps());
+
+    expect(result.files.find((f) => f.path === 'eslint-rules/require-base-command.js')).toBeUndefined();
+    await expect(readFile(path.join(targetDir, 'eslint-rules', 'require-base-command.js'), 'utf8')).rejects.toThrow();
+    expect(result.dependencies.find((d) => d.key === '@typescript-eslint/utils')).toBeUndefined();
   });
 });
 
