@@ -117,15 +117,34 @@ Either way, this choice is permanent and core-managed: `npx clispark update` kee
 
 If you answered "yes" to "Set up shell autocompletion?" during scaffolding, this project includes
 [`@oclif/plugin-autocomplete`](https://github.com/oclif/plugin-autocomplete) as a runtime
-dependency, registered in `package.json`'s `oclif.plugins` array. Set it up once per shell:
+dependency, registered in `package.json`'s `oclif.plugins` array.
+
+Autocompletion only works against a real, globally-resolvable binary — `node bin/run.ts` doesn't
+have a stable name a shell can autocomplete against. `<cli>` below means the name from
+`package.json`'s `bin` field (same as your project name). Put it on your `PATH` once:
+
+```bash
+npm link   # or: npm install -g .
+```
+
+Then set up completion once per shell:
 
 ```bash
 <cli> autocomplete bash   # or zsh, powershell
 ```
 
-This prints the exact command to append to your shell config (e.g. `~/.bashrc`) and source it.
-After that, `<cli> <TAB><TAB>` completes command names, and `<cli> <command> --<TAB><TAB>`
-completes flag names.
+This prints setup instructions ending in a command to append to your shell config and source it,
+for example on bash:
+
+```
+1) Add the autocomplete env var to your bash profile and source it
+$ printf "%s" 'eval $(<cli> autocomplete:script bash)' >> ~/.bashrc; source ~/.bashrc
+```
+
+Run the printed command as-is (it already sources your rc file). If nothing changes, open a new
+shell — completion only takes effect in shells started after the rc file was sourced. After that,
+`<cli> <TAB><TAB>` completes command names, and `<cli> <command> --<TAB><TAB>` completes flag
+names.
 
 If you answered "no", none of this is present — no `@oclif/plugin-autocomplete` dependency, no
 entry in `oclif.plugins`, and the `autocomplete` command itself doesn't exist.
