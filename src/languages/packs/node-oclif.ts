@@ -7,6 +7,7 @@ import { npmRegistryChecker, NPM_DEFAULT_REGISTRY_URL } from '../registry-checke
 import { nodeOclifCommandGenerator } from '../command-generators/node-oclif';
 import { stripLintTooling } from '../lint-support/node';
 import { stripAutocompleteSupport } from '../autocomplete-support/node';
+import { stripCommandConvention } from '../command-convention/node';
 
 function validateProjectName(value: string | undefined): string | undefined {
   if (!value || value.trim().length === 0) return 'Project name is required.';
@@ -37,6 +38,5 @@ export const nodeOclifPack: LanguagePack = {
   stripLintTooling,
   supportsAutocompleteOptIn: true,
   stripAutocompleteSupport,
-  // Temporary no-op -- real implementation lands in #80 Task 3.
-  stripCommandConvention: async () => {},
+  stripCommandConvention,
 };

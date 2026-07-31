@@ -54,6 +54,7 @@
     "@eslint/js": "^10.0.1",
     "@types/cross-spawn": "^6.0.6",
     "@types/node": "^22.10.5",
+    "@typescript-eslint/rule-tester": "^8.65.0",
     "eslint": "^10.7.0",
     "jiti": "^2.7.0",
     "shx": "^0.4.0",
