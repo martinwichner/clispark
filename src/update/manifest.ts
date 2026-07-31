@@ -12,6 +12,7 @@ export interface Manifest {
   language: string;
   lintEnabled: boolean;
   autocompleteEnabled: boolean;
+  commandConventionEnabled: boolean;
   coreFiles: Record<string, string>;
   coreDependencies: Record<string, string>;
   coreScripts: Record<string, string>;
@@ -43,14 +44,23 @@ export async function buildManifest(
   adapter: UpdateAdapter,
   lintEnabled: boolean,
   autocompleteEnabled: boolean,
+  commandConventionEnabled: boolean,
 ): Promise<Manifest> {
-  const coreFiles = await hashCoreFiles(targetDir, adapter, { lintEnabled, autocompleteEnabled });
+  const flags = { lintEnabled, autocompleteEnabled, commandConventionEnabled };
+  const coreFiles = await hashCoreFiles(targetDir, adapter, flags);
   const manifestFile = await adapter.readManifestFile(targetDir);
-  const { coreDependencies, coreScripts, coreFields } = adapter.extractCoreFields(manifestFile, {
+  const { coreDependencies, coreScripts, coreFields } = adapter.extractCoreFields(manifestFile, flags);
+  return {
+    generatorVersion,
+    language,
     lintEnabled,
     autocompleteEnabled,
-  });
-  return { generatorVersion, language, lintEnabled, autocompleteEnabled, coreFiles, coreDependencies, coreScripts, coreFields };
+    commandConventionEnabled,
+    coreFiles,
+    coreDependencies,
+    coreScripts,
+    coreFields,
+  };
 }
 
 export const MANIFEST_RELATIVE_PATH = path.join('.clispark', 'manifest.json');

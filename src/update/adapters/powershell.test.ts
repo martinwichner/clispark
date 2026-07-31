@@ -108,7 +108,7 @@ describe('powershellAdapter.extractCoreFields', () => {
       version: '0.1.0',
       requiredModules: ['PSFramework', 'Pester'],
     };
-    const extraction = powershellAdapter.extractCoreFields(manifestFile, { lintEnabled: false, autocompleteEnabled: false });
+    const extraction = powershellAdapter.extractCoreFields(manifestFile, { lintEnabled: false, autocompleteEnabled: false, commandConventionEnabled: false });
     expect(extraction.coreDependencies).toEqual({ PSFramework: '*', Pester: '*' });
     expect(extraction.coreScripts).toEqual({});
   });
@@ -119,7 +119,7 @@ describe('powershellAdapter.extractCoreFields', () => {
       version: '0.1.0',
       requiredModules: ['PSFramework', 'Pester'],
     };
-    const extraction = powershellAdapter.extractCoreFields(manifestFile, { lintEnabled: false, autocompleteEnabled: false });
+    const extraction = powershellAdapter.extractCoreFields(manifestFile, { lintEnabled: false, autocompleteEnabled: false, commandConventionEnabled: false });
     expect(extraction.coreFields).toMatchObject({ ModuleVersion: '0.1.0' });
   });
 });

@@ -50,13 +50,17 @@ describe('hashCoreFiles / buildManifest', () => {
   });
 
   it('hashCoreFiles returns a hash per core file path', async () => {
-    const hashes = await hashCoreFiles(tmpRoot, nodeOclifAdapter, { lintEnabled: false, autocompleteEnabled: false });
+    const hashes = await hashCoreFiles(tmpRoot, nodeOclifAdapter, {
+      lintEnabled: false,
+      autocompleteEnabled: false,
+      commandConventionEnabled: false,
+    });
     expect(Object.keys(hashes).sort()).toEqual([...CORE_FILE_PATHS].sort());
     expect(hashes['tsconfig.json']).toBe(hashContent('content of tsconfig.json'));
   });
 
   it('buildManifest assembles a full manifest from a target directory', async () => {
-    const manifest = await buildManifest(tmpRoot, '9.9.9', 'node', nodeOclifAdapter, false, false);
+    const manifest = await buildManifest(tmpRoot, '9.9.9', 'node', nodeOclifAdapter, false, false, false);
     expect(manifest.generatorVersion).toBe('9.9.9');
     expect(manifest.language).toBe('node');
     expect(manifest.coreFiles['tsconfig.json']).toBe(hashContent('content of tsconfig.json'));
@@ -97,12 +101,12 @@ describe('buildManifest lintEnabled', () => {
   });
 
   it('records lintEnabled: true when passed', async () => {
-    const manifest = await buildManifest(tmpRoot, '1.0.0', 'node', nodeOclifAdapter, true, false);
+    const manifest = await buildManifest(tmpRoot, '1.0.0', 'node', nodeOclifAdapter, true, false, false);
     expect(manifest.lintEnabled).toBe(true);
   });
 
   it('records lintEnabled: false when passed', async () => {
-    const manifest = await buildManifest(tmpRoot, '1.0.0', 'node', nodeOclifAdapter, false, false);
+    const manifest = await buildManifest(tmpRoot, '1.0.0', 'node', nodeOclifAdapter, false, false, false);
     expect(manifest.lintEnabled).toBe(false);
   });
 });
@@ -134,27 +138,66 @@ describe('buildManifest autocompleteEnabled', () => {
   });
 
   it('records autocompleteEnabled: true when passed', async () => {
-    const manifest = await buildManifest(tmpRoot, '1.0.0', 'node', nodeOclifAdapter, false, true);
+    const manifest = await buildManifest(tmpRoot, '1.0.0', 'node', nodeOclifAdapter, false, true, false);
     expect(manifest.autocompleteEnabled).toBe(true);
   });
 
   it('records autocompleteEnabled: false when passed', async () => {
-    const manifest = await buildManifest(tmpRoot, '1.0.0', 'node', nodeOclifAdapter, false, false);
+    const manifest = await buildManifest(tmpRoot, '1.0.0', 'node', nodeOclifAdapter, false, false, false);
     expect(manifest.autocompleteEnabled).toBe(false);
+  });
+});
+
+describe('buildManifest commandConventionEnabled', () => {
+  let tmpRoot: string;
+
+  beforeEach(async () => {
+    tmpRoot = await mkdtemp(path.join(tmpdir(), 'clispark-manifest-test-'));
+    for (const relativePath of CORE_FILE_PATHS) {
+      const filePath = path.join(tmpRoot, relativePath);
+      await mkdir(path.dirname(filePath), { recursive: true });
+      await writeFile(filePath, `content of ${relativePath}`);
+    }
+    // Also present so buildManifest(..., true, false, ...) can hash them via the
+    // lintEnabled-conditional coreFilePaths (these tests pass lintEnabled: true).
+    await writeFile(path.join(tmpRoot, 'eslint.config.js'), 'content of eslint.config.js');
+    await writeFile(path.join(tmpRoot, '.prettierrc'), 'content of .prettierrc');
+    await writeFile(path.join(tmpRoot, '.prettierignore'), 'content of .prettierignore');
+    await writeFile(
+      path.join(tmpRoot, 'package.json'),
+      JSON.stringify({
+        dependencies: { pino: '^9.0.0' },
+        devDependencies: { vitest: '^2.0.0' },
+        scripts: Object.fromEntries(CORE_SCRIPT_NAMES.map((name) => [name, name])),
+        engines: { node: '>=18' },
+        oclif: { bin: 'test-cli' },
+      }),
+    );
+  });
+
+  afterEach(async () => {
+    await rm(tmpRoot, { recursive: true, force: true });
+  });
+
+  it('records commandConventionEnabled: true when passed', async () => {
+    const manifest = await buildManifest(tmpRoot, '1.0.0', 'node', nodeOclifAdapter, true, false, true);
+    expect(manifest.commandConventionEnabled).toBe(true);
+  });
+
+  it('records commandConventionEnabled: false when passed', async () => {
+    const manifest = await buildManifest(tmpRoot, '1.0.0', 'node', nodeOclifAdapter, true, false, false);
+    expect(manifest.commandConventionEnabled).toBe(false);
   });
 });
 
 describe('coreFilePaths is now manifest-aware', () => {
   it('nodeOclifAdapter.coreFilePaths includes the lint files only when lintEnabled is true', () => {
-    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: false, autocompleteEnabled: false })).toEqual(
-      CORE_FILE_PATHS,
-    );
-    expect(nodeOclifAdapter.coreFilePaths({ lintEnabled: true, autocompleteEnabled: false })).toEqual([
-      ...CORE_FILE_PATHS,
-      'eslint.config.js',
-      '.prettierrc',
-      '.prettierignore',
-    ]);
+    expect(
+      nodeOclifAdapter.coreFilePaths({ lintEnabled: false, autocompleteEnabled: false, commandConventionEnabled: false }),
+    ).toEqual(CORE_FILE_PATHS);
+    expect(
+      nodeOclifAdapter.coreFilePaths({ lintEnabled: true, autocompleteEnabled: false, commandConventionEnabled: false }),
+    ).toEqual([...CORE_FILE_PATHS, 'eslint.config.js', '.prettierrc', '.prettierignore']);
   });
 });
 
@@ -174,6 +217,7 @@ describe('writeManifest / readManifest / requireManifest', () => {
     language: 'node',
     lintEnabled: false,
     autocompleteEnabled: false,
+    commandConventionEnabled: false,
     coreFiles: { 'tsconfig.json': 'abc' },
     coreDependencies: {},
     coreScripts: {},

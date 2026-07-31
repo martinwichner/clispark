@@ -118,6 +118,9 @@ export async function scaffoldProject(
     pack.updateAdapter,
     lintEnabled,
     autocompleteEnabled,
+    // Wired up from ScaffoldOptions/the wizard in a later task (#80 Task 2); until then this
+    // is always false, matching the pre-existing behavior for every scaffolded project.
+    false,
   );
   await writeManifest(targetDir, manifest);
 

@@ -11,6 +11,7 @@ function baseManifest(generatorVersion: string): Manifest {
     language: 'node',
     lintEnabled: false,
     autocompleteEnabled: false,
+    commandConventionEnabled: false,
     coreFiles: {},
     coreDependencies: {},
     coreScripts: {},

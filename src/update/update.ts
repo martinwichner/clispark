@@ -164,6 +164,7 @@ export async function updateProject(
     language,
     lintEnabled: oldManifest.lintEnabled ?? false,
     autocompleteEnabled: oldManifest.autocompleteEnabled ?? false,
+    commandConventionEnabled: oldManifest.commandConventionEnabled ?? false,
     coreFiles: newCoreFiles,
     coreDependencies: fileMerge.coreDependencies,
     coreScripts: fileMerge.coreScripts,
