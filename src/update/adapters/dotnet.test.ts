@@ -32,6 +32,14 @@ const SAMPLE_CSPROJ = `<Project Sdk="Microsoft.NET.Sdk">
 </Project>
 `;
 
+const SAMPLE_CSPROJ_WITH_PROJECT_REFERENCE = SAMPLE_CSPROJ.replace(
+  '</Project>',
+  '  <ItemGroup>\n' +
+    '    <ProjectReference Include="..\\Cli.Analyzers\\Cli.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />\n' +
+    '  </ItemGroup>\n\n' +
+    '</Project>',
+);
+
 function baseManifest(overrides: Partial<Manifest> = {}): Manifest {
   return {
     generatorVersion: '1.0.0',
@@ -225,6 +233,99 @@ describe('dotnetAdapter.coreFilePaths / templateSourcePath', () => {
 
   it('leaves every other path unchanged', () => {
     expect(dotnetAdapter.templateSourcePath('src/Program.cs')).toBe('src/Program.cs');
+  });
+});
+
+describe('coreFilePaths commandConventionEnabled gating', () => {
+  it('excludes the analyzer project files when commandConventionEnabled is false', () => {
+    const paths = dotnetAdapter.coreFilePaths({ lintEnabled: false, autocompleteEnabled: false, commandConventionEnabled: false });
+    expect(paths).not.toContain('Cli.Analyzers/Cli.Analyzers.csproj');
+    expect(paths).not.toContain('Cli.Analyzers/CommandPathAnalyzer.cs');
+  });
+
+  it('includes the analyzer project files when commandConventionEnabled is true', () => {
+    const paths = dotnetAdapter.coreFilePaths({ lintEnabled: false, autocompleteEnabled: false, commandConventionEnabled: true });
+    expect(paths).toContain('Cli.Analyzers/Cli.Analyzers.csproj');
+    expect(paths).toContain('Cli.Analyzers/CommandPathAnalyzer.cs');
+  });
+});
+
+describe('dotnetAdapter.parseManifestFile projectReference', () => {
+  it('extracts the ProjectReference line when present', () => {
+    const parsed = dotnetAdapter.parseManifestFile(SAMPLE_CSPROJ_WITH_PROJECT_REFERENCE) as DotnetManifestFile;
+    expect(parsed.projectReference).toContain('Cli.Analyzers.csproj');
+  });
+
+  it('leaves projectReference undefined when the ProjectReference line is absent', () => {
+    const parsed = dotnetAdapter.parseManifestFile(SAMPLE_CSPROJ) as DotnetManifestFile;
+    expect(parsed.projectReference).toBeUndefined();
+  });
+});
+
+describe('ProjectReference reconciliation', () => {
+  it('never reconciles projectReference for a project that declined the feature', () => {
+    const current = dotnetAdapter.parseManifestFile(SAMPLE_CSPROJ);
+    const newTemplate = dotnetAdapter.parseManifestFile(SAMPLE_CSPROJ_WITH_PROJECT_REFERENCE);
+    const oldManifest = baseManifest({ commandConventionEnabled: false });
+
+    const result = dotnetAdapter.mergeManifestFile(current, oldManifest, newTemplate);
+
+    expect(result.fields.find((f) => f.key === 'projectReference')).toBeUndefined();
+    expect((result.updatedFile as DotnetManifestFile).raw).not.toContain('Cli.Analyzers');
+  });
+
+  it('replaces a projectReference line that matches the old manifest (untouched by the user) when the template changes it', () => {
+    const current = dotnetAdapter.parseManifestFile(SAMPLE_CSPROJ_WITH_PROJECT_REFERENCE);
+    const newTemplate = dotnetAdapter.parseManifestFile(
+      SAMPLE_CSPROJ_WITH_PROJECT_REFERENCE.replace('OutputItemType="Analyzer"', 'OutputItemType="Analyzer" Private="false"'),
+    );
+    const oldManifest = baseManifest({
+      commandConventionEnabled: true,
+      coreFields: {
+        TargetFramework: 'net10.0',
+        projectReference: (dotnetAdapter.parseManifestFile(SAMPLE_CSPROJ_WITH_PROJECT_REFERENCE) as DotnetManifestFile).projectReference,
+      },
+    });
+
+    const result = dotnetAdapter.mergeManifestFile(current, oldManifest, newTemplate);
+
+    expect(result.fields).toContainEqual({ key: 'projectReference', outcome: 'replaced' });
+    expect((result.updatedFile as DotnetManifestFile).raw).toContain('Private="false"');
+  });
+
+  it('skips a projectReference line the user changed locally', () => {
+    const tampered = SAMPLE_CSPROJ_WITH_PROJECT_REFERENCE.replace(
+      'ReferenceOutputAssembly="false"',
+      'ReferenceOutputAssembly="false" Condition="false"',
+    );
+    const current = dotnetAdapter.parseManifestFile(tampered);
+    const newTemplate = dotnetAdapter.parseManifestFile(
+      SAMPLE_CSPROJ_WITH_PROJECT_REFERENCE.replace('OutputItemType="Analyzer"', 'OutputItemType="Analyzer" Private="false"'),
+    );
+    const oldManifest = baseManifest({
+      commandConventionEnabled: true,
+      coreFields: {
+        TargetFramework: 'net10.0',
+        projectReference: (dotnetAdapter.parseManifestFile(SAMPLE_CSPROJ_WITH_PROJECT_REFERENCE) as DotnetManifestFile).projectReference,
+      },
+    });
+
+    const result = dotnetAdapter.mergeManifestFile(current, oldManifest, newTemplate);
+
+    expect(result.fields).toContainEqual({ key: 'projectReference', outcome: 'skipped' });
+    expect((result.updatedFile as DotnetManifestFile).raw).toContain('Condition="false"');
+  });
+
+  it('treats a missing ProjectReference on an opted-in project as a no-op, not an insertion', () => {
+    const current = dotnetAdapter.parseManifestFile(SAMPLE_CSPROJ); // no ProjectReference line at all
+    const newTemplate = dotnetAdapter.parseManifestFile(SAMPLE_CSPROJ_WITH_PROJECT_REFERENCE);
+    const oldManifest = baseManifest({ commandConventionEnabled: true });
+
+    const result = dotnetAdapter.mergeManifestFile(current, oldManifest, newTemplate);
+
+    expect(result.fields).toContainEqual({ key: 'projectReference', outcome: 'skipped' });
+    expect((result.updatedFile as DotnetManifestFile).raw).not.toContain('Cli.Analyzers');
+    expect((result.coreFields as Record<string, unknown>).projectReference).toBeUndefined();
   });
 });
 
