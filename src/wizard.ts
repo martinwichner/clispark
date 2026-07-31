@@ -183,6 +183,6 @@ export const WIZARD_QUESTION_CATALOG: WizardQuestionCatalogEntry[] = [
   {
     id: 'autocompleteEnabled',
     prompt: 'Set up shell autocompletion?',
-    why: 'Only asked for languages that need it (Node) — .NET and PowerShell already have working tab-completion built in with nothing to configure. Wires up @oclif/plugin-autocomplete when accepted.',
+    why: 'Only asked for languages that need a scaffolding choice (Node) — PowerShell tab-completion is built-in with zero setup, and .NET completion is already wired in but needs a one-time dotnet-suggest setup rather than a scaffolding toggle. Wires up @oclif/plugin-autocomplete when accepted.',
   },
 ];
