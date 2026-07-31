@@ -38,6 +38,7 @@ function baseManifest(overrides: Partial<Manifest> = {}): Manifest {
     language: 'dotnet',
     lintEnabled: false,
     autocompleteEnabled: false,
+    commandConventionEnabled: false,
     coreFiles: {},
     coreDependencies: {},
     coreScripts: {},
@@ -85,19 +86,19 @@ describe('dotnetAdapter.readProjectName', () => {
 describe('dotnetAdapter.extractCoreFields', () => {
   it('puts every PackageReference into coreDependencies', () => {
     const parsed = dotnetAdapter.parseManifestFile(SAMPLE_CSPROJ);
-    const result = dotnetAdapter.extractCoreFields(parsed, { lintEnabled: false, autocompleteEnabled: false });
+    const result = dotnetAdapter.extractCoreFields(parsed, { lintEnabled: false, autocompleteEnabled: false, commandConventionEnabled: false });
     expect(result.coreDependencies).toEqual({ 'System.CommandLine': '2.0.10', Serilog: '4.4.0' });
   });
 
   it('has no coreScripts (.NET has no script-map equivalent)', () => {
     const parsed = dotnetAdapter.parseManifestFile(SAMPLE_CSPROJ);
-    const result = dotnetAdapter.extractCoreFields(parsed, { lintEnabled: false, autocompleteEnabled: false });
+    const result = dotnetAdapter.extractCoreFields(parsed, { lintEnabled: false, autocompleteEnabled: false, commandConventionEnabled: false });
     expect(result.coreScripts).toEqual({});
   });
 
   it('puts only TargetFramework into coreFields, not PackageId/ToolCommandName', () => {
     const parsed = dotnetAdapter.parseManifestFile(SAMPLE_CSPROJ);
-    const result = dotnetAdapter.extractCoreFields(parsed, { lintEnabled: false, autocompleteEnabled: false });
+    const result = dotnetAdapter.extractCoreFields(parsed, { lintEnabled: false, autocompleteEnabled: false, commandConventionEnabled: false });
     expect(result.coreFields).toEqual({ TargetFramework: 'net10.0' });
   });
 });
@@ -212,10 +213,10 @@ describe('dotnetAdapter.readManifestFile / writeManifestFile', () => {
 
 describe('dotnetAdapter.coreFilePaths / templateSourcePath', () => {
   it('lists the .NET infrastructure files as core files', () => {
-    expect(dotnetAdapter.coreFilePaths({ lintEnabled: false, autocompleteEnabled: false })).toContain('src/Program.cs');
-    expect(dotnetAdapter.coreFilePaths({ lintEnabled: false, autocompleteEnabled: false })).toContain('src/CommandDiscovery.cs');
-    expect(dotnetAdapter.coreFilePaths({ lintEnabled: false, autocompleteEnabled: false })).toContain('Cli.slnx');
-    expect(dotnetAdapter.coreFilePaths({ lintEnabled: false, autocompleteEnabled: false })).not.toContain('src/Commands/HelloCommand.cs');
+    expect(dotnetAdapter.coreFilePaths({ lintEnabled: false, autocompleteEnabled: false, commandConventionEnabled: false })).toContain('src/Program.cs');
+    expect(dotnetAdapter.coreFilePaths({ lintEnabled: false, autocompleteEnabled: false, commandConventionEnabled: false })).toContain('src/CommandDiscovery.cs');
+    expect(dotnetAdapter.coreFilePaths({ lintEnabled: false, autocompleteEnabled: false, commandConventionEnabled: false })).toContain('Cli.slnx');
+    expect(dotnetAdapter.coreFilePaths({ lintEnabled: false, autocompleteEnabled: false, commandConventionEnabled: false })).not.toContain('src/Commands/HelloCommand.cs');
   });
 
   it('maps .gitignore to the un-dotted "gitignore" template file', () => {

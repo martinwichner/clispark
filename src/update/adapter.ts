@@ -19,6 +19,7 @@ export interface ManifestFileMergeResult extends CoreFieldsExtraction {
 export interface CoreFilePathsFlags {
   lintEnabled: boolean;
   autocompleteEnabled: boolean;
+  commandConventionEnabled: boolean;
 }
 
 /**
