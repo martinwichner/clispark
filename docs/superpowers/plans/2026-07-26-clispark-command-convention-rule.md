@@ -16,6 +16,18 @@
 
 4. **The `<ProjectReference>` to `Cli.Analyzers` lives in `Cli.csproj`, reconciled as a new structured field** (`Cli.csproj` is the .NET adapter's `manifestFileName` — reconciled via `extractCoreFields`/`mergeManifestFile`, exactly like `TargetFramework` and the four `lintEnabled`-gated analyzer properties), **not** via `coreFilePaths` (which only tracks whole separate files, e.g. the `Cli.Analyzers/*.cs` sources themselves).
 
+## Review Addendum (2026-07-31)
+
+Critically re-reviewed before execution, five days after this plan was originally drafted. The overall architecture (points 1-4 above) held up under verification against the current codebase — in particular, the `eslint.config.js` content-variance resolution (point 2) and the `lintEnabled`-value wizard gate (point 1) are exactly right and match a comment already left in `src/wizard.ts` (`WIZARD_QUESTION_CATALOG`, just above the array) anticipating this feature. Two concrete, load-bearing errors were found and corrected in place throughout the plan text above/below:
+
+1. **`import { ESLintUtils } from 'typescript-eslint'` does not work.** Verified directly against the installed `typescript-eslint@8.65.0` package's `index.d.ts`: it exports `configs`/`config`/`parser`/`plugin` only, never `ESLintUtils`/`RuleCreator`. `ESLintUtils` lives in `@typescript-eslint/utils`, which is currently only a *transitive* dependency (pulled in by `typescript-eslint`) — fine to resolve via Node's hoisting today, but not something shipped template code should `import` from directly without declaring it. **Fix applied throughout Task 3:** import from `@typescript-eslint/utils` instead; add it as an explicit, gated devDependency to `templates/node/package.json` (mirroring `AUTOCOMPLETE_DEPENDENCY_NAME`'s exact pattern — new `COMMAND_CONVENTION_DEPENDENCY_NAME` export, stripped on decline, excluded from `clispark update`'s reconciliation for a declined project, with a regression test mirroring the existing `mergeManifestFile with autocompleteEnabled` tests). Without this fix, Task 3's own RuleTester unit test would have failed immediately at Step 3/5 (`ESLintUtils` undefined) — not just the later end-to-end verification.
+
+2. **`src/cli.ts` does not call `scaffoldProject`.** It's a thin two-line process entrypoint (`createProgram().parseAsync(process.argv)`); the actual wizard-answers-to-`scaffoldProject` wiring lives in `src/program.ts`'s `program.action(...)` callback, alongside the existing `lintEnabled`/`autocompleteEnabled` lines. All four references to `src/cli.ts` in Task 2 (File Structure list, Files, Step 3, commit) corrected to `src/program.ts`.
+
+3. **`addProjectReference` removed from Task 4.** The original draft wrote it "for symmetry" with the `PackageReference` add-path, but the plan's own text already admitted it had no caller — no insertion path exists for `<ProjectReference>` the way there is for `<PackageReference>`. Flagged in the pre-flight conflict scan (it contradicts this project's own no-speculative-code convention and would read as dead code to any reviewer) and dropped per the human partner's call before Task 4 was dispatched.
+
+Everything else — the .NET Roslyn analyzer (Task 4), the attribute-inheritance walk, the `Cli.slnx` exclusion, the manifest/update plumbing (Task 1), the wizard question shape (Task 2) — was checked against the current source (`src/languages/pack.ts`, `src/update/adapter.ts`, `src/update/manifest.ts`, `src/update/update.ts`, `src/update/adapters/{node-oclif,dotnet}.ts`, `templates/{node,dotnet}/**`) and holds. No other corrections were needed.
+
 ## Global Constraints
 
 - Every task ends with `npx tsc --noEmit`, `npx eslint src scripts`, and `npx vitest run` all passing in the clispark repo root (Node-side tasks); `.NET`-side tasks additionally end with `dotnet build`/`dotnet test` passing against a real scaffolded fixture (see Task 4).
@@ -41,14 +53,14 @@ src/update/update.ts                           # MODIFY — newManifest.commandC
 src/update/update.test.ts                      # MODIFY — fixture fixups, new regression tests
 src/update/adapters/node-oclif.ts              # MODIFY — coreFilePaths conditional on commandConventionEnabled
 src/update/adapters/node-oclif.test.ts         # MODIFY
-src/update/adapters/dotnet.ts                  # MODIFY — coreFilePaths conditional; extractProjectReference/setProjectReference/addProjectReference; extractCoreFields/mergeManifestFile gating
+src/update/adapters/dotnet.ts                  # MODIFY — coreFilePaths conditional; extractProjectReference/setProjectReference; extractCoreFields/mergeManifestFile gating
 src/update/adapters/dotnet.test.ts             # MODIFY
 src/scaffold.ts                                # MODIFY — ScaffoldOptions.commandConventionEnabled, stripCommandConvention call, buildManifest call
 src/scaffold.test.ts                           # MODIFY
 src/wizard.ts                                  # MODIFY — new gated question
 src/wizard.test.ts                             # MODIFY — fixture fixups, new test
 src/types.ts                                   # MODIFY — WizardAnswers.commandConventionEnabled
-src/cli.ts                                     # MODIFY — thread commandConventionEnabled to scaffoldProject
+src/program.ts                                 # MODIFY — thread commandConventionEnabled to scaffoldProject (NOT src/cli.ts — see Review Addendum)
 src/languages/pack.ts                          # MODIFY — LanguagePack.stripCommandConvention (required field)
 src/languages/packs/node-oclif.ts              # MODIFY — wire stripCommandConvention (no-op Task 2, real Task 3)
 src/languages/packs/dotnet.ts                  # MODIFY — wire stripCommandConvention (no-op Task 2, real Task 4)
@@ -200,7 +212,7 @@ git commit -m "refactor: thread commandConventionEnabled through the update engi
 ### Task 2: Wizard question + `LanguagePack.stripCommandConvention` scaffolding
 
 **Files:**
-- Modify: `src/wizard.ts`, `src/wizard.test.ts`, `src/types.ts`, `src/cli.ts`, `src/scaffold.ts`, `src/scaffold.test.ts`, `src/languages/pack.ts`, `src/languages/packs/node-oclif.ts`, `src/languages/packs/dotnet.ts`
+- Modify: `src/wizard.ts`, `src/wizard.test.ts`, `src/types.ts`, `src/program.ts`, `src/scaffold.ts`, `src/scaffold.test.ts`, `src/languages/pack.ts`, `src/languages/packs/node-oclif.ts`, `src/languages/packs/dotnet.ts`
 
 **Interfaces:**
 - Consumes: `Manifest.commandConventionEnabled`, `CoreFilePathsFlags.commandConventionEnabled` (Task 1).
@@ -320,7 +332,7 @@ export interface LanguagePack {
 stripCommandConvention: async () => {},
 ```
 
-`src/cli.ts` — thread the answer through:
+`src/program.ts` — thread the answer through (in the `program.action(...)` callback that already calls `scaffoldProject`, around the existing `lintEnabled`/`autocompleteEnabled` lines):
 
 ```ts
     await scaffoldProject(
@@ -345,7 +357,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/wizard.ts src/wizard.test.ts src/types.ts src/cli.ts src/scaffold.ts src/scaffold.test.ts src/languages/pack.ts src/languages/packs/node-oclif.ts src/languages/packs/dotnet.ts
+git add src/wizard.ts src/wizard.test.ts src/types.ts src/program.ts src/scaffold.ts src/scaffold.test.ts src/languages/pack.ts src/languages/packs/node-oclif.ts src/languages/packs/dotnet.ts
 git commit -m "feat: add gated wizard question for command-convention enforcement"
 ```
 
@@ -355,11 +367,11 @@ git commit -m "feat: add gated wizard question for command-convention enforcemen
 
 **Files:**
 - Create: `templates/node/eslint-rules/require-base-command.js`, `src/languages/command-convention/node.ts`, `src/languages/command-convention/node.test.ts`
-- Modify: `templates/node/eslint.config.js`, `package.json` (clispark's own root), `src/update/adapters/node-oclif.ts`, `src/update/adapters/node-oclif.test.ts`, `src/languages/packs/node-oclif.ts`
+- Modify: `templates/node/eslint.config.js`, `templates/node/package.json` (new gated devDependency — see Review Addendum), `package.json` (clispark's own root), `src/update/adapters/node-oclif.ts`, `src/update/adapters/node-oclif.test.ts`, `src/languages/packs/node-oclif.ts`
 
 **Interfaces:**
 - Consumes: `LanguagePack.stripCommandConvention` slot (Task 2, currently no-op for the Node pack).
-- Produces: `stripCommandConvention(targetDir: string): Promise<void>` (real Node implementation, replaces Task 2's no-op).
+- Produces: `stripCommandConvention(targetDir: string): Promise<void>` (real Node implementation, replaces Task 2's no-op — now also removes a devDependency, not just the rule file).
 
 - [ ] **Step 1: Install the rule-testing devDependency**
 
@@ -469,7 +481,7 @@ Expected: FAIL — `templates/node/eslint-rules/require-base-command.js` doesn't
 
 ```js
 // templates/node/eslint-rules/require-base-command.js
-import { ESLintUtils } from 'typescript-eslint';
+import { ESLintUtils } from '@typescript-eslint/utils';
 
 const createRule = ESLintUtils.RuleCreator(() => 'https://github.com/martinwichner/clispark');
 
@@ -589,12 +601,29 @@ This file's text is now identical in every scaffolded project regardless of `com
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
 
+export const COMMAND_CONVENTION_DEPENDENCY_NAME = '@typescript-eslint/utils';
+
 export async function stripCommandConvention(targetDir: string): Promise<void> {
   await rm(path.join(targetDir, 'eslint-rules', 'require-base-command.js'), { force: true });
+
+  const pkgPath = path.join(targetDir, 'package.json');
+  const pkg = JSON.parse(await readFile(pkgPath, 'utf8'));
+  delete pkg.devDependencies?.[COMMAND_CONVENTION_DEPENDENCY_NAME];
+  await writeFile(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
 }
 ```
 
-(No `package.json` script/dependency change needed for Node — the rule is hand-written, not an npm package, and its type-aware linting relies only on `typescript-eslint`, already a devDependency from #70. `eslint.config.js`'s dynamic `import()` requires nothing extra either — it's a same-package relative ESM import.)
+(`readFile`/`writeFile` need adding to this file's existing `node:fs/promises` import alongside `rm`.)
+
+**`templates/node/package.json` needs a new devDependency, added in this task:**
+
+```bash
+npm install --save-dev @typescript-eslint/utils
+```
+
+run from inside `templates/node/` conceptually — in practice just hand-add `"@typescript-eslint/utils": "^8.65.0"` (match whatever version `typescript-eslint` in that same `package.json` currently pins — **verify at implementation time, don't assume 8.65.0 is still current**) to `templates/node/package.json`'s `devDependencies`.
+
+This devDependency is genuinely new, correcting an assumption error in the original spec/plan draft: `import { ESLintUtils } from 'typescript-eslint'` does **not** work — the `typescript-eslint` meta-package (verified against its installed `index.d.ts`, v8.65.0) only exports `configs`/`config`/`parser`/`plugin`, not `ESLintUtils`/`RuleCreator`. `@typescript-eslint/utils` is where `ESLintUtils` actually lives; it's already present today only as a *transitive* dependency (pulled in by `typescript-eslint`), which is fragile to `import` from directly in shipped template code (works via hoisting today, not guaranteed, and would break under a strict/isolated resolver). Declare it explicitly, gated exactly like `@oclif/plugin-autocomplete` (`AUTOCOMPLETE_DEPENDENCY_NAME` in `autocomplete-support/node.ts`) is gated — see the reconciliation-filter change below.
 
 Wire the pack:
 
@@ -617,6 +646,24 @@ coreFilePaths(flags) {
 },
 ```
 
+**Also gate the new devDependency in `mergePackageJson`'s `dependencyNames` filter** (the same function that already excludes `LINT_DEPENDENCY_NAMES` and `AUTOCOMPLETE_DEPENDENCY_NAME` for a declined project — add a third clause, same shape):
+
+```ts
+import { COMMAND_CONVENTION_DEPENDENCY_NAME } from '../../languages/command-convention/node';
+
+// ...
+  const dependencyNames = new Set(
+    [...Object.keys(newTemplatePkg.dependencies ?? {}), ...Object.keys(newTemplatePkg.devDependencies ?? {})].filter(
+      (name) =>
+        (oldManifest.lintEnabled || !(LINT_DEPENDENCY_NAMES as readonly string[]).includes(name)) &&
+        (oldManifest.autocompleteEnabled || name !== AUTOCOMPLETE_DEPENDENCY_NAME) &&
+        (oldManifest.commandConventionEnabled || name !== COMMAND_CONVENTION_DEPENDENCY_NAME),
+    ),
+  );
+```
+
+Without this, `clispark update` would silently re-add `@typescript-eslint/utils` to a project that explicitly declined the command-convention rule — exactly the danger #70's own spec flagged and the autocomplete dependency filter already guards against for its own dependency.
+
 - [ ] **Step 5: Run the test to verify it passes**
 
 Run: `npx vitest run src/languages/command-convention/node.test.ts`
@@ -638,7 +685,33 @@ describe('coreFilePaths commandConventionEnabled gating', () => {
     expect(paths).toContain('eslint-rules/require-base-command.js');
   });
 });
+
+describe('mergeManifestFile with commandConventionEnabled', () => {
+  it('excludes the @typescript-eslint/utils dependency from reconciliation when declined, even if present in the template', () => {
+    const current = { name: 'my-cli', version: '1.0.0', devDependencies: {} };
+    const newTemplate = {
+      name: '{{projectName}}',
+      version: '0.0.0',
+      devDependencies: { '@typescript-eslint/utils': '^8.65.0' },
+    };
+    const result = mergeManifestFile(current, baseManifest({ lintEnabled: true, commandConventionEnabled: false }), newTemplate);
+    expect(result.dependencies).not.toContainEqual(expect.objectContaining({ key: '@typescript-eslint/utils' }));
+  });
+
+  it('reconciles the @typescript-eslint/utils dependency normally when opted in', () => {
+    const current = { name: 'my-cli', version: '1.0.0', devDependencies: {} };
+    const newTemplate = {
+      name: '{{projectName}}',
+      version: '0.0.0',
+      devDependencies: { '@typescript-eslint/utils': '^8.65.0' },
+    };
+    const result = mergeManifestFile(current, baseManifest({ lintEnabled: true, commandConventionEnabled: true }), newTemplate);
+    expect(result.dependencies).toContainEqual({ key: '@typescript-eslint/utils', outcome: 'added' });
+  });
+});
 ```
+
+(Mirror this file's existing `mergeManifestFile with autocompleteEnabled` describe block exactly — same shape, same helper functions, just the new dependency name and flag.)
 
 Add to `src/update/update.test.ts` (mirroring the existing "never adds a declined core file back" regression test written for #70's `eslint.config.js`/#89's autocomplete dependency — find that test and copy its exact setup shape, substituting the rule-file path):
 
@@ -670,7 +743,7 @@ Expected: ESLint reports `local/require-base-command` on the edited file. Revert
 - [ ] **Step 8: Commit**
 
 ```bash
-git add templates/node/eslint-rules/require-base-command.js templates/node/eslint.config.js src/languages/command-convention/node.ts src/languages/command-convention/node.test.ts src/languages/command-convention/fixtures src/languages/packs/node-oclif.ts src/update/adapters/node-oclif.ts src/update/adapters/node-oclif.test.ts src/update/update.test.ts package.json package-lock.json
+git add templates/node/eslint-rules/require-base-command.js templates/node/eslint.config.js templates/node/package.json src/languages/command-convention/node.ts src/languages/command-convention/node.test.ts src/languages/command-convention/fixtures src/languages/packs/node-oclif.ts src/update/adapters/node-oclif.ts src/update/adapters/node-oclif.test.ts src/update/update.test.ts package.json package-lock.json
 git commit -m "feat: Node command-convention ESLint rule enforcing BaseCommand inheritance"
 ```
 
@@ -909,13 +982,6 @@ function extractProjectReference(content: string): string | undefined {
 function setProjectReference(content: string, value: string): string {
   return content.replace(PROJECT_REFERENCE_LINE, value);
 }
-
-function addProjectReference(content: string, value: string): string {
-  return content.replace(
-    /(\r?\n)(\s*<\/Project>)/,
-    `$1\r\n  <ItemGroup>\r\n    ${value}\r\n  </ItemGroup>\r\n$2`,
-  );
-}
 ```
 
 Extend `DotnetManifestFile` and `parseManifestFile`:
@@ -991,7 +1057,7 @@ In `mergeManifestFile`, add the reconciliation block right after the existing an
   }
 ```
 
-(`addProjectReference` is defined for symmetry with the `PackageReference` add-path and to make the module's public surface complete, but is not called from `mergeManifestFile` today — there is no insertion path here, exactly like the analyzer properties above; note this rather than silently leaving it unused-and-unexplained.)
+(No `addProjectReference` function — **corrected 2026-07-31, see Review Addendum:** the original draft defined one "for symmetry" with the `PackageReference` add-path, but it had no caller anywhere in this plan; YAGNI, and this project's own conventions reject speculative unused code. If a real insertion path is ever needed, write it then. Same reasoning as the analyzer properties above having no insertion path either.)
 
 - [ ] **Step 7: Write and run the adapter regression tests**
 
