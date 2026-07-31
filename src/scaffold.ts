@@ -13,6 +13,7 @@ export interface ScaffoldOptions {
   publishIntent?: boolean;
   lintEnabled?: boolean;
   autocompleteEnabled?: boolean;
+  commandConventionEnabled?: boolean;
 }
 
 async function assertTargetDirIsUsable(targetDir: string): Promise<void> {
@@ -111,6 +112,10 @@ export async function scaffoldProject(
   if (!autocompleteEnabled) {
     await pack.stripAutocompleteSupport(targetDir);
   }
+  const commandConventionEnabled = options.commandConventionEnabled ?? false;
+  if (!commandConventionEnabled) {
+    await pack.stripCommandConvention(targetDir);
+  }
   const manifest = await buildManifest(
     targetDir,
     getGeneratorVersion(),
@@ -118,9 +123,7 @@ export async function scaffoldProject(
     pack.updateAdapter,
     lintEnabled,
     autocompleteEnabled,
-    // Wired up from ScaffoldOptions/the wizard in a later task (#80 Task 2); until then this
-    // is always false, matching the pre-existing behavior for every scaffolded project.
-    false,
+    commandConventionEnabled,
   );
   await writeManifest(targetDir, manifest);
 

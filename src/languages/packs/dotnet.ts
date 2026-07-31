@@ -36,4 +36,6 @@ export const dotnetPack: LanguagePack = {
   stripLintTooling,
   supportsAutocompleteOptIn: false,
   stripAutocompleteSupport: async () => {},
+  // Temporary no-op -- real implementation lands in #80 Task 4.
+  stripCommandConvention: async () => {},
 };
