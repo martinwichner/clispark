@@ -26,14 +26,22 @@ workflow, every top-level command, and every wizard question — no project gets
 
 ## What you get
 
-Every generated project includes:
+clispark scaffolds three language templates — Node/oclif, .NET, and PowerShell — chosen during the wizard. Every generated project, regardless of language, includes:
 
-- **oclif-based CLI structure** with convention-based command discovery — drop a file in `src/commands/`, no manual registration needed
-- **Structured logging** (`pino`, one log file per invocation in an OS-appropriate log directory) that automatically covers every command
-- **Consistent error handling** with no opt-out — clean `Error: <message>` output on failure, full stack trace captured in the log file
-- **A working test setup** (`vitest` + `@oclif/test`) with an example test to copy from
-- **Example commands** — a minimal `hello` starting point plus a `task`/`task complete`/`task list` reference covering required args, optional args, enum-constrained args, an integer arg, a boolean flag, and subcommands
-- **A clean build pipeline** (`tsup`) producing a directly runnable binary
+- **Convention-based command discovery** — drop a file in the right place and it's picked up automatically, no manual registration (`src/commands/` filesystem scan for Node, `[CommandPath]` + reflection for .NET, `Public/` filesystem scan for PowerShell)
+- **Structured logging** covering every command automatically, one log file per invocation in an OS-appropriate log directory (`pino` for Node, Serilog for .NET, PSFramework for PowerShell)
+- **Consistent error handling** with no opt-out — clean `Error: <message>` output on failure, full detail always captured in the log file
+- **A working test setup** with an example test to copy from (`vitest` + `@oclif/test` for Node, xUnit for .NET, Pester for PowerShell)
+- **Example commands** demonstrating the language's argument, flag, and subcommand patterns
+- **A directly runnable result** with no extra setup — a build pipeline for Node (`tsup`) and .NET (`dotnet build`), or, for PowerShell, no build step at all: it's a module (`.psd1`/`.psm1`) importable as-is
+
+A few features are wizard opt-ins rather than unconditional — see step 5 and 6 in "Usage" below for exactly when each is asked:
+
+- **Lint tooling** — ESLint + Prettier (Node) or the .NET SDK's built-in Roslyn analyzers (.NET). Not offered for PowerShell.
+- **Shell autocompletion** — `@oclif/plugin-autocomplete` (Node only; .NET and PowerShell aren't asked, see their own `ARCHITECTURE.md` for how completion works there instead).
+- **Private/company registry URL** — work profile only.
+
+There's also a [global post-scaffold hook](#post-scaffold-hooks) you configure once outside any project, independent of the wizard.
 
 ## Usage
 
