@@ -19,6 +19,8 @@ export const CORE_FILE_PATHS = [
   '.gitignore',
 ] as const;
 
+export const ANALYZER_FILE_PATHS = ['Cli.Analyzers/Cli.Analyzers.csproj', 'Cli.Analyzers/CommandPathAnalyzer.cs'] as const;
+
 export interface DotnetManifestFile {
   raw: string;
   version: string;
@@ -27,6 +29,7 @@ export interface DotnetManifestFile {
   toolCommandName: string;
   packageReferences: Record<string, string>;
   analyzerProperties: Partial<Record<AnalyzerPropertyName, string>>;
+  projectReference: string | undefined;
 }
 
 function escapeRegExp(value: string): string {
@@ -92,6 +95,16 @@ function extractAnalyzerProperties(content: string): Partial<Record<AnalyzerProp
   return properties;
 }
 
+const PROJECT_REFERENCE_LINE = /<ProjectReference Include="\.\.\\Cli\.Analyzers\\Cli\.Analyzers\.csproj"[^\n]*\/>/;
+
+function extractProjectReference(content: string): string | undefined {
+  return content.match(PROJECT_REFERENCE_LINE)?.[0];
+}
+
+function setProjectReference(content: string, value: string): string {
+  return content.replace(PROJECT_REFERENCE_LINE, value);
+}
+
 function parseManifestFile(rawContent: string): DotnetManifestFile {
   return {
     raw: rawContent,
@@ -101,6 +114,7 @@ function parseManifestFile(rawContent: string): DotnetManifestFile {
     toolCommandName: extractTag(rawContent, 'ToolCommandName'),
     packageReferences: extractPackageReferences(rawContent),
     analyzerProperties: extractAnalyzerProperties(rawContent),
+    projectReference: extractProjectReference(rawContent),
   };
 }
 
@@ -111,6 +125,9 @@ function extractCoreFields(manifestFile: DotnetManifestFile, flags: CoreFilePath
       const value = manifestFile.analyzerProperties[name];
       if (value !== undefined) coreFields[name] = value;
     }
+  }
+  if (flags.commandConventionEnabled && manifestFile.projectReference !== undefined) {
+    coreFields.projectReference = manifestFile.projectReference;
   }
   return {
     coreDependencies: manifestFile.packageReferences,
@@ -148,7 +165,7 @@ function mergeManifestFile(
     }
   }
 
-  const oldCoreFields = oldManifest.coreFields as { TargetFramework?: string } & Partial<
+  const oldCoreFields = oldManifest.coreFields as { TargetFramework?: string; projectReference?: string } & Partial<
     Record<AnalyzerPropertyName, string>
   >;
   const fields: FieldOutcome[] = [];
@@ -200,6 +217,30 @@ function mergeManifestFile(
     }
   }
 
+  // Same "missing element on an opted-in project is a no-op, not an insertion" caveat as the
+  // analyzer-properties block above: a hand-edited .csproj could have removed the
+  // <ProjectReference> line while the manifest still says opted-in. This adapter has no
+  // insertion path for a missing <ProjectReference> (unlike PackageReference), so treat a
+  // missing current value as 'skipped' rather than lying about an 'added' write.
+  if (oldManifest.commandConventionEnabled) {
+    const newValue = newTemplate.projectReference;
+    if (newValue !== undefined) {
+      const currentValue = current.projectReference;
+      if (currentValue === undefined) {
+        fields.push({ key: 'projectReference', outcome: 'skipped' });
+      } else {
+        const oldValue = oldCoreFields.projectReference;
+        const result = reconcileEntry(currentValue, oldValue, newValue, stringEquals);
+        fields.push({ key: 'projectReference', outcome: result.outcome });
+        coreFields.projectReference = result.value;
+        if (result.outcome !== 'skipped' && result.value !== currentValue) {
+          changed = true;
+          raw = setProjectReference(raw, result.value);
+        }
+      }
+    }
+  }
+
   return {
     updatedFile: { ...current, raw },
     changed,
@@ -213,8 +254,8 @@ function mergeManifestFile(
 }
 
 export const dotnetAdapter: UpdateAdapter = {
-  coreFilePaths() {
-    return CORE_FILE_PATHS;
+  coreFilePaths(flags) {
+    return flags.commandConventionEnabled ? [...CORE_FILE_PATHS, ...ANALYZER_FILE_PATHS] : CORE_FILE_PATHS;
   },
 
   templateSourcePath(relativePath) {

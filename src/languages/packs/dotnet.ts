@@ -6,6 +6,7 @@ import { dotnetAdapter } from '../../update/adapters/dotnet';
 import { nugetRegistryChecker, NUGET_DEFAULT_REGISTRY_URL } from '../registry-checkers/nuget';
 import { dotnetCommandGenerator } from '../command-generators/dotnet';
 import { stripLintTooling } from '../lint-support/dotnet';
+import { stripCommandConvention } from '../command-convention/dotnet';
 
 function validateProjectName(value: string | undefined): string | undefined {
   if (!value || value.trim().length === 0) return 'Project name is required.';
@@ -36,6 +37,5 @@ export const dotnetPack: LanguagePack = {
   stripLintTooling,
   supportsAutocompleteOptIn: false,
   stripAutocompleteSupport: async () => {},
-  // Temporary no-op -- real implementation lands in #80 Task 4.
-  stripCommandConvention: async () => {},
+  stripCommandConvention,
 };

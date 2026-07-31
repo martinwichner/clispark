@@ -28,4 +28,8 @@
     <PackageReference Include="Xdg.Directories" Version="0.1.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Cli.Analyzers\Cli.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
 </Project>
