@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.24.0](https://github.com/martinwichner/clispark/compare/v1.23.2...v1.24.0) (2026-08-01)
+
+
+### Features
+
+* .NET command-convention Roslyn analyzer enforcing [CommandPath] ([e68b4de](https://github.com/martinwichner/clispark/commit/e68b4def742a8840db6f2644565fbb48f3047e06))
+* add gated wizard question for command-convention enforcement ([4a1a96f](https://github.com/martinwichner/clispark/commit/4a1a96fd52bc540f6b928d8f23b0b1ccb88cb4a5))
+* Node command-convention ESLint rule enforcing BaseCommand inheritance ([7567978](https://github.com/martinwichner/clispark/commit/756797897cc06cacc4b1e7a07e38628173e2fec6))
+
 ## [1.23.2](https://github.com/martinwichner/clispark/compare/v1.23.1...v1.23.2) (2026-07-28)
 
 
