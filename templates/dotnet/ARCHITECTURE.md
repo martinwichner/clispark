@@ -95,6 +95,15 @@ If you answered "no", this `<PropertyGroup>` isn't present, and `dotnet build` r
 
 Either way, this choice is permanent and core-managed: `npx clispark update` keeps this block current for a project that opted in, and will never add it to a project that declined. There's no retroactive "turn lint tooling on later" command — rerun `clispark` in a new directory if you want it.
 
+### Command-convention rule
+
+If you accepted the command-convention question during scaffolding, the `Cli.Analyzers` project (referenced from
+`Cli.csproj` as a build-time-only analyzer) enforces that every `ICliCommand` implementer carries a `[CommandPath]`
+attribute — a class missing it currently crashes at runtime the first time `CommandDiscovery.RegisterAll` scans
+the assembly; this analyzer turns that into a build error instead. Attribute inheritance is honored (a subclass
+that inherits `[CommandPath]` from a base command class is not flagged), matching `CommandDiscovery.cs`'s own
+runtime lookup behavior.
+
 ## Shell Completion
 
 `System.CommandLine` 2.0.10's `[suggest]` directive is already part of this project's parsing
