@@ -113,6 +113,13 @@ If you answered "no", none of this is present — no config files, no `lint`/`fo
 
 Either way, this choice is permanent and core-managed: `npx clispark update` keeps the lint config and its devDependency versions current for a project that opted in, and will never add any of it to a project that declined. There's no retroactive "turn lint tooling on later" command — rerun `clispark` in a new directory if you want it.
 
+### Command-convention rule
+
+If you accepted the command-convention question during scaffolding, `eslint-rules/require-base-command.js`
+enforces that every command class in `src/commands/**` extends `BaseCommand` (directly, or via an intermediate
+base class) — a command that doesn't loses the shared logging/error-handling from `base-command.ts` silently,
+since oclif's discovery doesn't care what a command class extends. Run `npm run lint` to check.
+
 ## Shell Autocompletion
 
 If you answered "yes" to "Set up shell autocompletion?" during scaffolding, this project includes
