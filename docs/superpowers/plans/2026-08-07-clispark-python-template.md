@@ -659,6 +659,23 @@ describe('pythonAdapter.mergeManifestFile', () => {
     expect((result.updatedFile as ReturnType<typeof parsePyprojectFile>).version).toBe('0.2.0');
     expect((result.updatedFile as ReturnType<typeof parsePyprojectFile>).raw).toContain('version = "0.2.0"');
   });
+
+  it('does not revert a version the user has manually bumped past the template', () => {
+    // Regression test for a real bug caught during plan review: reconcileEntry's 'skipped'
+    // branch returns the OLD manifest snapshot value, not the user's current live value --
+    // writing that back unconditionally would silently revert a manual version bump. The old
+    // manifest still says '0.1.0' (never updated after the user's own edit); the user has
+    // since manually bumped their live pyproject.toml to '3.0.0'; the template only offers
+    // '0.2.0', which is older than what the user already has.
+    const current = parsePyprojectFile(SAMPLE_PYPROJECT.replace('version = "0.1.0"', 'version = "3.0.0"'));
+    const newTemplate = parsePyprojectFile(SAMPLE_PYPROJECT.replace('version = "0.1.0"', 'version = "0.2.0"'));
+    const oldManifest = { ...baseOldManifest, coreFields: { version: '0.1.0' } };
+
+    const result = pythonAdapter.mergeManifestFile(current, oldManifest, newTemplate);
+
+    expect((result.updatedFile as ReturnType<typeof parsePyprojectFile>).version).toBe('3.0.0');
+    expect((result.updatedFile as ReturnType<typeof parsePyprojectFile>).raw).toContain('version = "3.0.0"');
+  });
 });
 ```
 
@@ -763,7 +780,14 @@ function mergeManifestFile(current: PyprojectFile, oldManifest: Manifest, newTem
     const result = reconcileEntry(currentSpec, oldSpec, newSpec, stringEquals);
     dependencies.push({ key: name, outcome: result.outcome });
     coreDependencies[name] = result.value;
-    mergedMap.set(name, result.value);
+    // Guard mirrors node-oclif.ts's mergePackageJson: on 'skipped', reconcileEntry's returned
+    // value is the OLD manifest snapshot, not the user's actual live edit -- writing it here
+    // would silently clobber a manually-pinned dependency version. Only apply the result to
+    // the file when the outcome isn't 'skipped'; coreDependencies (the *next* manifest
+    // snapshot) still records result.value either way, same as Node's adapter.
+    if (result.outcome !== 'skipped') {
+      mergedMap.set(name, result.value);
+    }
   }
 
   const mergedDeps = [...mergedMap.entries()].map(([name, spec]) => (spec ? `${name}${spec}` : name));
@@ -774,13 +798,19 @@ function mergeManifestFile(current: PyprojectFile, oldManifest: Manifest, newTem
 
   const oldCoreFields = oldManifest.coreFields as { version?: string };
   const versionResult = reconcileEntry(current.version, oldCoreFields.version, newTemplate.version, stringEquals);
-  if (versionResult.value !== current.version) {
+  // Same 'skipped' guard as above: on 'skipped', versionResult.value is the OLD manifest
+  // snapshot, not the user's real current version -- write it back only when the outcome
+  // isn't 'skipped', otherwise the file (and updatedFile.version, which must match raw)
+  // keeps the user's actual live version.
+  let writtenVersion = current.version;
+  if (versionResult.outcome !== 'skipped' && versionResult.value !== current.version) {
     changed = true;
     raw = setVersion(raw, versionResult.value);
+    writtenVersion = versionResult.value;
   }
 
   return {
-    updatedFile: { ...current, raw, dependencies: mergedDeps, version: versionResult.value },
+    updatedFile: { ...current, raw, dependencies: mergedDeps, version: writtenVersion },
     changed,
     dependencies,
     scripts: [],
