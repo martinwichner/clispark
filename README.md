@@ -29,8 +29,8 @@ workflow, every top-level command, and every wizard question — no project gets
 clispark scaffolds four language templates — Node/oclif, .NET, PowerShell, and Python — chosen during the wizard. Every generated project, regardless of language, includes:
 
 - **Convention-based command discovery** — drop a file in the right place and it's picked up automatically, no manual registration (`src/commands/` filesystem scan for Node, `[CommandPath]` + reflection for .NET, `Public/` filesystem scan for PowerShell, `cli/commands/` filesystem scan for Python)
-- **Structured logging** covering every command automatically, one log file per invocation in an OS-appropriate log directory (`pino` for Node, Serilog for .NET, PSFramework for PowerShell, `structlog` for Python)
-- **Consistent error handling** with no opt-out — clean `Error: <message>` output on failure, full detail always captured in the log file
+- **Structured logging** covering every command automatically, one log file per invocation in an OS-appropriate log directory (`pino` for Node, Serilog for .NET, PSFramework for PowerShell) — Python's `structlog` logs the same structured `started`/`completed`/`failed` events, but to stdout only, no log file
+- **Consistent error handling** with no opt-out — clean `Error: <message>` output on failure, full detail always captured in the log file (stdout for Python)
 - **A working test setup** with an example test to copy from (`vitest` + `@oclif/test` for Node, xUnit for .NET, Pester for PowerShell, pytest for Python)
 - **Example commands** demonstrating the language's argument, flag, and subcommand patterns
 - **A directly runnable result** with no extra setup — a build pipeline for Node (`tsup`) and .NET (`dotnet build`), or, for PowerShell, no build step at all: it's a module (`.psd1`/`.psm1`) importable as-is, or for Python, `uv run <project-name> <command>`

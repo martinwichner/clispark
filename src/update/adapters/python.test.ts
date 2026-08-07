@@ -26,6 +26,73 @@ build-backend = "hatchling.build"
 packages = ["cli"]
 `;
 
+// Same fixture, but with [project].dependencies collapsed onto a single line (e.g. after a
+// formatter run, or a user's own hand-edit) -- regression fixture for Finding 1.
+const SAMPLE_PYPROJECT_SINGLE_LINE_DEPS = `[project]
+name = "demo-tool"
+version = "0.1.0"
+description = ""
+requires-python = ">=3.10"
+dependencies = ["typer>=0.12", "structlog>=24.1"]
+
+[project.scripts]
+demo-tool = "cli.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["cli"]
+`;
+
+// Same fixture, but with [project].dependencies removed entirely -- regression fixture for
+// Finding 1's "genuinely cannot find the array" throw case.
+const SAMPLE_PYPROJECT_NO_DEPS = `[project]
+name = "demo-tool"
+version = "0.1.0"
+description = ""
+requires-python = ">=3.10"
+
+[project.scripts]
+demo-tool = "cli.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["cli"]
+`;
+
+// A [tool.something] table positioned BEFORE [project], with its OWN same-named "version"/
+// "dependencies" keys -- regression fixture for Finding 2 (targeted regex replacement must be
+// scoped to [project]'s own body, not the first match anywhere in the raw file).
+const SAMPLE_PYPROJECT_WITH_PRECEDING_TOOL_TABLE = `[tool.something]
+version = "9.9.9"
+dependencies = ["should-not-be-touched>=1.0"]
+
+[project]
+name = "demo-tool"
+version = "0.1.0"
+description = ""
+requires-python = ">=3.10"
+dependencies = [
+    "typer>=0.12",
+    "structlog>=24.1",
+]
+
+[project.scripts]
+demo-tool = "cli.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["cli"]
+`;
+
 describe('parsePyprojectFile', () => {
   it('extracts name, version, and dependencies from a real pyproject.toml', () => {
     const parsed = parsePyprojectFile(SAMPLE_PYPROJECT);
@@ -158,5 +225,66 @@ describe('pythonAdapter.mergeManifestFile', () => {
 
     expect((result.updatedFile as ReturnType<typeof parsePyprojectFile>).version).toBe('3.0.0');
     expect((result.updatedFile as ReturnType<typeof parsePyprojectFile>).raw).toContain('version = "3.0.0"');
+  });
+
+  // Finding 1: setDependencies previously only matched a multi-line array with the closing "]"
+  // on its own line -- a single-line `dependencies = [...]` silently no-op'd on .replace() while
+  // mergeManifestFile still reported the change as applied.
+  it('correctly updates a single-line [project].dependencies array', () => {
+    const current = parsePyprojectFile(SAMPLE_PYPROJECT_SINGLE_LINE_DEPS);
+    const newTemplate = parsePyprojectFile(SAMPLE_PYPROJECT_SINGLE_LINE_DEPS.replace('typer>=0.12', 'typer>=0.13'));
+
+    const result = pythonAdapter.mergeManifestFile(current, baseOldManifest, newTemplate);
+
+    expect(result.changed).toBe(true);
+    expect(result.dependencies).toContainEqual({ key: 'typer', outcome: 'replaced' });
+    const updated = result.updatedFile as ReturnType<typeof parsePyprojectFile>;
+    expect(updated.dependencies).toContain('typer>=0.13');
+    // Bracket style must be preserved -- still single-line, not force-converted to multi-line.
+    expect(updated.raw).toContain('dependencies = ["typer>=0.13", "structlog>=24.1"]');
+    expect(updated.raw).not.toMatch(/dependencies = \[\n/);
+  });
+
+  it('still correctly updates a multi-line [project].dependencies array', () => {
+    const current = parsePyprojectFile(SAMPLE_PYPROJECT);
+    const newTemplate = parsePyprojectFile(SAMPLE_PYPROJECT.replace('typer>=0.12', 'typer>=0.13'));
+
+    const result = pythonAdapter.mergeManifestFile(current, baseOldManifest, newTemplate);
+
+    const updated = result.updatedFile as ReturnType<typeof parsePyprojectFile>;
+    expect(updated.raw).toContain('dependencies = [\n    "typer>=0.13",\n    "structlog>=24.1",\n]');
+  });
+
+  it('throws instead of silently no-op-ing when [project].dependencies cannot be found but a write is required', () => {
+    const current = parsePyprojectFile(SAMPLE_PYPROJECT_NO_DEPS);
+    const newTemplate = parsePyprojectFile(SAMPLE_PYPROJECT);
+
+    expect(() => pythonAdapter.mergeManifestFile(current, baseOldManifest, newTemplate)).toThrow(
+      /\[project\]\.dependencies/,
+    );
+  });
+
+  // Finding 2: version/dependencies regexes previously matched against the whole raw file, so a
+  // same-named key in an earlier table (e.g. [tool.something]) could be matched and rewritten
+  // instead of the real [project] field.
+  it('scopes version/dependencies replacement to [project], leaving an earlier same-named tool table untouched', () => {
+    const current = parsePyprojectFile(SAMPLE_PYPROJECT_WITH_PRECEDING_TOOL_TABLE);
+    const newTemplate = parsePyprojectFile(
+      SAMPLE_PYPROJECT_WITH_PRECEDING_TOOL_TABLE.replace('version = "0.1.0"', 'version = "0.2.0"').replace(
+        'typer>=0.12',
+        'typer>=0.13',
+      ),
+    );
+    const oldManifest = { ...baseOldManifest, coreFields: { version: '0.1.0' } };
+
+    const result = pythonAdapter.mergeManifestFile(current, oldManifest, newTemplate);
+
+    const updated = result.updatedFile as ReturnType<typeof parsePyprojectFile>;
+    // [tool.something]'s own version/dependencies keys must be completely untouched.
+    expect(updated.raw).toContain('[tool.something]\nversion = "9.9.9"\ndependencies = ["should-not-be-touched>=1.0"]');
+    // [project]'s own fields must be correctly updated.
+    expect(updated.version).toBe('0.2.0');
+    expect(updated.dependencies).toContain('typer>=0.13');
+    expect(updated.raw).toMatch(/\[project\][\s\S]*?version = "0\.2\.0"/);
   });
 });
