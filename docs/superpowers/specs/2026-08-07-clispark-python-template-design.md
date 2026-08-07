@@ -162,7 +162,7 @@ pytest (Python-Standard-Testframework, analog zu vitest/xUnit/Pester) — ein `t
 2. **`uv.toml` vs. `[tool.uv]`-Sektion direkt in `pyproject.toml`** für die custom Registry-URL — Empfehlung: separate `uv.toml`-Datei (Begründung siehe oben), zur Bestätigung im Plan.
 3. **Rückmeldung von @Tefchen auf den #136-Kommentar** — zum Zeitpunkt dieser Spec noch ausstehend. Plan ist unabhängig davon startbar; falls eine Rückmeldung vor Plan-Beginn eintrifft, in den Plan einarbeiten.
 4. **Exakte `structlog`-Processor-Konfiguration** (Konsolen- vs. JSON-Renderer, Datei-Sink, Redaction-Liste) — Prinzip wichtiger als exakte API an dieser Stelle, Details gehören in den Plan.
-5. **Python-Mindestversion** — noch nicht real recherchiert (anders als die 7.4+-Recherche bei PowerShell). Sollte im Plan kurz verifiziert werden (Typer-/structlog-Mindestanforderungen, vermutlich 3.10+ wegen moderner Type-Hint-Syntax) — diese Session hat nur gegen lokal verfügbares Python 3.11 getestet, kein Hinweis auf eine niedrigere Grenze.
+5. ~~Python-Mindestversion~~ **Entschieden (real recherchiert, 2026-08-07 via PyPIs JSON-API `requires_python`-Feld):** sowohl `typer` (0.27.1) als auch `structlog` (26.1.0) verlangen `>=3.10` — **Mindestversion: Python 3.10+**, `pyproject.toml`s `requires-python = ">=3.10"`.
 
 ## Ergebnis
 
