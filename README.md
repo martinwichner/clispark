@@ -33,7 +33,7 @@ clispark scaffolds four language templates — Node/oclif, .NET, PowerShell, and
 - **Consistent error handling** with no opt-out — clean `Error: <message>` output on failure, full detail always captured in the log file
 - **A working test setup** with an example test to copy from (`vitest` + `@oclif/test` for Node, xUnit for .NET, Pester for PowerShell, pytest for Python)
 - **Example commands** demonstrating the language's argument, flag, and subcommand patterns
-- **A directly runnable result** with no extra setup — a build pipeline for Node (`tsup`) and .NET (`dotnet build`), or for PowerShell no build step at all (it's a module `.psd1`/`.psm1` importable as-is), or for Python, just run it with `uv run <project-name> <command>`
+- **A directly runnable result** with no extra setup — a build pipeline for Node (`tsup`) and .NET (`dotnet build`), or, for PowerShell, no build step at all: it's a module (`.psd1`/`.psm1`) importable as-is, or for Python, `uv run <project-name> <command>`
 
 A few features are wizard opt-ins rather than unconditional — see step 5 and 6 in "Usage" below for exactly when each is asked:
 
