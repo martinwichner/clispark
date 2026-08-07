@@ -55,13 +55,74 @@ function dependencyMap(deps: string[]): Map<string, string> {
   return map;
 }
 
+// TOML keys repeat across tables (e.g. a [tool.foo] table can have its own "version"/
+// "dependencies" keys) -- scanning the whole raw file for the first "version = ..."/
+// "dependencies = [...]" match would silently rewrite the wrong table if it happens to appear
+// before [project]. Find [project]'s own body range first (from its heading to the next table
+// heading of any kind, per TOML's table-scoping rules -- this also correctly stops at a nested
+// heading like "[project.scripts]", not just an unrelated top-level table), so field edits are
+// scoped to it. See Finding 2 of the final branch review.
+function findProjectTableRange(content: string): { start: number; end: number } {
+  const headingRegex = /^\[([^[\]]+)\][ \t]*$/gm;
+  let projectHeadingEnd = -1;
+  let nextHeadingStart = content.length;
+  let match: RegExpExecArray | null;
+  while ((match = headingRegex.exec(content)) !== null) {
+    if (projectHeadingEnd === -1) {
+      if (match[1] === 'project') {
+        projectHeadingEnd = match.index + match[0].length;
+      }
+      continue;
+    }
+    nextHeadingStart = match.index;
+    break;
+  }
+  if (projectHeadingEnd === -1) {
+    throw new Error('pyproject.toml is missing a [project] table heading');
+  }
+  return { start: projectHeadingEnd, end: nextHeadingStart };
+}
+
+function replaceWithinProjectTable(content: string, edit: (projectSlice: string) => string): string {
+  const { start, end } = findProjectTableRange(content);
+  const slice = content.slice(start, end);
+  return content.slice(0, start) + edit(slice) + content.slice(end);
+}
+
 function setVersion(content: string, version: string): string {
-  return content.replace(/^version = "[^"]*"/m, `version = "${version}"`);
+  return replaceWithinProjectTable(content, (slice) => {
+    const match = slice.match(/^version = "[^"]*"/m);
+    // A failed targeted write must never be reported as a successful one -- throw instead of
+    // silently returning the slice unchanged (mergeManifestFile would still mark `changed: true`
+    // and record the new value in the manifest snapshot, permanently desyncing it from the
+    // untouched live file). See Finding 1 of the final branch review.
+    if (!match) {
+      throw new Error('Could not find [project].version in pyproject.toml to update');
+    }
+    const matchStart = match.index ?? 0;
+    return slice.slice(0, matchStart) + `version = "${version}"` + slice.slice(matchStart + match[0].length);
+  });
 }
 
 function setDependencies(content: string, dependencies: string[]): string {
-  const formatted = dependencies.map((d) => `    "${d}",`).join('\n');
-  return content.replace(/^dependencies = \[[\s\S]*?\n\]/m, `dependencies = [\n${formatted}\n]`);
+  return replaceWithinProjectTable(content, (slice) => {
+    // Lazy match up to the first "]" after the opening bracket -- matches both the multi-line
+    // array form (closing bracket on its own line) and a single-line form
+    // (`dependencies = ["a", "b"]`, e.g. after a formatter collapses it), since dependency
+    // strings themselves don't contain "]" in practice.
+    const match = slice.match(/^dependencies = \[[\s\S]*?\]/m);
+    if (!match) {
+      throw new Error('Could not find [project].dependencies array in pyproject.toml to update');
+    }
+    // Preserve whichever bracket style the file already used -- don't force-convert a
+    // single-line array to multi-line, or vice versa.
+    const isMultiLine = match[0].includes('\n');
+    const formatted = isMultiLine
+      ? `dependencies = [\n${dependencies.map((d) => `    "${d}",`).join('\n')}\n]`
+      : `dependencies = [${dependencies.map((d) => `"${d}"`).join(', ')}]`;
+    const matchStart = match.index ?? 0;
+    return slice.slice(0, matchStart) + formatted + slice.slice(matchStart + match[0].length);
+  });
 }
 
 function extractCoreFields(pyproject: PyprojectFile): CoreFieldsExtraction {
