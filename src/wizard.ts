@@ -164,7 +164,7 @@ export const WIZARD_QUESTION_CATALOG: WizardQuestionCatalogEntry[] = [
   {
     id: 'language',
     prompt: 'Which language?',
-    why: 'Picks which LanguagePack scaffolds the project — Node/oclif, .NET/System.CommandLine, or PowerShell. Everything downstream (registry, lint tooling, autocompletion) adapts to this choice.',
+    why: 'Picks which LanguagePack scaffolds the project — Node/oclif, .NET/System.CommandLine, PowerShell, or Python. Everything downstream (registry, lint tooling, autocompletion) adapts to this choice.',
   },
   {
     id: 'projectName',
@@ -199,6 +199,6 @@ export const WIZARD_QUESTION_CATALOG: WizardQuestionCatalogEntry[] = [
   {
     id: 'autocompleteEnabled',
     prompt: 'Set up shell autocompletion?',
-    why: 'Only asked for languages that need a scaffolding choice (Node) — PowerShell tab-completion is built-in with zero setup, and .NET completion is already wired in but needs a one-time dotnet-suggest setup rather than a scaffolding toggle. Wires up @oclif/plugin-autocomplete when accepted.',
+    why: 'Only asked for languages that need a scaffolding choice (Node) — PowerShell and Python completion are built-in with zero setup, and .NET completion is already wired in but needs a one-time dotnet-suggest setup rather than a scaffolding toggle. Wires up @oclif/plugin-autocomplete when accepted.',
   },
 ];
