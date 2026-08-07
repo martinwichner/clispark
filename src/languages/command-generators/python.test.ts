@@ -61,6 +61,48 @@ describe('pythonCommandGenerator.generateCommand', () => {
     const defLine = content.split('\n').find((l) => l.trim().startsWith('def build('))!;
     expect(defLine.indexOf('target')).toBeLessThan(defLine.indexOf('verbose'));
   });
+
+  it('generates a test file invoking the command with quoted path segments and required args', async () => {
+    const spec: CommandSpec = {
+      pathSegments: ['task', 'create'],
+      parameters: [{ name: 'title', type: 'string', required: true }],
+    };
+
+    const result = await pythonCommandGenerator.generateCommand(tmpRoot, spec);
+    const content = await readFile(path.join(tmpRoot, result.testFile), 'utf8');
+
+    expect(content).toContain('runner.invoke(app, ["task", "create", "value"])');
+  });
+
+  it('does not collapse or misorder multiple required argument values in the invocation list', async () => {
+    const spec: CommandSpec = {
+      pathSegments: ['deploy'],
+      parameters: [
+        { name: 'region', type: 'string', required: true },
+        { name: 'retries', type: 'integer', required: true },
+      ],
+    };
+
+    const result = await pythonCommandGenerator.generateCommand(tmpRoot, spec);
+    const content = await readFile(path.join(tmpRoot, result.testFile), 'utf8');
+
+    expect(content).toContain('runner.invoke(app, ["deploy", "value", "1"])');
+  });
+
+  it('excludes optional parameters from the test invocation args', async () => {
+    const spec: CommandSpec = {
+      pathSegments: ['build'],
+      parameters: [
+        { name: 'verbose', type: 'boolean', required: false },
+        { name: 'target', type: 'string', required: true },
+      ],
+    };
+
+    const result = await pythonCommandGenerator.generateCommand(tmpRoot, spec);
+    const content = await readFile(path.join(tmpRoot, result.testFile), 'utf8');
+
+    expect(content).toContain('runner.invoke(app, ["build", "value"])');
+  });
 });
 
 describe('pythonCommandGenerator.listExistingCommands', () => {

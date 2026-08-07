@@ -80,7 +80,7 @@ class ${className}(BaseCommand):
     command_name = "${spec.pathSegments.join(' ')}"
 
     def run(self, ${runParamList}) -> None:
-        typer.echo(f"${spec.pathSegments.join(' ')} ran")
+        typer.echo("${spec.pathSegments.join(' ')} ran")
 
 
 @app.callback(invoke_without_command=True)
@@ -97,12 +97,8 @@ function sampleArgValue(param: ParameterSpec): string {
 }
 
 function generateTestFileContent(spec: CommandSpec): string {
-  const commandInvocation = spec.pathSegments.join(' ');
-  const cliArgs = spec.parameters
-    .filter((p) => p.required)
-    .map((p) => `"${sampleArgValue(p)}"`)
-    .join(', ');
-  const invocationArgs = [...spec.pathSegments.map((s) => `"${s}"`), cliArgs].filter(Boolean).join(', ');
+  const requiredArgs = spec.parameters.filter((p) => p.required).map((p) => `"${sampleArgValue(p)}"`);
+  const invocationArgs = [...spec.pathSegments.map((s) => `"${s}"`), ...requiredArgs].join(', ');
 
   return `from typer.testing import CliRunner
 
