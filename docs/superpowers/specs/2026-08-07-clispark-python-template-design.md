@@ -51,7 +51,7 @@ Passt dieser Überblick so weit?
 ```
 templates/python/
   pyproject.toml              # Kern-Datei, core-verwaltet
-  app/
+  cli/
     __init__.py
     cli.py                    # Entry Point: baut den Command-Tree via discover.py auf (Kern-Datei)
     base_command.py           # BaseCommand-Abstraktion + structlog-Wrapper (Kern-Datei)
@@ -68,7 +68,9 @@ templates/python/
 
 `commands/` = Konvention für Commands, ein Modul pro Command, **Ordnerstruktur = Command-Pfad** (Unterordner = Command-Gruppe) — direktes Pendant zu Node/oclifs `src/commands/`-Konvention (Dateiname/Pfad = Command-Name), näher an oclif als am .NET-Attribut-Ansatz, weil Python keine Compile-Zeit-Reflection wie C# hat und der Scan ohnehin nötig ist.
 
-**Echter Architektur-Fund (beim Plan-Entwurf, nicht mehr Python-typisches "src-layout"):** ein `src/<project_name>/`-Layout (Python-Idiom) würde `coreFilePaths` — eine statische, projektunabhängige Pfadliste (siehe `src/update/adapter.ts`) — brechen, weil der Package-Ordnername dann vom Projektnamen abhinge. Exakt dasselbe Problem, das die PowerShell-Spec für `Module.psd1`/`.psm1` und die .NET-Spec für `Cli.csproj`/`Program.cs` bereits gelöst haben: **fester Package-Ordnername (`app/`), unabhängig vom Projektnamen.** `[project].name` in `pyproject.toml` trägt weiterhin den echten Projektnamen; der importierbare Package-Ordner heißt immer `app`. `coreFilePaths` wird dadurch trivial statisch: `app/base_command.py`, `app/discover.py`, `app/cli.py`, `ARCHITECTURE.md`, `.gitignore`.
+**Echter Architektur-Fund (beim Plan-Entwurf, nicht mehr Python-typisches "src-layout"):** ein `src/<project_name>/`-Layout (Python-Idiom) würde `coreFilePaths` — eine statische, projektunabhängige Pfadliste (siehe `src/update/adapter.ts`) — brechen, weil der Package-Ordnername dann vom Projektnamen abhinge. Exakt dasselbe Problem, das die PowerShell-Spec für `Module.psd1`/`.psm1` und die .NET-Spec für `Cli.csproj`/`Program.cs` bereits gelöst haben: **fester Package-Ordnername, unabhängig vom Projektnamen.** `[project].name` in `pyproject.toml` trägt weiterhin den echten Projektnamen; der importierbare Package-Ordner heißt immer `cli`. `coreFilePaths` wird dadurch trivial statisch: `cli/base_command.py`, `cli/discover.py`, `cli/cli.py`, `ARCHITECTURE.md`, `.gitignore`.
+
+**Zweiter, echter Nebenfund beim Real-Testen dieser Session:** anders als bei .NET (isolierte Assemblies) oder PowerShell (Modul-Identität kommt vom Import-Pfad, nicht vom `RootModule`-Feld) teilen sich alle in einer Python-Umgebung installierten Packages **einen einzigen flachen globalen Import-Namespace** (`site-packages`). Ein zu generischer fixer Name (ursprünglich `app` erwogen) hätte ein reales Kollisionsrisiko, falls zwei clispark-gescaffoldete Python-Projekte je in derselben Umgebung installiert würden. **Entschärft, nicht eliminiert**, durch `uv`s Standardverhalten: `uv sync` legt pro Projekt ein eigenes isoliertes `.venv` an, `uv tool install` (Standardweg für Endnutzer, ein fertiges CLI-Tool global zu installieren) isoliert ebenfalls pro Tool — die Kollisionträte nur auf, wenn jemand bewusst mehrere clispark-Python-Projekte in **einer** geteilten Umgebung installiert, kein Standard-Workflow. `cli` als Name ist deutlich weniger generisch als `app` und wurde real gegen dieses Szenario getestet (siehe unten), das Restrisiko bleibt aber ein bewusst akzeptierter Kompromiss, kein vollständig gelöstes Problem — dokumentiert statt verschwiegen, echte Lösung bräuchte die bereits an anderer Stelle (siehe PowerShell-Spec) als eigenständig markierte generische `coreFilePaths`-Erweiterung.
 
 ## Command-Auto-Discovery & BaseCommand — real verifiziert
 
@@ -92,7 +94,7 @@ Mechanik: `discover.py` läuft beim Start rekursiv über `commands/` (`pathlib`-
 
 ## Projektname-Validierung
 
-**Korrektur gegenüber einer ursprünglichen Annahme dieser Spec:** ursprünglich war hier snake_case vorgesehen, mit der Begründung, der Projektname würde direkt zum importierbaren Package-Namen. Das gilt nach dem festen `app/`-Package-Ordnernamen (siehe oben) nicht mehr — der Projektname taucht nur noch als PyPI-Distributionsname (`[project].name`) und als `[project.scripts]`-Befehlsname auf, beides Kontexte, die Bindestriche problemlos erlauben (PyPI normalisiert `-`/`_`/`.` ohnehin als äquivalent) und bei denen Bindestriche sogar idiomatischer sind (`black`, `ruff`, `pip-tools`). Damit entfällt der Python-spezifische Sonderfall komplett — `pythonPack` kann `nodeOclifPack`s Namensvalidierung unverändert wiederverwenden:
+**Korrektur gegenüber einer ursprünglichen Annahme dieser Spec:** ursprünglich war hier snake_case vorgesehen, mit der Begründung, der Projektname würde direkt zum importierbaren Package-Namen. Das gilt nach dem festen `cli/`-Package-Ordnernamen (siehe oben) nicht mehr — der Projektname taucht nur noch als PyPI-Distributionsname (`[project].name`) und als `[project.scripts]`-Befehlsname auf, beides Kontexte, die Bindestriche problemlos erlauben (PyPI normalisiert `-`/`_`/`.` ohnehin als äquivalent) und bei denen Bindestriche sogar idiomatischer sind (`black`, `ruff`, `pip-tools`). Damit entfällt der Python-spezifische Sonderfall komplett — `pythonPack` kann `nodeOclifPack`s Namensvalidierung unverändert wiederverwenden:
 
 ```ts
 function validateProjectName(value: string | undefined): string | undefined {
@@ -106,7 +108,7 @@ function validateProjectName(value: string | undefined): string | undefined {
 
 ## Command-Naming & `CommandGenerator`
 
-`pathSegments` mappen 1:1 auf verschachtelte Ordner unter `commands/` (wie bei Node/oclif) — `generateCommand()` erzeugt `app/commands/<seg1>/.../​<segN>.py` (Typer-App + BaseCommand-Unterklasse, plus ein `__init__.py` in jedem neu angelegten Zwischenordner, damit `discover.py`s Scan ihn als Gruppe erkennt) plus `tests/test_<segN>.py` (pytest, nutzt `typer.testing.CliRunner` für In-Process-Invocation ohne echten Subprozess-Start, analog zu `@oclif/test`s `runCommand`).
+`pathSegments` mappen 1:1 auf verschachtelte Ordner unter `commands/` (wie bei Node/oclif) — `generateCommand()` erzeugt `cli/commands/<seg1>/.../​<segN>.py` (Typer-App + BaseCommand-Unterklasse, plus ein `__init__.py` in jedem neu angelegten Zwischenordner, damit `discover.py`s Scan ihn als Gruppe erkennt) plus `tests/test_<segN>.py` (pytest, nutzt `typer.testing.CliRunner` für In-Process-Invocation ohne echten Subprozess-Start, analog zu `@oclif/test`s `runCommand`).
 
 `ParameterType` → Typer-Parameter: `string`→`str`, `integer`→`int`, `boolean`→`bool` (Typer macht daraus automatisch ein `--flag/--no-flag`-Options-Paar), `enum`→eine generierte `class ...(str, Enum)` mit den `allowedValues` als Mitgliedern (Typers dokumentierter, typsicherer Weg für Choice-Constraints — bewusst nicht `click.Choice` direkt, das würde Typers deklarativen Type-Hint-Stil unterlaufen, den wir als Framework-Wahl gerade wegen dieser Deklarativität getroffen haben).
 
@@ -123,6 +125,8 @@ function validateProjectName(value: string | undefined): string | undefined {
 `coreFilePaths`: `pyproject.toml` wird **nicht** über den generischen Hash-Vergleichs-Pfad behandelt (eigene Merge-Logik wie bei den anderen drei Manifesten), sondern `base_command.py` und `discover.py` sind core-verwaltete Dateien (die eigentliche Auto-Logging-/Discovery-Mechanik — Pendant zu `base-command.ts`/`Module.psm1`). `commands/` und `tests/` bleiben, wie bei allen Templates, immer nutzereigen.
 
 Kern-Felder für die Drei-Wege-Reconciliation: `[project].dependencies` (Typer, structlog als Kern-Dependencies), `[project].name`/`version`.
+
+`readProjectName()`: liest `[project].name` **real** aus (kein Sentinel-Workaround wie bei PowerShell) — `pyproject.toml` trägt den echten Projektnamen unabhängig vom fixen `cli/`-Package-Ordnernamen, exakt wie Node's `package.json.name`.
 
 ## PyPI-`RegistryChecker` — real verifiziert
 
@@ -162,4 +166,4 @@ pytest (Python-Standard-Testframework, analog zu vitest/xUnit/Pester) — ein `t
 
 ## Ergebnis
 
-Vollständiges Design für ein viertes `LanguagePack` (Python, Typer-CLI), das den unklarsten Mechanismus (dateisystembasierte Command-Discovery + automatisches strukturiertes Logging ohne Opt-out) bereits real prototypt und ausgeführt hat — inklusive eines echten positiven Fundes (Autocompletion kommt kostenlos mit Typer, kein Opt-in-Mechanismus nötig, anders als ursprünglich im #136-Kommentar angekündigt) und einer real gegen die Live-PyPI-API verifizierten Registry-Check-Logik. Fünf konkrete offene Punkte bleiben für den Implementierungsplan, mit jeweils einer begründeten Empfehlung, wo eine sinnvoll ist.
+Vollständiges Design für ein viertes `LanguagePack` (Python, Typer-CLI), das den unklarsten Mechanismus (dateisystembasierte Command-Discovery + automatisches strukturiertes Logging ohne Opt-out) bereits real prototypt und ausgeführt hat — inklusive eines echten positiven Fundes (Autocompletion kommt kostenlos mit Typer, kein Opt-in-Mechanismus nötig, anders als ursprünglich im #136-Kommentar angekündigt) und einer real gegen die Live-PyPI-API verifizierten Registry-Check-Logik. **Zusätzlich real end-to-end verifiziert** (Plan-Entwurf, finale `cli/`-Layout-Korrektur): ein vollständiges Scaffold-Abbild wurde mit echtem `uv sync`, `uv run pytest` und dem tatsächlich installierten Console-Script-Entry-Point (`uv run demo-tool hello`) durchlaufen — alle drei Schritte liefen fehlerfrei gegen `hatchling` als Build-Backend. Fünf konkrete offene Punkte bleiben für den Implementierungsplan, mit jeweils einer begründeten Empfehlung, wo eine sinnvoll ist.
