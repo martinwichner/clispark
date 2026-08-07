@@ -48,7 +48,8 @@
     "commander": "^13.1.0",
     "cross-spawn": "^7.0.3",
     "env-paths": "^3.0.0",
-    "pino": "^9.6.0"
+    "pino": "^9.6.0",
+    "smol-toml": "^1.7.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
