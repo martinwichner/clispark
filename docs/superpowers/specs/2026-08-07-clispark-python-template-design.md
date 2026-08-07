@@ -51,7 +51,7 @@ Passt dieser Überblick so weit?
 ```
 templates/python/
   pyproject.toml              # Kern-Datei, core-verwaltet
-  src/<project_name>/
+  app/
     __init__.py
     cli.py                    # Entry Point: baut den Command-Tree via discover.py auf (Kern-Datei)
     base_command.py           # BaseCommand-Abstraktion + structlog-Wrapper (Kern-Datei)
@@ -67,6 +67,8 @@ templates/python/
 ```
 
 `commands/` = Konvention für Commands, ein Modul pro Command, **Ordnerstruktur = Command-Pfad** (Unterordner = Command-Gruppe) — direktes Pendant zu Node/oclifs `src/commands/`-Konvention (Dateiname/Pfad = Command-Name), näher an oclif als am .NET-Attribut-Ansatz, weil Python keine Compile-Zeit-Reflection wie C# hat und der Scan ohnehin nötig ist.
+
+**Echter Architektur-Fund (beim Plan-Entwurf, nicht mehr Python-typisches "src-layout"):** ein `src/<project_name>/`-Layout (Python-Idiom) würde `coreFilePaths` — eine statische, projektunabhängige Pfadliste (siehe `src/update/adapter.ts`) — brechen, weil der Package-Ordnername dann vom Projektnamen abhinge. Exakt dasselbe Problem, das die PowerShell-Spec für `Module.psd1`/`.psm1` und die .NET-Spec für `Cli.csproj`/`Program.cs` bereits gelöst haben: **fester Package-Ordnername (`app/`), unabhängig vom Projektnamen.** `[project].name` in `pyproject.toml` trägt weiterhin den echten Projektnamen; der importierbare Package-Ordner heißt immer `app`. `coreFilePaths` wird dadurch trivial statisch: `app/base_command.py`, `app/discover.py`, `app/cli.py`, `ARCHITECTURE.md`, `.gitignore`.
 
 ## Command-Auto-Discovery & BaseCommand — real verifiziert
 
@@ -90,21 +92,21 @@ Mechanik: `discover.py` läuft beim Start rekursiv über `commands/` (`pathlib`-
 
 ## Projektname-Validierung
 
+**Korrektur gegenüber einer ursprünglichen Annahme dieser Spec:** ursprünglich war hier snake_case vorgesehen, mit der Begründung, der Projektname würde direkt zum importierbaren Package-Namen. Das gilt nach dem festen `app/`-Package-Ordnernamen (siehe oben) nicht mehr — der Projektname taucht nur noch als PyPI-Distributionsname (`[project].name`) und als `[project.scripts]`-Befehlsname auf, beides Kontexte, die Bindestriche problemlos erlauben (PyPI normalisiert `-`/`_`/`.` ohnehin als äquivalent) und bei denen Bindestriche sogar idiomatischer sind (`black`, `ruff`, `pip-tools`). Damit entfällt der Python-spezifische Sonderfall komplett — `pythonPack` kann `nodeOclifPack`s Namensvalidierung unverändert wiederverwenden:
+
 ```ts
 function validateProjectName(value: string | undefined): string | undefined {
   if (!value || value.trim().length === 0) return 'Project name is required.';
-  if (!/^[a-z][a-z0-9_]*$/.test(value)) {
-    return 'Use snake_case, starting with a lowercase letter (e.g. my_tool).';
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(value)) {
+    return 'Use lowercase letters and numbers, with single hyphens between words (no leading, trailing, or repeated hyphens).';
   }
   return undefined;
 }
 ```
 
-Anders als npm (kebab-case) oder PyPI-Distributionsnamen (die auch Bindestriche erlauben): der Projektname wird gleichzeitig zum importierbaren Python-Package-Namen unter `src/`, und Python-Modulnamen dürfen keine Bindestriche enthalten. PyPI-Distributionsname und Package-Name sind hier bewusst identisch — kein Sonderfall wie bei npm-scoped-Packages.
-
 ## Command-Naming & `CommandGenerator`
 
-`pathSegments` mappen 1:1 auf verschachtelte Ordner unter `commands/` (wie bei Node/oclif) — `generateCommand()` erzeugt `src/<project>/commands/<seg1>/.../​<segN>.py` (Typer-App + BaseCommand-Unterklasse) plus `tests/test_<segN>.py` (pytest, nutzt `typer.testing.CliRunner` für In-Process-Invocation ohne echten Subprozess-Start, analog zu `@oclif/test`s `runCommand`).
+`pathSegments` mappen 1:1 auf verschachtelte Ordner unter `commands/` (wie bei Node/oclif) — `generateCommand()` erzeugt `app/commands/<seg1>/.../​<segN>.py` (Typer-App + BaseCommand-Unterklasse, plus ein `__init__.py` in jedem neu angelegten Zwischenordner, damit `discover.py`s Scan ihn als Gruppe erkennt) plus `tests/test_<segN>.py` (pytest, nutzt `typer.testing.CliRunner` für In-Process-Invocation ohne echten Subprozess-Start, analog zu `@oclif/test`s `runCommand`).
 
 `ParameterType` → Typer-Parameter: `string`→`str`, `integer`→`int`, `boolean`→`bool` (Typer macht daraus automatisch ein `--flag/--no-flag`-Options-Paar), `enum`→eine generierte `class ...(str, Enum)` mit den `allowedValues` als Mitgliedern (Typers dokumentierter, typsicherer Weg für Choice-Constraints — bewusst nicht `click.Choice` direkt, das würde Typers deklarativen Type-Hint-Stil unterlaufen, den wir als Framework-Wahl gerade wegen dieser Deklarativität getroffen haben).
 
