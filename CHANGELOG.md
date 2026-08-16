@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.25.0](https://github.com/martinwichner/clispark/compare/v1.24.0...v1.25.0) (2026-08-16)
+
+
+### Features
+
+* add PyPI registry checker ([8ddfb24](https://github.com/martinwichner/clispark/commit/8ddfb240a5da6be421de6fe543837033ce792631))
+* add Python command generator (clispark add support) ([60d787d](https://github.com/martinwichner/clispark/commit/60d787de6d6c2fa515ab23cdf8fc7abe8dc4435a))
+* add Python template runtime core (discovery, BaseCommand, hello example) ([b3b9c7d](https://github.com/martinwichner/clispark/commit/b3b9c7d106e90afaa890202519f07dd8b80abacb))
+* add Python UpdateAdapter (pyproject.toml read/write/merge) ([d188e2c](https://github.com/martinwichner/clispark/commit/d188e2c91dbde75b272d496d5fb2ed3481023e74))
+* assemble pythonPack from its adapter/registry/generator ([5f7e796](https://github.com/martinwichner/clispark/commit/5f7e7968695f6a19ca7b314d4425d9ec03c1fe93))
+* register pythonPack in LANGUAGE_PACKS ([f1156dc](https://github.com/martinwichner/clispark/commit/f1156dc9c53ff2bf3d8dec7169b88f987b883352))
+
+
+### Bug Fixes
+
+* clean up Python clause in README 'directly runnable result' bullet ([18d86b4](https://github.com/martinwichner/clispark/commit/18d86b471368759db9f10b93ca1c531e4fc2b545))
+* remove coincidental join-collapsing in Python test generator, drop dead var and f-string lint issue ([ce63fa4](https://github.com/martinwichner/clispark/commit/ce63fa4d114c5f1a222babadb2d95dec70a99920))
+* resolve high-severity transitive audit findings (brace-expansion, nanoid) ([6c8a888](https://github.com/martinwichner/clispark/commit/6c8a8881669f918fe8ca35d0a14058528469fd70))
+* scope pyproject.toml field edits to [project], handle single-line deps ([1a32669](https://github.com/martinwichner/clispark/commit/1a32669097ce64bfda8a2a009d6faaac87308855))
+
 ## [1.24.0](https://github.com/martinwichner/clispark/compare/v1.23.2...v1.24.0) (2026-08-01)
 
 
